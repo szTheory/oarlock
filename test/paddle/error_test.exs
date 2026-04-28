@@ -32,7 +32,14 @@ defmodule Paddle.ErrorTest do
                code: "invalid_field",
                message: "Email is invalid",
                errors: [%{"field" => "email", "message" => "must be present"}],
-               raw: %{"error" => %{"type" => "validation_error", "code" => "invalid_field", "detail" => "Email is invalid", "errors" => [%{"field" => "email", "message" => "must be present"}]}}
+               raw: %{
+                 "error" => %{
+                   "type" => "validation_error",
+                   "code" => "invalid_field",
+                   "detail" => "Email is invalid",
+                   "errors" => [%{"field" => "email", "message" => "must be present"}]
+                 }
+               }
              } = Error.from_response(response)
     end
 

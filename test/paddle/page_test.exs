@@ -14,7 +14,10 @@ defmodule Paddle.PageTest do
 
   describe "next_cursor/1" do
     test "returns the next pagination cursor when present" do
-      page = %Page{data: [], meta: %{"pagination" => %{"next" => "/transactions?after=cursor_123"}}}
+      page = %Page{
+        data: [],
+        meta: %{"pagination" => %{"next" => "/transactions?after=cursor_123"}}
+      }
 
       assert Page.next_cursor(page) == "/transactions?after=cursor_123"
     end
