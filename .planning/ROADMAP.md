@@ -33,6 +33,10 @@
 ### Phase 2: Webhook Verification
 **Goal:** Provide secure, raw-body pure functions for verifying webhook signatures according to Paddle's spec (h1, multiple signatures, timestamp tolerance) and parsing event JSON.
 
+**Plans:** 2 plans
+- [ ] 02-01-PLAN.md — Create the generic Paddle.Event envelope and implement pure webhook event parsing
+- [ ] 02-02-PLAN.md — Implement raw-body signature verification with replay protection and multi-signature support
+
 **Success Criteria:**
 1. `Paddle.Webhooks.verify_signature/4` correctly accepts or rejects raw payloads based on a matching signature.
 2. Signature verification supports a configurable timestamp tolerance (defaulting to 5 seconds).
