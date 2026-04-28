@@ -17,6 +17,11 @@
 ### Phase 1: Core Transport & Client Setup
 **Goal:** Establish the foundational HTTP layer using `req`, define the explicit `%Paddle.Client{}` struct, manage base URLs (sandbox/live), and setup the standard `{:ok, struct}` and `{:error, error}` response patterns alongside pagination.
 
+**Plans:** 3 plans
+- [x] 01-01-PLAN.md — Bootstrap the Elixir library application and set up the foundational model structs
+- [x] 01-02-PLAN.md — Implement the core Paddle.Client struct and attach domain-specific telemetry steps
+- [x] 01-03-PLAN.md — Implement the execution boundary Paddle.Http module
+
 **Success Criteria:**
 1. A `%Paddle.Client{}` struct can be initialized with an API key, environment (`:sandbox` | `:live`), and a hardcoded "Paddle-Version: 1" header.
 2. An internal module (e.g., `Paddle.Request`) successfully makes authenticated HTTP calls to Paddle via `req` without erroring.
