@@ -8,6 +8,11 @@
     "research": true,
     "plan_check": true,
     "verifier": true,
-    "nyquist_validation": false
+    "research_before_questions": true,
+    "nyquist_validation": false,
+    "_auto_chain_active": false
+  },
+  "features": {
+    "thinking_partner": true
   }
 }
