@@ -83,9 +83,19 @@ defmodule Paddle.WebhooksTest do
 
     test "fails when the header contains malformed segments" do
       raw_body = ~s({"event_id":"evt_01"})
+      digest = signature(@now, raw_body, @secret)
 
       assert {:error, :invalid_signature_header} =
                Webhooks.verify_signature(raw_body, "ts=#{@now};invalid", @secret, now: @now)
+
+      assert {:error, :invalid_signature_header} =
+               Webhooks.verify_signature(raw_body, "ts=#{@now};;h1=#{digest}", @secret, now: @now)
+
+      assert {:error, :invalid_signature_header} =
+               Webhooks.verify_signature(raw_body, ";ts=#{@now};h1=#{digest}", @secret, now: @now)
+
+      assert {:error, :invalid_signature_header} =
+               Webhooks.verify_signature(raw_body, "ts=#{@now};h1=#{digest};", @secret, now: @now)
     end
 
     test "fails when `ts` is not an integer" do

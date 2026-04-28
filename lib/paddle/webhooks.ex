@@ -60,13 +60,18 @@ defmodule Paddle.Webhooks do
   defp split_header(signature_header) do
     parts =
       signature_header
-      |> String.split(";", trim: true)
+      |> String.split(";", trim: false)
       |> Enum.map(&String.trim/1)
 
-    if parts == [] do
-      {:error, :invalid_signature_header}
-    else
-      {:ok, parts}
+    cond do
+      parts == [] ->
+        {:error, :invalid_signature_header}
+
+      Enum.any?(parts, &(&1 == "")) ->
+        {:error, :invalid_signature_header}
+
+      true ->
+        {:ok, parts}
     end
   end
 
