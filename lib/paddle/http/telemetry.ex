@@ -7,7 +7,10 @@ defmodule Paddle.Http.Telemetry do
   end
 
   defp telemetry_start(request) do
-    :telemetry.execute([:paddle, :request, :start], %{time: System.system_time()}, %{request: request})
+    :telemetry.execute([:paddle, :request, :start], %{time: System.system_time()}, %{
+      request: request
+    })
+
     request
   end
 

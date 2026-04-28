@@ -5,7 +5,11 @@ defmodule Paddle.Client do
   def new!(opts \\ []) do
     api_key = Keyword.fetch!(opts, :api_key)
     environment = Keyword.get(opts, :environment, :sandbox)
-    base_url = if environment == :live, do: "https://api.paddle.com", else: "https://sandbox-api.paddle.com"
+
+    base_url =
+      if environment == :live,
+        do: "https://api.paddle.com",
+        else: "https://sandbox-api.paddle.com"
 
     req =
       Req.new(
