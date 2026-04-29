@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 03
-last_updated: "2026-04-29T00:52:22.804Z"
+last_updated: "2026-04-29T00:57:43.921Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -37,6 +37,8 @@ progress:
 - Code review reran clean after the malformed signature-header segment fix.
 - Phase 3 plan `03-01` executed and summarized with customer entity and CRUD support.
 - Current phase decision: keep Paddle `"data"` envelope unwrapping inside `Paddle.Customers` and use per-endpoint write allowlists that preserve explicit `nil` for PATCH clears.
-- Next step: Execute `03-02-PLAN.md` for customer-scoped address support.
+- Phase 3 plan `03-02` executed and summarized with customer-scoped address entity and CRUD support.
+- Current phase decision: keep address ownership explicit in public signatures and use separate create/update allowlists so PATCH bodies preserve explicit `nil` only for known writable keys.
+- Next step: Execute `03-03-PLAN.md` for the remaining Phase 3 scope.
 
 **Planned Phase:** 3 (Core Entities (Customers & Addresses)) — 3 plans — 2026-04-29T00:51:50Z

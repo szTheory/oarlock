@@ -16,7 +16,7 @@
 
 ### Customers & Addresses
 - [x] **CUST-01**: Map application users to Paddle Customers (create, get, update).
-- [ ] **ADDR-01**: Support customer billing addresses (create, list, update).
+- [x] **ADDR-01**: Support customer billing addresses (create, list, update).
 
 ### Transactions
 - [ ] **TXN-01**: Create recurring transactions mapping to hosted checkouts.

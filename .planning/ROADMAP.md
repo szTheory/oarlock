@@ -49,7 +49,7 @@
 
 **Plans:** 3 plans
 - [x] 03-01-PLAN.md — Implement the customer entity contract and customer CRUD resource functions
-- [ ] 03-02-PLAN.md — Implement customer-scoped address entities and resource operations
+- [x] 03-02-PLAN.md — Implement customer-scoped address entities and resource operations
 - [ ] 03-03-PLAN.md — Follow-on Phase 3 work
 
 **Success Criteria:**
