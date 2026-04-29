@@ -8,22 +8,23 @@ defmodule Paddle.Transactions do
          {:ok, customer_id} <- validate_customer_id(attrs),
          {:ok, address_id} <- validate_address_id(attrs),
          {:ok, items} <- validate_items(attrs),
+         {:ok, custom_data} <- validate_custom_data(attrs),
          {:ok, checkout} <- validate_checkout(attrs),
-         body <- build_body(customer_id, address_id, items, attrs, checkout),
+         body <- build_body(customer_id, address_id, items, custom_data, checkout),
          {:ok, %{"data" => data}} when is_map(data) <-
            Http.request(client, :post, "/transactions", json: body) do
       {:ok, build_transaction(data)}
     end
   end
 
-  defp build_body(customer_id, address_id, items, attrs, checkout) do
+  defp build_body(customer_id, address_id, items, custom_data, checkout) do
     %{
       "customer_id" => customer_id,
       "address_id" => address_id,
       "items" => items,
       "collection_mode" => "automatic"
     }
-    |> maybe_put("custom_data", Map.get(attrs, "custom_data"))
+    |> maybe_put("custom_data", custom_data)
     |> maybe_put("checkout", checkout)
   end
 
@@ -122,6 +123,15 @@ defmodule Paddle.Transactions do
   end
 
   defp normalize_item(_item), do: :error
+
+  defp validate_custom_data(attrs) do
+    case Map.fetch(attrs, "custom_data") do
+      :error -> {:ok, nil}
+      {:ok, nil} -> {:ok, nil}
+      {:ok, value} when is_map(value) -> {:ok, value}
+      {:ok, _} -> {:error, :invalid_custom_data}
+    end
+  end
 
   defp validate_checkout(attrs) do
     case Map.fetch(attrs, "checkout") do

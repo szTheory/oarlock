@@ -213,6 +213,46 @@ defmodule Paddle.TransactionsTest do
                Transactions.create(client, [{:items, ["pri_01"]} | base])
     end
 
+    test "returns :invalid_custom_data for non-map custom_data values" do
+      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
+
+      base = [
+        customer_id: "ctm_01",
+        address_id: "add_01",
+        items: [%{price_id: "pri_01", quantity: 1}]
+      ]
+
+      assert {:error, :invalid_custom_data} =
+               Transactions.create(client, [{:custom_data, "crm_123"} | base])
+
+      assert {:error, :invalid_custom_data} =
+               Transactions.create(client, [{:custom_data, 1} | base])
+
+      assert {:error, :invalid_custom_data} =
+               Transactions.create(client, [{:custom_data, [%{}]} | base])
+    end
+
+    test "treats custom_data: nil as omitted and posts a body without a custom_data key" do
+      response_data = transaction_payload()
+
+      client =
+        client_with_adapter(fn request ->
+          body = decode_json_body(request.body)
+
+          refute Map.has_key?(body, "custom_data")
+
+          {request, Req.Response.new(status: 201, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Transaction{}} =
+               Transactions.create(client,
+                 customer_id: "ctm_01",
+                 address_id: "add_01",
+                 items: [%{price_id: "pri_01", quantity: 1}],
+                 custom_data: nil
+               )
+    end
+
     test "treats checkout: nil as omitted and posts a body without a checkout key" do
       response_data = transaction_payload()
 
