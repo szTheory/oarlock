@@ -153,7 +153,10 @@ defmodule Paddle.SeamTest do
       end)
 
     assert {:ok, %Subscription{id: "sub_seam01", status: "active"} = subscription} =
-             Paddle.Subscriptions.get(subscription_get_client, fetched_transaction.subscription_id)
+             Paddle.Subscriptions.get(
+               subscription_get_client,
+               fetched_transaction.subscription_id
+             )
 
     assert %ManagementUrls{
              update_payment_method:
