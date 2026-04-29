@@ -24,7 +24,7 @@ key-files:
     - "test/paddle/transactions_test.exs"
     - ".planning/phases/06-transactions-retrieval/06-01-SUMMARY.md"
 key-decisions:
-  - "Left lib/paddle/transactions.ex unchanged because the existing get/2 implementation already matched the locked Phase 6 seam."
+  - "RETRO 2026-04-29 (milestone close): The original 'Left lib/paddle/transactions.ex unchanged' claim was incorrect — get/2 was actually present only in the working tree and never committed during Phase 6. Implementation landed retroactively in commit 813438d (fix(06-01)) during v1.1 milestone close."
   - "Left test/paddle/seam_test.exs unchanged because the retrieval step already asserted the required request, struct, and checkout raw_data contract."
   - "Made the invalid-ID no-dispatch guarantee explicit with adapter message assertions instead of implied behavior."
 patterns-established:
@@ -49,7 +49,7 @@ completed: 2026-04-29
 
 ## Accomplishments
 
-- Confirmed `lib/paddle/transactions.ex` already met the locked Phase 6 requirements: `%Client{}` function head, `GET /transactions/{id}` request path, lightweight ID validation, URL encoding, `%Paddle.Transaction{}` return shape, `%Checkout{}` hydration, and unchanged `%Paddle.Error{}` / transport passthrough behavior.
+- Confirmed `lib/paddle/transactions.ex` met the locked Phase 6 requirements: `%Client{}` function head, `GET /transactions/{id}` request path, lightweight ID validation, URL encoding, `%Paddle.Transaction{}` return shape, `%Checkout{}` hydration, and unchanged `%Paddle.Error{}` / transport passthrough behavior. **(RETRO: implementation was present only in the working tree at the time of this summary; it was committed as `813438d` during v1.1 milestone close on 2026-04-29.)**
 - Updated `test/paddle/transactions_test.exs` so the invalid-ID retrieval test now proves the adapter was never invoked for `nil`, blank, whitespace-only, and non-binary IDs.
 - Confirmed `test/paddle/seam_test.exs` already pinned the end-to-end transaction create/get symmetry the plan required, so no seam expansion was needed.
 
