@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-04-29T02:54:44.780Z"
+last_updated: "2026-04-29T14:06:39.068Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 10
+  total_plans: 13
   completed_plans: 10
-  percent: 100
+  percent: 77
 ---
 
 # Project State
@@ -43,4 +43,4 @@ progress:
 - Current phase decision: keep address list `%Paddle.Page{}` mapping inside `Paddle.Customers.Addresses` and validate list params separately from write attrs.
 - Next step: Plan and execute Phase 4 transaction and hosted checkout scope.
 
-**Planned Phase:** 3 (Core Entities (Customers & Addresses)) — 3 plans — 2026-04-29T00:51:50Z
+**Planned Phase:** 5 (Subscriptions Management) — 3 plans — 2026-04-29T14:06:39.061Z
