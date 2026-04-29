@@ -304,12 +304,12 @@ This is the standard local testing idiom for resource seams in this project. [VE
 | A2 | A retrieval-specific wrapper is the main alternative to reusing `%Paddle.Transaction{}`. [ASSUMED] | Standard Stack / Alternatives Considered | Low; the user already locked the canonical entity surface. [VERIFIED: .planning/phases/06-transactions-retrieval/06-CONTEXT.md] |
 | A3 | Per-resource custom error parsing and second retrieval mappers are the likely hand-rolled alternatives implementers might reach for. [ASSUMED] | Don't Hand-Roll | Low; the recommended plan is still anchored to verified local abstractions. [VERIFIED: lib/paddle/http.ex; lib/paddle/transactions.ex] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Phase 6 be planned as implementation work or as reconciliation/verification work?**
-   - What we know: The branch already contains `Paddle.Transactions.get/2`, focused retrieval tests, and seam coverage that calls the function. [VERIFIED: lib/paddle/transactions.ex; test/paddle/transactions_test.exs; test/paddle/seam_test.exs]
-   - What's unclear: Whether the planner should treat those changes as accepted scope or as pre-plan draft work subject to revision. [VERIFIED: git status; absence of `06-PLAN.md`]
-   - Recommendation: Make the first plan step a branch reconciliation checkpoint; if no contract delta is found, shift Phase 6 tasks toward review, polish, and release readiness. [VERIFIED: lib/paddle/transactions.ex; test/paddle/transactions_test.exs]
+   - Resolution: Plan Phase 6 as reconciliation-first work. The branch already contains `Paddle.Transactions.get/2`, focused retrieval tests, and seam coverage that calls the function, so the first execution step should audit the live code against TXN-03 and the locked decisions. [VERIFIED: lib/paddle/transactions.ex; test/paddle/transactions_test.exs; test/paddle/seam_test.exs]
+   - Chosen execution posture: Keep the current implementation if the audit confirms it satisfies the contract, and make code changes only where the audit proves a real contract gap. [VERIFIED: .planning/phases/06-transactions-retrieval/06-01-PLAN.md]
+   - Why this is closed: The generated plan already encodes this approach, so the research question is no longer open. [VERIFIED: .planning/phases/06-transactions-retrieval/06-01-PLAN.md]
 
 ## Environment Availability
 

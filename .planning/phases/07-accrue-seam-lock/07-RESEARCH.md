@@ -268,17 +268,17 @@ assert Paddle.Page.next_cursor(page) == "/transactions?after=cursor_123"
 
 All claims in this research were verified or cited in this session [VERIFIED: repo audit + official docs].
 
-## Open Questions
+## Resolved Questions
 
-1. **Should the placeholder root `Paddle` module remain in published docs at all?**
-   - What we know: `lib/paddle.ex` still contains the generated `hello/0` placeholder and `doc/api-reference.md` publishes `Paddle` today [VERIFIED: `lib/paddle.ex`; VERIFIED: `doc/api-reference.md`].
-   - What's unclear: whether the desired end state is to hide it from docs, replace it with a real package overview, or delete it entirely [VERIFIED: repo audit].
-   - Recommendation: treat it as part of the docs-boundary plan and choose one explicit outcome before implementation starts [VERIFIED: D-06 and D-09 in `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
+1. **Placeholder root `Paddle` module outcome**
+   - Decision: hide `lib/paddle.ex` from published docs with `@moduledoc false`; do not expand it into a package-overview module in Phase 7 and do not rely on it as part of the supported seam [VERIFIED: D-06 and D-09 in `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
+   - Why: the current module is still the generated `hello/0` placeholder, and publishing it would keep advertising a non-seam entry point in `doc/api-reference.md` [VERIFIED: `lib/paddle.ex`; VERIFIED: `doc/api-reference.md`].
+   - Planning impact: Plan 02 should treat `lib/paddle.ex` exactly like `Paddle.Http` and `Paddle.Http.Telemetry` for docs-surface suppression [VERIFIED: `.planning/phases/07-accrue-seam-lock/07-02-PLAN.md`].
 
-2. **Should the guide include a short glossary section?**
-   - What we know: the current guide already has a vocabulary section, and CONTEXT.md leaves glossary detail to implementation discretion [VERIFIED: `guides/accrue-seam.md`; VERIFIED: `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
-   - What's unclear: whether the planner wants a minimal vocabulary rewrite or a fuller glossary that also defines the two exclusion buckets [VERIFIED: repo audit].
-   - Recommendation: keep the glossary lightweight unless docs review shows consumers are likely to confuse `additive` versus `opaque` [VERIFIED: D-11..D-18 in `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
+2. **Guide glossary scope**
+   - Decision: keep the guide vocabulary lightweight and inline. Retain the existing vocabulary section, but do not add a separate glossary block unless execution shows the rewritten guide still leaves `additive`, `opaque`, or the exclusion buckets ambiguous [VERIFIED: D-11..D-18 in `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
+   - Why: the current guide already has a vocabulary section, and CONTEXT.md leaves the exact wording and glossary depth to implementation discretion [VERIFIED: `guides/accrue-seam.md`; VERIFIED: `.planning/phases/07-accrue-seam-lock/07-CONTEXT.md`].
+   - Planning impact: Plan 02 should rewrite the existing vocabulary section in place instead of introducing a second terminology structure unless that becomes necessary during docs review [VERIFIED: `.planning/phases/07-accrue-seam-lock/07-02-PLAN.md`].
 
 ## Environment Availability
 

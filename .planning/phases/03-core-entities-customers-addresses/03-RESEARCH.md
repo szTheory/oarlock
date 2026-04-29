@@ -331,12 +331,12 @@ end
 |---|-------|---------|---------------|
 | A1 | Nil-stripping helpers are a likely implementation hazard in local normalization code. | Common Pitfalls | Low; the fix is simply to retain known keys with `nil` values in update bodies. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Phase 3 add small private validators for ID prefixes (`ctm_`, `add_`), or only blank/nil checks?**
    - What we know: The phase context allows lightweight stable local checks, and the official schemas define ID patterns. [VERIFIED: .planning/phases/03-core-entities-customers-addresses/03-CONTEXT.md] [CITED: https://github.com/PaddleHQ/paddle-openapi/blob/main/v1/openapi.yaml]
-   - What's unclear: Whether enforcing prefixes locally is worth the added strictness for a thin SDK. [ASSUMED]
-   - Recommendation: Limit Phase 3 to nil/empty path checks and body/query container-shape checks; rely on Paddle for deeper ID validation to keep the boundary thin. [ASSUMED]
+   - Resolution: Phase 3 should validate only nil/empty path ids and invalid attrs/params container shapes locally, then rely on Paddle for deeper identifier validation so the SDK boundary stays thin and future-proof. [VERIFIED: .planning/phases/03-core-entities-customers-addresses/03-CONTEXT.md]
+   - Execution contract: customer functions return `{:error, :invalid_customer_id}` for blank ids and `{:error, :invalid_attrs}` for non-map/non-keyword attrs; address functions return `{:error, :invalid_customer_id}` or `{:error, :invalid_address_id}` for blank ids, `{:error, :invalid_attrs}` for non-map/non-keyword attrs, and `{:error, :invalid_params}` for non-map/non-keyword list params. [ASSUMED]
 
 ## Security Domain
 

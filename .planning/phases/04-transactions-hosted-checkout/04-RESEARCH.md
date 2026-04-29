@@ -290,12 +290,12 @@ end
 
 All material claims in this research were verified or cited in this session. No user confirmation is required before planning. [VERIFIED: this document]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Do we want one manual live-account verification step in the eventual execution plan?**
-   - What we know: adapter-backed tests can fully verify request shaping and response mapping without hitting Paddle, and hosted checkout still depends on dashboard-side payment-link setup. [VERIFIED: test/paddle/customers_test.exs] [VERIFIED: test/paddle/customers/addresses_test.exs] [CITED: https://developer.paddle.com/build/transactions/create-transaction]
-   - What's unclear: whether a live sandbox/manual browser validation should be part of Phase 4 execution or deferred to a later integration-verification pass. [CITED: https://developer.paddle.com/build/transactions/pass-transaction-checkout]
-   - Recommendation: plan the code and adapter tests as the required work, then treat live checkout opening as an explicit optional/manual validation step unless the milestone requires end-to-end sandbox proof. [VERIFIED: .planning/ROADMAP.md]
+1. **Should one manual live-account verification step be required in the execution plan?**
+   - Resolution: no. Phase 4 should require adapter-backed automated verification for request shaping, typed response mapping, and `transaction.checkout.url`, while any real checkout-opening step remains an explicit manual-only follow-up outside the required execution path. [VERIFIED: test/paddle/customers_test.exs] [VERIFIED: test/paddle/customers/addresses_test.exs] [VERIFIED: .planning/ROADMAP.md] [CITED: https://developer.paddle.com/build/transactions/create-transaction] [CITED: https://developer.paddle.com/build/transactions/pass-transaction-checkout]
+   - Why: Paddle dashboard payment-link and approved-domain setup are external prerequisites that the repo cannot automate, so making live checkout opening mandatory would turn an infrastructure dependency into a false blocker for SDK code completion. [CITED: https://developer.paddle.com/changelog/2023/checkout-domains]
+   - Planning impact: required work stays focused on code and adapter tests; the optional manual verification is tracked separately in `04-VALIDATION.md`.
 
 ## Environment Availability
 
