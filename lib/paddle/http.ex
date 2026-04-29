@@ -1,4 +1,6 @@
 defmodule Paddle.Http do
+  @moduledoc false
+
   def request(%Paddle.Client{} = client, method, path, opts \\ []) do
     opts = Keyword.merge(opts, method: method, url: path)
 

@@ -1,17 +1,7 @@
 defmodule Paddle do
-  @moduledoc """
-  Documentation for `Paddle`.
-  """
+  @moduledoc false
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Paddle.hello()
-      :world
-
-  """
+  @doc false
   def hello do
     :world
   end

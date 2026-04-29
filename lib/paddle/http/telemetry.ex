@@ -1,4 +1,6 @@
 defmodule Paddle.Http.Telemetry do
+  @moduledoc false
+
   def attach(req) do
     req
     |> Req.Request.append_request_steps(paddle_telemetry_start: &telemetry_start/1)
