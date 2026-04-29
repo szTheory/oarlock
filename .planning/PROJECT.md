@@ -35,11 +35,12 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - [x] `Paddle.Transactions.create/2` returning hosted checkout URL. *(Phase 4)*
 - [x] `Paddle.Subscriptions` (get, list, cancel). *(Phase 5 — `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2` with hydrated `%ScheduledChange{}` and `%ManagementUrls{}`; 23 adapter-backed tests.)*
 - [x] Testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc. *(Phase 1 baseline; carried through v1.0)*
+- [x] **TXN-03**: `Paddle.Transactions.get/2` — fetch a transaction by ID with hydrated checkout struct. *(Validated in Phase 6)*
+- [x] **SEAM-01**: End-to-end Accrue seam contract test (adapter-backed; 7-step Accrue path with `is_map/1` opacity checks for `:raw_data`). *(Validated in Phase 7)*
+- [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`) with locked vocabulary and sealed docs surface (`@moduledoc false` on `Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`). *(Validated in Phase 7)*
 
 ### Active (v1.1)
-- [ ] **TXN-03**: `Paddle.Transactions.get/2` — fetch a transaction by ID with hydrated checkout struct.
-- [ ] **SEAM-01**: End-to-end Accrue seam integration test exercising the full consumer contract path.
-- [ ] **SEAM-02**: Consumer-facing seam surface doc enumerating locked modules, structs, and stability tiers.
+_All v1.1 requirements validated — milestone complete._
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -71,4 +72,4 @@ Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01
 ## Evolution
 This document evolves at phase transitions and milestone boundaries.
 ---
-*Last updated: 2026-04-29 — milestone v1.1 (Accrue Seam Hardening) opened; v1.0 requirements moved to Validated.*
+*Last updated: 2026-04-29 — Phase 07 complete; milestone v1.1 (Accrue Seam Hardening) all requirements validated. SEAM-01 and SEAM-02 moved to Validated.*
