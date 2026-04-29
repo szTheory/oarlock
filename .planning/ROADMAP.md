@@ -47,6 +47,11 @@
 ### Phase 3: Core Entities (Customers & Addresses)
 **Goal:** Implement the fundamental billing entities that all other billing operations depend on.
 
+**Plans:** 3 plans
+- [x] 03-01-PLAN.md — Implement the customer entity contract and customer CRUD resource functions
+- [ ] 03-02-PLAN.md — Implement customer-scoped address entities and resource operations
+- [ ] 03-03-PLAN.md — Follow-on Phase 3 work
+
 **Success Criteria:**
 1. A developer can create, get, and update a `%Paddle.Customer{}`.
 2. A developer can create, list, and update a `%Paddle.Address{}` for a specific customer.

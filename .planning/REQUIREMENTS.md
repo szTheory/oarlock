@@ -15,7 +15,7 @@
 - [ ] **WEB-03**: Event parsing into typed structs (`Paddle.Webhooks.parse_event/1`).
 
 ### Customers & Addresses
-- [ ] **CUST-01**: Map application users to Paddle Customers (create, get, update).
+- [x] **CUST-01**: Map application users to Paddle Customers (create, get, update).
 - [ ] **ADDR-01**: Support customer billing addresses (create, list, update).
 
 ### Transactions
