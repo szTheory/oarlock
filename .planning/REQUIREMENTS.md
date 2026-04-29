@@ -71,17 +71,27 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ## Traceability
 
-(Filled in by roadmap creation in next step.)
+Coverage: 14 / 14 v1.2 requirements mapped (100%).
 
-| Requirement | Phase | Status | Notes |
-|-------------|-------|--------|-------|
-| REL-01..03  | 8     | Pending | Reliability primitives in HTTP layer. |
-| PAGE-01     | 9     | Pending | Auto-pagination helpers. |
-| SUB-04..06  | 10    | Pending | Subscription create + pause + resume. |
-| TYPES-01..02| 11    | Pending | @spec sweep + dialyxir CI gate. |
-| DOCS-01..05 | 12    | Pending | @doc/@moduledoc + README + 2 guides. |
-| PROC-01..02 | 13    | Pending | Pre-commit hook + CI gate for SUMMARY/git-state drift. |
+| Requirement | Phase | Status  | Notes |
+|-------------|-------|---------|-------|
+| REL-01      | 8     | Pending | `idempotency_key:` opt → `Idempotency-Key` header on every `create/*`. |
+| REL-02      | 8     | Pending | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
+| REL-03      | 8     | Pending | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
+| PAGE-01     | 9     | Pending | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
+| SUB-04      | 10    | Pending | `Paddle.Subscriptions.create/2`. Closes P0 Accrue blocker. |
+| SUB-05      | 10    | Pending | `Paddle.Subscriptions.pause/2`. |
+| SUB-06      | 10    | Pending | `Paddle.Subscriptions.resume/2`. |
+| TYPES-01    | 11    | Pending | `@spec` on every public function across `lib/paddle/`. |
+| TYPES-02    | 11    | Pending | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
+| DOCS-01     | 12    | Pending | `@doc` + example on every public function. |
+| DOCS-02     | 12    | Pending | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
+| DOCS-03     | 12    | Pending | README rewrite (install + quick-start + cross-links), removes line-3 TODO stub. |
+| DOCS-04     | 12    | Pending | `guides/getting-started.md` published into `:docs` extras. |
+| DOCS-05     | 12    | Pending | `guides/telemetry.md` published into `:docs` extras. |
+| PROC-01     | 13    | Pending | Pre-commit hook for SUMMARY/git-state drift. |
+| PROC-02     | 13    | Pending | Same drift check as CI step. |
 
 ---
 
-_Created 2026-04-29 at v1.2 milestone start._
+_Created 2026-04-29 at v1.2 milestone start. Traceability filled in by roadmap creation 2026-04-29._
