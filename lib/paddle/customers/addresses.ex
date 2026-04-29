@@ -46,7 +46,9 @@ defmodule Paddle.Customers.Addresses do
          {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @update_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :patch, customer_address_path(customer_id, address_id), json: body) do
+           Http.request(client, :patch, customer_address_path(customer_id, address_id),
+             json: body
+           ) do
       {:ok, Http.build_struct(Address, data)}
     end
   end

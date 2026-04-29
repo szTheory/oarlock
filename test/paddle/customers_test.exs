@@ -14,6 +14,7 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/customers"
+
           assert decode_json_body(request.body) == %{
                    "custom_data" => %{"crm_id" => "crm_123"},
                    "email" => "ada@example.com",
@@ -134,6 +135,7 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/customers/ctm_01"
+
           assert decode_json_body(request.body) == %{
                    "custom_data" => %{"crm_id" => "crm_456"},
                    "email" => "ada@example.com",

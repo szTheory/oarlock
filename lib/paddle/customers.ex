@@ -10,7 +10,8 @@ defmodule Paddle.Customers do
   def create(%Client{} = client, attrs) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
-         {:ok, %{"data" => data}} when is_map(data) <- Http.request(client, :post, "/customers", json: body) do
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :post, "/customers", json: body) do
       {:ok, Http.build_struct(Customer, data)}
     end
   end

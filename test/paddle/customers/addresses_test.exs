@@ -95,7 +95,8 @@ defmodule Paddle.Customers.AddressesTest do
           assert URI.decode_query(request.url.query) == %{}
           assert request.body == nil
 
-          {request, Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
         end)
 
       assert {:ok, %Paddle.Page{data: [%Address{}, %Address{}], meta: ^meta} = page} =
@@ -144,7 +145,10 @@ defmodule Paddle.Customers.AddressesTest do
           assert URI.decode_query(request.url.query) == %{"status" => "archived"}
 
           {request,
-           Req.Response.new(status: 200, body: %{"data" => [archived_address_payload()], "meta" => %{}})}
+           Req.Response.new(
+             status: 200,
+             body: %{"data" => [archived_address_payload()], "meta" => %{}}
+           )}
         end)
 
       assert {:ok, %Paddle.Page{data: [%Address{status: "archived"}], meta: %{}}} =
@@ -152,7 +156,10 @@ defmodule Paddle.Customers.AddressesTest do
     end
 
     test "returns exact validation tuples before dispatch" do
-      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => [], "meta" => %{}})})
+      client =
+        client_with_adapter(
+          &{&1, Req.Response.new(status: 200, body: %{"data" => [], "meta" => %{}})}
+        )
 
       assert {:error, :invalid_customer_id} = Addresses.list(client, nil)
       assert {:error, :invalid_customer_id} = Addresses.list(client, " ")

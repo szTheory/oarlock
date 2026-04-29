@@ -9,7 +9,12 @@ defmodule Paddle.Webhooks do
       when is_binary(raw_body) and is_binary(signature_header) and is_binary(secret_key) do
     with {:ok, tolerance} <- normalize_tolerance(opts[:tolerance] || @default_tolerance),
          {:ok, timestamp, signatures} <- parse_signature_header(signature_header),
-         :ok <- validate_timestamp(timestamp, Keyword.get(opts, :now, System.os_time(:second)), tolerance),
+         :ok <-
+           validate_timestamp(
+             timestamp,
+             Keyword.get(opts, :now, System.os_time(:second)),
+             tolerance
+           ),
          expected_digest <- expected_digest(timestamp, raw_body, secret_key),
          false <- Enum.empty?(signatures),
          true <- Enum.any?(signatures, &secure_compare_digest(expected_digest, &1)) do
@@ -45,7 +50,9 @@ defmodule Paddle.Webhooks do
     Enum.all?(@required_keys, &Map.has_key?(payload, &1))
   end
 
-  defp normalize_tolerance(tolerance) when is_integer(tolerance) and tolerance >= 0, do: {:ok, tolerance}
+  defp normalize_tolerance(tolerance) when is_integer(tolerance) and tolerance >= 0,
+    do: {:ok, tolerance}
+
   defp normalize_tolerance(_tolerance), do: {:error, :invalid_tolerance}
 
   defp parse_signature_header(signature_header) do
@@ -112,7 +119,8 @@ defmodule Paddle.Webhooks do
   defp fetch_signatures(%{signatures: []}), do: {:error, :missing_signature}
   defp fetch_signatures(%{signatures: signatures}), do: {:ok, Enum.reverse(signatures)}
 
-  defp validate_timestamp(timestamp, now, tolerance) when is_integer(timestamp) and is_integer(now) do
+  defp validate_timestamp(timestamp, now, tolerance)
+       when is_integer(timestamp) and is_integer(now) do
     cond do
       timestamp < now - tolerance -> {:error, :stale_timestamp}
       timestamp > now + tolerance -> {:error, :future_timestamp}
