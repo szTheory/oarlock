@@ -4,6 +4,9 @@
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "balanced",
+  "preferences": {
+    "vendor_philosophy": "opinionated"
+  },
   "workflow": {
     "research": true,
     "plan_check": true,
