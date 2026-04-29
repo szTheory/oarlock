@@ -84,3 +84,16 @@
 1. A developer can fetch the canonical state of a specific subscription.
 2. A developer can list all subscriptions for a given customer.
 3. A developer can cancel a subscription (both end-of-period and immediate variants).
+
+---
+
+## Future Work — Accrue Integration
+
+Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for prioritized entries (`B-01` through `B-03`) with rationale, sizing, and promotion hints.
+
+Likely shape of the next milestone (v1.1) once the user is ready to plan it:
+
+- **Phase 6 — `Paddle.Transactions.get/2`** (B-01). Closes the Phase 4 retrieval gap. Small, isolated, unblocks Accrue's checkout reconciliation.
+- **Phase 7 — Accrue seam integration test + consumer-facing surface doc** (B-02 + B-03). End-to-end contract path (customer → address → transaction → checkout URL → webhook → subscription fetch → cancel) plus a renderable consumer-contract doc.
+
+These are not yet planned phases. Promote via `/gsd-new-milestone` (preferred — opens v1.1 cleanly) or `/gsd-add-phase` (if v1.0 stays open and `Transactions.get/2` is treated as a 4.1 decimal). Two of Accrue's prereqs (pure-function webhooks, deferred subscription mutations) are already met by the current oarlock surface and need no new work — see `PROJECT.md → Integration Consumers`.

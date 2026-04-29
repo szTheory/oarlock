@@ -44,7 +44,18 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 | **Response Payloads** | Typed Structs (e.g., `%Paddle.Customer{}`) with a `raw_data` field improve DX while preserving forward-compatibility. | Structs selected over raw Maps. |
 | **Client Instantiation** | Explicit `client` passing supports multi-tenant apps and avoids global application config conflicts. | Explicit structs selected. |
 
+## Integration Consumers
+
+### Accrue (`~/projects/accrue`)
+Higher-level multi-processor billing library that consumes oarlock for Paddle (and `lattice_stripe` for Stripe). Treats the following oarlock surface as a stable seam:
+
+- **Locked struct surfaces:** `%Paddle.Transaction{}`, `%Paddle.Transaction.Checkout{}`, `%Paddle.Subscription{}`, `%Paddle.Subscription.ScheduledChange{}`, `%Paddle.Subscription.ManagementUrls{}`, `%Paddle.Event{}`. Field additions are safe (the `:raw_data` field on each preserves forward compatibility); field removals or renames are breaking and require a major bump.
+- **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
+- **Deferred surface (not on near-term roadmap):** subscription mutations (`update`, `pause`, `resume`), payment-method update flows. These remain out of v0.1 scope and are not currently planned for v1.x — Accrue's first slice does not depend on them.
+
+Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-03`).
+
 ## Evolution
 This document evolves at phase transitions and milestone boundaries.
 ---
-*Last updated: 2026-04-29 after Phase 5 (Subscriptions Management) completion — milestone v1.0 fully executed.*
+*Last updated: 2026-04-29 after Phase 5 (Subscriptions Management) completion — milestone v1.0 fully executed; Accrue integration context captured.*
