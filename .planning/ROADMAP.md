@@ -76,9 +76,9 @@
 **Goal:** Complete the SaaS lifecycle loop by allowing canonical state fetching and cancellation.
 
 **Plans:** 3 plans
-- [ ] 05-01-PLAN.md — Lock the typed subscription entity surface and the two carved-out nested structs (ScheduledChange, ManagementUrls)
-- [ ] 05-02-PLAN.md — Implement Paddle.Subscriptions with get/2, list/2, cancel/2, cancel_immediately/2 and per-resource nested-struct hydration
-- [ ] 05-03-PLAN.md — Adapter-backed ExUnit coverage for all four public functions including validation, error propagation, and Pitfalls 2/3/5/6
+- [x] 05-01-PLAN.md — Lock the typed subscription entity surface and the two carved-out nested structs (ScheduledChange, ManagementUrls)
+- [x] 05-02-PLAN.md — Implement Paddle.Subscriptions with get/2, list/2, cancel/2, cancel_immediately/2 and per-resource nested-struct hydration
+- [x] 05-03-PLAN.md — Adapter-backed ExUnit coverage for all four public functions including validation, error propagation, and Pitfalls 2/3/5/6
 
 **Success Criteria:**
 1. A developer can fetch the canonical state of a specific subscription.
