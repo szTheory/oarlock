@@ -12,16 +12,19 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - Must retain forward compatibility via `__raw__` mapping of API responses.
 - Explicit deferment of complex domain areas (refunds, invoices, marketplaces, payment portals) to v0.2+.
 
-## Current Milestone: v1.1 Accrue Seam Hardening
+## Current State
 
-**Goal:** Close the consumer-contract gaps Accrue needs to confidently consume oarlock as its Paddle backend.
+**Shipped:** v1.1 Accrue Seam Hardening on 2026-04-29 — see `.planning/milestones/v1.1-ROADMAP.md`.
 
-**Target features:**
-- `Paddle.Transactions.get/2` — closes the Phase 4 retrieval gap; mirrors `Paddle.Subscriptions.get/2`. (B-01)
-- End-to-end Accrue seam integration test — single-fixture path through customer → address → transaction → webhook → subscription get → cancel. (B-02)
-- Consumer-facing seam surface doc — renderable contract listing public modules, locked structs, and stability tiers. (B-03)
+oarlock now exposes a closed, documented consumer surface for Accrue:
+- `Paddle.Transactions.get/2` retrieval (TXN-03)
+- Adapter-backed end-to-end Accrue seam contract test (`test/paddle/seam_test.exs`, SEAM-01)
+- Canonical seam guide `guides/accrue-seam.md` with locked/additive/opaque vocabulary, sealed internal modules via `@moduledoc false` (SEAM-02)
+- 111 tests, 0 failures at v1.1 tag
 
-**Phase numbering:** continues from v1.0 (last phase 5) → v1.1 starts at Phase 6.
+**Next milestone:** TBD — start via `/gsd-new-milestone`. Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-inserted as phases.
+
+**Phase numbering:** v1.0 covered phases 1-5; v1.1 covered phases 6-7. The next milestone continues at phase 8.
 
 ## Requirements
 
@@ -39,8 +42,8 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - [x] **SEAM-01**: End-to-end Accrue seam contract test (adapter-backed; 7-step Accrue path with `is_map/1` opacity checks for `:raw_data`). *(Validated in Phase 7)*
 - [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`) with locked vocabulary and sealed docs surface (`@moduledoc false` on `Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`). *(Validated in Phase 7)*
 
-### Active (v1.1)
-_All v1.1 requirements validated — milestone complete._
+### Active
+_None — v1.1 shipped 2026-04-29. Next milestone's requirements will be defined via `/gsd-new-milestone`._
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -72,4 +75,4 @@ Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01
 ## Evolution
 This document evolves at phase transitions and milestone boundaries.
 ---
-*Last updated: 2026-04-29 — Phase 07 complete; milestone v1.1 (Accrue Seam Hardening) all requirements validated. SEAM-01 and SEAM-02 moved to Validated.*
+*Last updated: 2026-04-29 after v1.1 milestone (Accrue Seam Hardening) archived. v1.1 = Phases 6-7. Ready for next-milestone planning via `/gsd-new-milestone`.*
