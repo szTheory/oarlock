@@ -62,6 +62,10 @@
 ### Phase 4: Transactions & Hosted Checkout
 **Goal:** Implement the bridge for Accrue's hosted checkout approach by allowing a recurring transaction to be created that yields a checkout URL.
 
+**Plans:** 2 plans
+- [ ] 04-01-PLAN.md — Add the transaction entity contracts and nested checkout struct coverage
+- [ ] 04-02-PLAN.md — Implement strict hosted-checkout transaction creation and checkout URL mapping
+
 **Success Criteria:**
 1. A developer can create a transaction referencing an existing customer and address.
 2. The transaction creation response includes the generated hosted checkout URL string (`transaction.checkout.url`).
