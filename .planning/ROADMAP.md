@@ -50,7 +50,7 @@
 **Plans:** 3 plans
 - [x] 03-01-PLAN.md — Implement the customer entity contract and customer CRUD resource functions
 - [x] 03-02-PLAN.md — Implement customer-scoped address entities and resource operations
-- [ ] 03-03-PLAN.md — Follow-on Phase 3 work
+- [x] 03-03-PLAN.md — Implement customer-scoped address listing with `%Paddle.Page{}` mapping
 
 **Success Criteria:**
 1. A developer can create, get, and update a `%Paddle.Customer{}`.
