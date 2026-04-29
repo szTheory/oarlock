@@ -9,6 +9,8 @@
 | 3 | Core Entities (Customers & Addresses) | CUST-01, ADDR-01 |
 | 4 | Transactions & Hosted Checkout | TXN-01, TXN-02 |
 | 5 | Subscriptions Management | SUB-01, SUB-02, SUB-03 |
+| 6 | Transactions Retrieval | TXN-03 |
+| 7 | Accrue Seam Lock | SEAM-01, SEAM-02 |
 
 ---
 
@@ -87,13 +89,35 @@
 
 ---
 
+### Phase 6: Transactions Retrieval
+**Goal:** Close the Phase 4 retrieval gap by letting consumers fetch a transaction by ID using the existing typed transaction surface.
+
+**Plans:** 1 plan
+- [x] 06-01-PLAN.md — Add `Paddle.Transactions.get/2` with adapter-backed coverage and nested checkout hydration assertions
+
+**Success Criteria:**
+1. A developer can fetch a transaction by ID via `Paddle.Transactions.get/2`.
+2. The response hydrates `%Paddle.Transaction.Checkout{}` when checkout data is present.
+3. Invalid IDs, API errors, and transport errors preserve the existing SDK tuple conventions.
+
+---
+
+### Phase 7: Accrue Seam Lock
+**Goal:** Freeze the consumer-facing contract with one end-to-end seam test and one published seam guide.
+
+**Plans:** 2 plans
+- [ ] 07-01-PLAN.md — Add the adapter-backed end-to-end seam contract test
+- [x] 07-02-PLAN.md — Publish the Accrue seam contract guide and ExDoc wiring
+
+**Success Criteria:**
+1. The seam test exercises customer creation, address creation, transaction create/get, webhook verify/parse, subscription get, and subscription cancel without live network access.
+2. The seam guide lists the supported public functions, locked structs, field tiers, and not-planned areas.
+3. Generated docs include the seam guide and keep internal modules out of the published consumer contract.
+
+---
+
 ## Future Work — Accrue Integration
 
 Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for prioritized entries (`B-01` through `B-03`) with rationale, sizing, and promotion hints.
 
-Likely shape of the next milestone (v1.1) once the user is ready to plan it:
-
-- **Phase 6 — `Paddle.Transactions.get/2`** (B-01). Closes the Phase 4 retrieval gap. Small, isolated, unblocks Accrue's checkout reconciliation.
-- **Phase 7 — Accrue seam integration test + consumer-facing surface doc** (B-02 + B-03). End-to-end contract path (customer → address → transaction → checkout URL → webhook → subscription fetch → cancel) plus a renderable consumer-contract doc.
-
-These are not yet planned phases. Promote via `/gsd-new-milestone` (preferred — opens v1.1 cleanly) or `/gsd-add-phase` (if v1.0 stays open and `Transactions.get/2` is treated as a 4.1 decimal). Two of Accrue's prereqs (pure-function webhooks, deferred subscription mutations) are already met by the current oarlock surface and need no new work — see `PROJECT.md → Integration Consumers`.
+Remaining future work stays in `.planning/BACKLOG.md`. Two of Accrue's prereqs (pure-function webhooks, deferred subscription mutations) are already met by the current oarlock surface and need no new work — see `PROJECT.md → Integration Consumers`.
