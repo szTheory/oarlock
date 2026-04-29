@@ -7,7 +7,13 @@ defmodule Paddle.MixProject do
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      docs: [
+        extras: ["guides/accrue-seam.md"],
+        groups_for_extras: [
+          Guides: ~r/guides\//
+        ]
+      ]
     ]
   end
 
@@ -23,7 +29,8 @@ defmodule Paddle.MixProject do
   defp deps do
     [
       {:req, "~> 0.5.17"},
-      {:telemetry, "~> 1.4"}
+      {:telemetry, "~> 1.4"},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 end

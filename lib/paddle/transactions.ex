@@ -1,10 +1,19 @@
 defmodule Paddle.Transactions do
+  alias Paddle.Client
   alias Paddle.Http
   alias Paddle.Internal.Attrs
   alias Paddle.Transaction
   alias Paddle.Transaction.Checkout
 
-  def create(%Paddle.Client{} = client, attrs) do
+  def get(%Client{} = client, transaction_id) do
+    with :ok <- validate_transaction_id(transaction_id),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :get, transaction_path(transaction_id)) do
+      {:ok, build_transaction(data)}
+    end
+  end
+
+  def create(%Client{} = client, attrs) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          {:ok, customer_id} <- validate_customer_id(attrs),
          {:ok, address_id} <- validate_address_id(attrs),
@@ -147,4 +156,14 @@ defmodule Paddle.Transactions do
   defp fetch_checkout_url(%{"url" => url}), do: {:ok, url}
   defp fetch_checkout_url(%{url: url}), do: {:ok, url}
   defp fetch_checkout_url(_), do: :error
+
+  defp validate_transaction_id(id) when is_binary(id) do
+    if String.trim(id) == "", do: {:error, :invalid_transaction_id}, else: :ok
+  end
+
+  defp validate_transaction_id(_id), do: {:error, :invalid_transaction_id}
+
+  defp transaction_path(id), do: "/transactions/#{encode_path_segment(id)}"
+
+  defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 end
