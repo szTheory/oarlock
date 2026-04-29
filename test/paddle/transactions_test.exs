@@ -7,6 +7,103 @@ defmodule Paddle.TransactionsTest do
   alias Paddle.Transaction.Checkout
   alias Paddle.Transactions
 
+  describe "get/2" do
+    test "issues GET /transactions/{id} and returns a typed transaction with hydrated checkout" do
+      response_data = transaction_payload()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :get
+          assert request.url.path == "/transactions/txn_01"
+          assert request.body == nil
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Transaction{} = transaction} = Transactions.get(client, "txn_01")
+      assert transaction.id == "txn_01"
+      assert transaction.subscription_id == nil
+      assert transaction.raw_data == response_data
+
+      assert %Checkout{url: "https://approved.example.com/checkout?_ptxn=txn_01"} =
+               transaction.checkout
+
+      assert transaction.checkout.raw_data == response_data["checkout"]
+    end
+
+    test "url-encodes transaction ids with reserved characters in the request path" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :get
+          assert request.url.path == "/transactions/txn%2Fwith%3Freserved"
+
+          {request, Req.Response.new(status: 200, body: %{"data" => transaction_payload()})}
+        end)
+
+      assert {:ok, %Transaction{}} = Transactions.get(client, "txn/with?reserved")
+    end
+
+    test "returns :invalid_transaction_id for nil/blank/whitespace/integer ids without dispatching HTTP" do
+      client =
+        client_with_adapter(fn request ->
+          send(self(), :http_called)
+          {request, Req.Response.new(status: 200, body: %{"data" => %{}})}
+        end)
+
+      assert {:error, :invalid_transaction_id} = Transactions.get(client, nil)
+      refute_received :http_called
+
+      assert {:error, :invalid_transaction_id} = Transactions.get(client, "")
+      refute_received :http_called
+
+      assert {:error, :invalid_transaction_id} = Transactions.get(client, "   ")
+      refute_received :http_called
+
+      assert {:error, :invalid_transaction_id} = Transactions.get(client, 42)
+      refute_received :http_called
+    end
+
+    test "preserves a 404 entity_not_found %Paddle.Error{} unchanged" do
+      client =
+        client_with_adapter(fn request ->
+          response =
+            Req.Response.new(
+              status: 404,
+              body: %{
+                "error" => %{
+                  "type" => "request_error",
+                  "code" => "entity_not_found",
+                  "detail" => "Transaction not found",
+                  "errors" => []
+                }
+              }
+            )
+            |> Req.Response.put_header("x-request-id", "req_404")
+
+          {request, response}
+        end)
+
+      assert {:error,
+              %Error{
+                status_code: 404,
+                request_id: "req_404",
+                type: "request_error",
+                code: "entity_not_found",
+                message: "Transaction not found"
+              }} = Transactions.get(client, "txn_missing")
+    end
+
+    test "surfaces transport exceptions unchanged" do
+      client =
+        client_with_adapter(fn request ->
+          {request, %Req.TransportError{reason: :timeout}}
+        end)
+
+      assert {:error, %Req.TransportError{reason: :timeout}} =
+               Transactions.get(client, "txn_01")
+    end
+  end
+
   describe "create/2" do
     test "posts the strict hosted-checkout body to /transactions and returns a typed transaction" do
       response_data = transaction_payload()
@@ -190,7 +287,9 @@ defmodule Paddle.TransactionsTest do
 
       # Item entry with nil quantity
       assert {:error, :invalid_items} =
-               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: nil}]} | base])
+               Transactions.create(client, [
+                 {:items, [%{price_id: "pri_01", quantity: nil}]} | base
+               ])
 
       # Item entry with zero quantity
       assert {:error, :invalid_items} =
@@ -198,15 +297,21 @@ defmodule Paddle.TransactionsTest do
 
       # Item entry with negative quantity
       assert {:error, :invalid_items} =
-               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: -1}]} | base])
+               Transactions.create(client, [
+                 {:items, [%{price_id: "pri_01", quantity: -1}]} | base
+               ])
 
       # Item entry with string quantity
       assert {:error, :invalid_items} =
-               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: "1"}]} | base])
+               Transactions.create(client, [
+                 {:items, [%{price_id: "pri_01", quantity: "1"}]} | base
+               ])
 
       # Item entry with float quantity
       assert {:error, :invalid_items} =
-               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: 1.5}]} | base])
+               Transactions.create(client, [
+                 {:items, [%{price_id: "pri_01", quantity: 1.5}]} | base
+               ])
 
       # Item entry that is not a map
       assert {:error, :invalid_items} =
