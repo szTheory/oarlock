@@ -31,7 +31,8 @@
 
 ### Accrue Seam Hardening
 - [ ] **TXN-03**: Fetch a transaction by ID via `Paddle.Transactions.get/2`, returning a typed `%Paddle.Transaction{}` with hydrated checkout data.
-- [ ] **SEAM-01**: Lock the end-to-end Accrue seam with an adapter-backed contract test covering customer creation, address creation, transaction create/get, webhook verify/parse, subscription get, and subscription cancel.
+- [x] **SEAM-01
+**: Lock the end-to-end Accrue seam with an adapter-backed contract test covering customer creation, address creation, transaction create/get, webhook verify/parse, subscription get, and subscription cancel.
 - [x] **SEAM-02
 **: Publish a consumer-facing seam contract guide enumerating public modules, locked structs, field tiers, and explicitly deferred surfaces.
 

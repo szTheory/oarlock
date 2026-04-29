@@ -106,7 +106,7 @@
 **Goal:** Freeze the consumer-facing contract with one end-to-end seam test and one published seam guide.
 
 **Plans:** 2 plans
-- [ ] 07-01-PLAN.md — Add the adapter-backed end-to-end seam contract test
+- [x] 07-01-PLAN.md — Add the adapter-backed end-to-end seam contract test
 - [x] 07-02-PLAN.md — Publish the Accrue seam contract guide and ExDoc wiring
 
 **Success Criteria:**
