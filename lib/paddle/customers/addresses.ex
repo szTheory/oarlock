@@ -1,12 +1,12 @@
 defmodule Paddle.Customers.Addresses do
   alias Paddle.Address
-  alias Paddle.Client
   alias Paddle.Http
 
   @create_allowlist ~w(description first_line second_line city postal_code region country_code custom_data)
+  @list_allowlist ~w(id after per_page order_by status search)
   @update_allowlist ~w(description first_line second_line city postal_code region country_code custom_data status)
 
-  def create(%Client{} = client, customer_id, attrs) do
+  def create(%Paddle.Client{} = client, customer_id, attrs) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, attrs} <- normalize_attrs(attrs),
          body <- allowlist_attrs(attrs, @create_allowlist),
@@ -16,7 +16,7 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
-  def get(%Client{} = client, customer_id, address_id) do
+  def get(%Paddle.Client{} = client, customer_id, address_id) do
     with :ok <- validate_customer_id(customer_id),
          :ok <- validate_address_id(address_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -25,7 +25,21 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
-  def update(%Client{} = client, customer_id, address_id, attrs) do
+  def list(%Paddle.Client{} = client, customer_id, params \\ []) do
+    with :ok <- validate_customer_id(customer_id),
+         {:ok, params} <- normalize_params(params),
+         query <- allowlist_attrs(params, @list_allowlist),
+         {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
+           Http.request(client, :get, customer_addresses_path(customer_id), params: query) do
+      {:ok,
+       %Paddle.Page{
+         data: Enum.map(data, &Http.build_struct(Address, &1)),
+         meta: meta
+       }}
+    end
+  end
+
+  def update(%Paddle.Client{} = client, customer_id, address_id, attrs) do
     with :ok <- validate_customer_id(customer_id),
          :ok <- validate_address_id(address_id),
          {:ok, attrs} <- normalize_attrs(attrs),
@@ -65,6 +79,17 @@ defmodule Paddle.Customers.Addresses do
 
   defp normalize_attrs(attrs) when is_map(attrs), do: {:ok, normalize_map_keys(attrs)}
   defp normalize_attrs(_attrs), do: {:error, :invalid_attrs}
+
+  defp normalize_params(params) when is_list(params) do
+    if Keyword.keyword?(params) do
+      {:ok, params |> Enum.into(%{}) |> normalize_map_keys()}
+    else
+      {:error, :invalid_params}
+    end
+  end
+
+  defp normalize_params(params) when is_map(params), do: {:ok, normalize_map_keys(params)}
+  defp normalize_params(_params), do: {:error, :invalid_params}
 
   defp normalize_map_keys(attrs) do
     Enum.reduce(attrs, %{}, fn
