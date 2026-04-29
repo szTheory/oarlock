@@ -12,19 +12,31 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - Must retain forward compatibility via `__raw__` mapping of API responses.
 - Explicit deferment of complex domain areas (refunds, invoices, marketplaces, payment portals) to v0.2+.
 
-## Current State
+## Current Milestone: v1.2 Production Surface
+
+**Goal:** Drive oarlock to genuine production-readiness as a hex package while completing the subscription surface Accrue needs for its Phase 97+ Paddle slice.
+
+**Target features:**
+- Reliability primitives: idempotency keys on POSTs, 429/`Retry-After` retry policy, normalized network-error shape
+- Pagination ergonomics: `stream/3` + `all/3` helpers built on `Paddle.Page.next_cursor/1`
+- Subscriptions surface completion: `create/2`, `pause/2`, `resume/2` (closes the P0 Accrue blocker plus the P1 mutation surface)
+- Type-safety pass: `@spec` on every public function, `:dialyxir` wired with green baseline + CI gate
+- Documentation pass: `@doc` everywhere, `@moduledoc` on every public module, README rewrite, new `guides/getting-started.md` and `guides/telemetry.md`
+- Process guard: pre-commit hook that prevents the v1.1 SUMMARY/git-state drift class
+
+**Phase numbering:** continues from v1.1 → Phases 8–13. Six phases.
+
+## Previous State
 
 **Shipped:** v1.1 Accrue Seam Hardening on 2026-04-29 — see `.planning/milestones/v1.1-ROADMAP.md`.
 
-oarlock now exposes a closed, documented consumer surface for Accrue:
+oarlock exposed a closed, documented consumer surface for Accrue:
 - `Paddle.Transactions.get/2` retrieval (TXN-03)
 - Adapter-backed end-to-end Accrue seam contract test (`test/paddle/seam_test.exs`, SEAM-01)
 - Canonical seam guide `guides/accrue-seam.md` with locked/additive/opaque vocabulary, sealed internal modules via `@moduledoc false` (SEAM-02)
 - 111 tests, 0 failures at v1.1 tag
 
-**Next milestone:** TBD — start via `/gsd-new-milestone`. Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-inserted as phases.
-
-**Phase numbering:** v1.0 covered phases 1-5; v1.1 covered phases 6-7. The next milestone continues at phase 8.
+Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-inserted as phases.
 
 ## Requirements
 
@@ -43,7 +55,7 @@ oarlock now exposes a closed, documented consumer surface for Accrue:
 - [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`) with locked vocabulary and sealed docs surface (`@moduledoc false` on `Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`). *(Validated in Phase 7)*
 
 ### Active
-_None — v1.1 shipped 2026-04-29. Next milestone's requirements will be defined via `/gsd-new-milestone`._
+_v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`._
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -73,6 +85,21 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-03`).
 
 ## Evolution
+
 This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-04-29 after v1.1 milestone (Accrue Seam Hardening) archived. v1.1 = Phases 6-7. Ready for next-milestone planning via `/gsd-new-milestone`.*
+*Last updated: 2026-04-29 — milestone v1.2 (Production Surface) initialized. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
