@@ -1,10 +1,11 @@
 defmodule Paddle.Transactions do
   alias Paddle.Http
+  alias Paddle.Internal.Attrs
   alias Paddle.Transaction
   alias Paddle.Transaction.Checkout
 
   def create(%Paddle.Client{} = client, attrs) do
-    with {:ok, attrs} <- normalize_attrs(attrs),
+    with {:ok, attrs} <- Attrs.normalize(attrs),
          {:ok, customer_id} <- validate_customer_id(attrs),
          {:ok, address_id} <- validate_address_id(attrs),
          {:ok, items} <- validate_items(attrs),
@@ -41,25 +42,6 @@ defmodule Paddle.Transactions do
       _ ->
         transaction
     end
-  end
-
-  defp normalize_attrs(attrs) when is_list(attrs) do
-    if Keyword.keyword?(attrs) do
-      {:ok, attrs |> Enum.into(%{}) |> normalize_map_keys()}
-    else
-      {:error, :invalid_attrs}
-    end
-  end
-
-  defp normalize_attrs(attrs) when is_map(attrs), do: {:ok, normalize_map_keys(attrs)}
-  defp normalize_attrs(_attrs), do: {:error, :invalid_attrs}
-
-  defp normalize_map_keys(attrs) do
-    Enum.reduce(attrs, %{}, fn
-      {key, value}, acc when is_atom(key) -> Map.put(acc, Atom.to_string(key), value)
-      {key, value}, acc when is_binary(key) -> Map.put(acc, key, value)
-      {_key, _value}, acc -> acc
-    end)
   end
 
   defp validate_customer_id(attrs) do
@@ -111,7 +93,7 @@ defmodule Paddle.Transactions do
   end
 
   defp normalize_item(item) when is_map(item) do
-    item = normalize_map_keys(item)
+    item = Attrs.normalize_keys(item)
 
     with price_id when is_binary(price_id) <- Map.get(item, "price_id"),
          false <- String.trim(price_id) == "",
