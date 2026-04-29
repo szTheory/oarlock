@@ -40,6 +40,7 @@ defmodule Paddle.MixProject do
 
   defp package do
     [
+      name: "oarlock",
       licenses: ["MIT"],
       links: %{
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
