@@ -112,6 +112,18 @@ defmodule Paddle.CustomersTest do
       assert {:error, :invalid_customer_id} = Customers.get(client, "")
       assert {:error, :invalid_customer_id} = Customers.get(client, "   ")
     end
+
+    test "url-encodes customer ids before building the request path" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :get
+          assert request.url.path == "/customers/ctm%2Fwith%3Freserved"
+
+          {request, Req.Response.new(status: 200, body: %{"data" => customer_payload()})}
+        end)
+
+      assert {:ok, %Customer{}} = Customers.get(client, "ctm/with?reserved")
+    end
   end
 
   describe "update/3" do
@@ -152,6 +164,18 @@ defmodule Paddle.CustomersTest do
       assert {:error, :invalid_customer_id} = Customers.update(client, nil, %{})
       assert {:error, :invalid_customer_id} = Customers.update(client, " ", %{})
       assert {:error, :invalid_attrs} = Customers.update(client, "ctm_01", "nope")
+    end
+
+    test "url-encodes customer ids for patch requests" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :patch
+          assert request.url.path == "/customers/ctm%2Fwith%3Freserved"
+
+          {request, Req.Response.new(status: 200, body: %{"data" => customer_payload()})}
+        end)
+
+      assert {:ok, %Customer{}} = Customers.update(client, "ctm/with?reserved", %{name: "Ada"})
     end
   end
 

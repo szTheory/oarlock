@@ -62,6 +62,18 @@ defmodule Paddle.Customers.AddressesTest do
       assert {:ok, %Address{id: "add_01", customer_id: "ctm_01", raw_data: ^response_data}} =
                Addresses.get(client, "ctm_01", "add_01")
     end
+
+    test "url-encodes customer and address ids in the request path" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :get
+          assert request.url.path == "/customers/ctm%2F01/addresses/add%3F01"
+
+          {request, Req.Response.new(status: 200, body: %{"data" => address_payload()})}
+        end)
+
+      assert {:ok, %Address{}} = Addresses.get(client, "ctm/01", "add?01")
+    end
   end
 
   describe "list/3" do
@@ -202,6 +214,19 @@ defmodule Paddle.Customers.AddressesTest do
       assert {:error, :invalid_customer_id} = Addresses.update(client, nil, "add_01", %{})
       assert {:error, :invalid_address_id} = Addresses.update(client, "ctm_01", "", %{})
       assert {:error, :invalid_attrs} = Addresses.update(client, "ctm_01", "add_01", "nope")
+    end
+
+    test "url-encodes customer and address ids for patch requests" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :patch
+          assert request.url.path == "/customers/ctm%2F01/addresses/add%3F01"
+
+          {request, Req.Response.new(status: 200, body: %{"data" => address_payload()})}
+        end)
+
+      assert {:ok, %Address{}} =
+               Addresses.update(client, "ctm/01", "add?01", %{city: "Brooklyn"})
     end
   end
 

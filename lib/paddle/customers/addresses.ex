@@ -50,10 +50,11 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
-  defp customer_addresses_path(customer_id), do: "/customers/#{customer_id}/addresses"
+  defp customer_addresses_path(customer_id),
+    do: "/customers/#{encode_path_segment(customer_id)}/addresses"
 
   defp customer_address_path(customer_id, address_id) do
-    "/customers/#{customer_id}/addresses/#{address_id}"
+    "#{customer_addresses_path(customer_id)}/#{encode_path_segment(address_id)}"
   end
 
   defp validate_customer_id(customer_id), do: validate_id(customer_id, :invalid_customer_id)
@@ -108,4 +109,6 @@ defmodule Paddle.Customers.Addresses do
       end
     end)
   end
+
+  defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 end
