@@ -12,21 +12,34 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - Must retain forward compatibility via `__raw__` mapping of API responses.
 - Explicit deferment of complex domain areas (refunds, invoices, marketplaces, payment portals) to v0.2+.
 
+## Current Milestone: v1.1 Accrue Seam Hardening
+
+**Goal:** Close the consumer-contract gaps Accrue needs to confidently consume oarlock as its Paddle backend.
+
+**Target features:**
+- `Paddle.Transactions.get/2` — closes the Phase 4 retrieval gap; mirrors `Paddle.Subscriptions.get/2`. (B-01)
+- End-to-end Accrue seam integration test — single-fixture path through customer → address → transaction → webhook → subscription get → cancel. (B-02)
+- Consumer-facing seam surface doc — renderable contract listing public modules, locked structs, and stability tiers. (B-03)
+
+**Phase numbering:** continues from v1.0 (last phase 5) → v1.1 starts at Phase 6.
+
 ## Requirements
 
 ### Validated
-- [x] Implement `Paddle.Subscriptions` (get, list, cancel). *(Validated in Phase 5: Subscriptions Management — `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2` with hydrated `%ScheduledChange{}` and `%ManagementUrls{}` nested structs; 23 adapter-backed tests.)*
+- [x] Explicit client passing with `Paddle.Client.new!/1` (Bearer auth, Paddle-Version). *(Phase 1)*
+- [x] HTTP transport via `req` with retries and telemetry. *(Phase 1)*
+- [x] Typed `{:ok, struct}` / `{:error, %Paddle.Error{}}` responses with `raw_data` forward compatibility. *(Phase 1, applied throughout)*
+- [x] `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` with strict raw-body matching. *(Phase 2)*
+- [x] `Paddle.Customers` (create, get, update). *(Phase 3)*
+- [x] `Paddle.Customers.Addresses` (create, list, update). *(Phase 3)*
+- [x] `Paddle.Transactions.create/2` returning hosted checkout URL. *(Phase 4)*
+- [x] `Paddle.Subscriptions` (get, list, cancel). *(Phase 5 — `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2` with hydrated `%ScheduledChange{}` and `%ManagementUrls{}`; 23 adapter-backed tests.)*
+- [x] Testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc. *(Phase 1 baseline; carried through v1.0)*
 
-### Active
-- [ ] Create explicit client passing with `Paddle.Client.new!/1` (Bearer auth, Paddle-Version).
-- [ ] Return typed responses and errors (`{:ok, struct}` / `{:error, %Paddle.Error{}}`).
-- [ ] Implement `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` with strict raw-body matching.
-- [ ] Implement `Paddle.Customers` (create, get, update).
-- [ ] Implement `Paddle.Addresses` (create, list, update).
-- [ ] Implement `Paddle.Transactions` (create recurring -> returns hosted checkout URL).
-- [ ] Utilize `req` for underlying HTTP transport.
-- [ ] Retain original response body mapping (e.g. `raw_data`) inside domain structs.
-- [ ] Setup testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc.
+### Active (v1.1)
+- [ ] **TXN-03**: `Paddle.Transactions.get/2` — fetch a transaction by ID with hydrated checkout struct.
+- [ ] **SEAM-01**: End-to-end Accrue seam integration test exercising the full consumer contract path.
+- [ ] **SEAM-02**: Consumer-facing seam surface doc enumerating locked modules, structs, and stability tiers.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -58,4 +71,4 @@ Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01
 ## Evolution
 This document evolves at phase transitions and milestone boundaries.
 ---
-*Last updated: 2026-04-29 after Phase 5 (Subscriptions Management) completion — milestone v1.0 fully executed; Accrue integration context captured.*
+*Last updated: 2026-04-29 — milestone v1.1 (Accrue Seam Hardening) opened; v1.0 requirements moved to Validated.*
