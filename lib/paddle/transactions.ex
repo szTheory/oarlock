@@ -128,6 +128,9 @@ defmodule Paddle.Transactions do
       :error ->
         {:ok, nil}
 
+      {:ok, nil} ->
+        {:ok, nil}
+
       {:ok, checkout} ->
         normalize_checkout(checkout)
     end

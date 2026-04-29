@@ -213,6 +213,34 @@ defmodule Paddle.TransactionsTest do
                Transactions.create(client, [{:items, ["pri_01"]} | base])
     end
 
+    test "treats checkout: nil as omitted and posts a body without a checkout key" do
+      response_data = transaction_payload()
+
+      client =
+        client_with_adapter(fn request ->
+          body = decode_json_body(request.body)
+
+          refute Map.has_key?(body, "checkout")
+
+          assert body == %{
+                   "address_id" => "add_01",
+                   "collection_mode" => "automatic",
+                   "customer_id" => "ctm_01",
+                   "items" => [%{"price_id" => "pri_01", "quantity" => 1}]
+                 }
+
+          {request, Req.Response.new(status: 201, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Transaction{}} =
+               Transactions.create(client,
+                 customer_id: "ctm_01",
+                 address_id: "add_01",
+                 items: [%{price_id: "pri_01", quantity: 1}],
+                 checkout: nil
+               )
+    end
+
     test "returns :invalid_checkout for malformed checkout nesting" do
       client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
 
