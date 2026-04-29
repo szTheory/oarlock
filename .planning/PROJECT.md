@@ -15,7 +15,7 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 ## Requirements
 
 ### Validated
-*(None yet — ship to validate)*
+- [x] Implement `Paddle.Subscriptions` (get, list, cancel). *(Validated in Phase 5: Subscriptions Management — `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2` with hydrated `%ScheduledChange{}` and `%ManagementUrls{}` nested structs; 23 adapter-backed tests.)*
 
 ### Active
 - [ ] Create explicit client passing with `Paddle.Client.new!/1` (Bearer auth, Paddle-Version).
@@ -24,7 +24,6 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - [ ] Implement `Paddle.Customers` (create, get, update).
 - [ ] Implement `Paddle.Addresses` (create, list, update).
 - [ ] Implement `Paddle.Transactions` (create recurring -> returns hosted checkout URL).
-- [ ] Implement `Paddle.Subscriptions` (get, list, cancel).
 - [ ] Utilize `req` for underlying HTTP transport.
 - [ ] Retain original response body mapping (e.g. `raw_data`) inside domain structs.
 - [ ] Setup testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc.
@@ -48,4 +47,4 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 ## Evolution
 This document evolves at phase transitions and milestone boundaries.
 ---
-*Last updated: 2026-04-28 after initialization*
+*Last updated: 2026-04-29 after Phase 5 (Subscriptions Management) completion — milestone v1.0 fully executed.*
