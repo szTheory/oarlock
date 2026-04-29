@@ -188,6 +188,26 @@ defmodule Paddle.TransactionsTest do
       assert {:error, :invalid_items} =
                Transactions.create(client, [{:items, [%{price_id: "pri_01"}]} | base])
 
+      # Item entry with nil quantity
+      assert {:error, :invalid_items} =
+               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: nil}]} | base])
+
+      # Item entry with zero quantity
+      assert {:error, :invalid_items} =
+               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: 0}]} | base])
+
+      # Item entry with negative quantity
+      assert {:error, :invalid_items} =
+               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: -1}]} | base])
+
+      # Item entry with string quantity
+      assert {:error, :invalid_items} =
+               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: "1"}]} | base])
+
+      # Item entry with float quantity
+      assert {:error, :invalid_items} =
+               Transactions.create(client, [{:items, [%{price_id: "pri_01", quantity: 1.5}]} | base])
+
       # Item entry that is not a map
       assert {:error, :invalid_items} =
                Transactions.create(client, [{:items, ["pri_01"]} | base])

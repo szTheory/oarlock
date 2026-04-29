@@ -114,8 +114,7 @@ defmodule Paddle.Transactions do
 
     with price_id when is_binary(price_id) <- Map.get(item, "price_id"),
          false <- String.trim(price_id) == "",
-         true <- Map.has_key?(item, "quantity"),
-         quantity <- Map.get(item, "quantity") do
+         quantity when is_integer(quantity) and quantity > 0 <- Map.get(item, "quantity") do
       {:ok, %{"price_id" => price_id, "quantity" => quantity}}
     else
       _ -> :error
