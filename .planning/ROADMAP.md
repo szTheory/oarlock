@@ -11,7 +11,7 @@
 <details open>
 <summary>🚧 v1.2 Production Surface (Phases 8-13) — IN PROGRESS</summary>
 
-- [ ] Phase 8: Reliability Primitives (0/? plans) — REL-01, REL-02, REL-03
+- [ ] Phase 8: Reliability Primitives (0/4 plans) — REL-01, REL-02, REL-03
 - [ ] Phase 9: Pagination Ergonomics (0/? plans) — PAGE-01
 - [ ] Phase 10: Subscriptions Surface Completion (0/? plans) — SUB-04, SUB-05, SUB-06
 - [ ] Phase 11: Type-Safety Pass (0/? plans) — TYPES-01, TYPES-02
@@ -50,7 +50,11 @@
   2. An adapter-backed test exercises a 429 response with `Retry-After: 2` and the request succeeds after the client honors the retry; a sibling test asserts no retry on 4xx other than 429 and a max-3-retry ceiling on 5xx.
   3. A simulated transient network failure (timeout / nxdomain) returns `{:error, %Paddle.Error{network_error?: true, retryable?: true}}` with the existing `:raw_data` field still present (additive change only).
   4. The full pre-existing test suite (≥111 tests at v1.1 close) continues to pass with zero failures — no v1.1 seam regression.
-**Plans**: TBD
+**Plans**: 4 plans
+  - [ ] 08-01-PLAN.md — Atomic rename `:raw → :raw_data` in `%Paddle.Error{}` + add explicit `false` defaults for `:network_error?` and `:retryable?` (defexception keyword-syntax migration); co-update `guides/accrue-seam.md:118` and `CHANGELOG.md` in a single commit per D-02. (Wave 1, foundation for REL-03.)
+  - [ ] 08-02-PLAN.md — REL-03 transport-error normalization: add `Paddle.Error.from_transport/1` (with `transport_type/1` multiclause covering D-14 taxonomy `network_timeout|network_nxdomain|network_closed|network_unknown`); refactor `Http.request/4` `{:error, %Req.TransportError{}}` arm; four adapter-backed reason-variant tests in `http_test.exs`. (Wave 2, depends on 08-01.)
+  - [ ] 08-03-PLAN.md — REL-01 idempotency-key plumbing: `Keyword.pop(:idempotency_key)` + `ArgumentError` validation in `Http.request/4` (Pitfall 3 ordering); add trailing `opts \\ []` to `Customers.create/3`, `Customers.Addresses.create/4`, `Transactions.create/3`; six unit tests + one integration test locking the locked v1.2 opts vocabulary `:idempotency_key + :retry`. (Wave 3, depends on 08-01 + 08-02.)
+  - [ ] 08-04-PLAN.md — REL-02 retry policy: add `retry: :transient, max_retries: 3` to `Paddle.Client.new!/1`; five Agent-backed retry tests in `http_test.exs` covering 5xx-then-success, 4xx-no-retry, 429-then-success, per-call `retry: false` opt-out, and max-3 ceiling; CHANGELOG entry. (Wave 4, depends on 08-01..08-03.)
 
 ### Phase 9: Pagination Ergonomics
 **Goal**: Consumers iterate any list endpoint without hand-rolling cursor loops, while the locked per-resource `list/2` shape stays untouched.
