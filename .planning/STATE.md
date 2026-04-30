@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
-status: Roadmap created; ready for `/gsd-plan-phase 8`
+status: Phase 8 planned (4 plans, 4 waves); ready for `/gsd-execute-phase 8`
 last_updated: "2026-04-30T16:11:08.504Z"
-last_activity: 2026-04-29 — v1.2 ROADMAP.md authored; 14 v1.2 requirements mapped across phases 8-13 with 100% coverage
+last_activity: 2026-04-30 — Phase 8 (Reliability Primitives) planned; 4 plans created (08-01..08-04, sequential waves); plan-checker PASSED first iteration; all 23 D-XX decisions translated
 progress:
   total_phases: 6
   completed_phases: 0
@@ -18,10 +18,10 @@ progress:
 ## Current Position
 
 Milestone: v1.2 Production Surface
-Phase: 8 (Reliability Primitives) — not started
-Plan: —
-Status: Roadmap created; ready for `/gsd-plan-phase 8`
-Last activity: 2026-04-29 — v1.2 ROADMAP.md authored; 14 v1.2 requirements mapped across phases 8-13 with 100% coverage
+Phase: 8 (Reliability Primitives) — planned, awaiting execution
+Plan: 08-01 (Wave 1 entry point)
+Status: Phase 8 planned (4 plans, 4 waves); ready for `/gsd-execute-phase 8`
+Last activity: 2026-04-30 — Phase 8 (Reliability Primitives) planned; 4 plans created (08-01..08-04, sequential waves due to file-overlap on error.ex/http.ex/http_test.exs/CHANGELOG.md); plan-checker PASSED first iteration; all 23 D-XX decisions translated
 
 ## Project Reference
 
