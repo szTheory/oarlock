@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
-status: Phase 8 planned (4 plans, 4 waves); ready for `/gsd-execute-phase 8`
-last_updated: "2026-04-30T16:11:08.504Z"
-last_activity: 2026-04-30 — Phase 8 (Reliability Primitives) planned; 4 plans created (08-01..08-04, sequential waves); plan-checker PASSED first iteration; all 23 D-XX decisions translated
+status: executing
+last_updated: "2026-04-30T16:13:43.664Z"
+last_activity: 2026-04-30 -- Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 0
@@ -18,17 +18,17 @@ progress:
 ## Current Position
 
 Milestone: v1.2 Production Surface
-Phase: 8 (Reliability Primitives) — planned, awaiting execution
-Plan: 08-01 (Wave 1 entry point)
-Status: Phase 8 planned (4 plans, 4 waves); ready for `/gsd-execute-phase 8`
-Last activity: 2026-04-30 — Phase 8 (Reliability Primitives) planned; 4 plans created (08-01..08-04, sequential waves due to file-overlap on error.ex/http.ex/http_test.exs/CHANGELOG.md); plan-checker PASSED first iteration; all 23 D-XX decisions translated
+Phase: 08 (reliability-primitives) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 08
+Last activity: 2026-04-30 -- Phase 08 execution started
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-29 at v1.2 start)
 
 **Core value:** Native Elixir interaction with Paddle Billing API v1 via explicit `%Paddle.Client{}` passing, typed struct responses, and pure-function webhook verification.
-**Current focus:** v1.2 Production Surface — completing subscription surface for Accrue (Phase 97+) plus systematic production-readiness hardening (specs, dialyzer, docs, idempotency, retry, pagination, process guard).
+**Current focus:** Phase 08 — reliability-primitives
 
 ## Accumulated Context
 
