@@ -66,7 +66,9 @@ The supported consumer entry modules are exactly:
 ### `Paddle.Transactions`
 
 - `get(client, transaction_id)` returns `{:ok, %Paddle.Transaction{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_transaction_id}`. Tier: `locked`.
-- `create(client, attrs)` returns `{:ok, %Paddle.Transaction{}}`, `{:error, %Paddle.Error{}}`, or validation error atoms. Tier: `locked`.
+- `create(client, attrs, opts \\ [])` returns `{:ok, %Paddle.Transaction{}}`, `{:error, %Paddle.Error{}}`, or validation error atoms. Tier: `locked`.
+
+Recurring subscriptions start from this transaction seam (checkout or manual collection) and are then reconciled through webhooks plus canonical fetches (`Paddle.Transactions.get/2` -> `Paddle.Subscriptions.get/2`).
 
 ### `Paddle.Subscriptions`
 
@@ -76,6 +78,11 @@ The supported consumer entry modules are exactly:
 - `all(client, params \\ [])` returns `{:ok, [%Paddle.Subscription{}]}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_params}` without returning partial results. Tier: `locked`.
 - `cancel(client, subscription_id)` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_subscription_id}`. Tier: `locked`.
 - `cancel_immediately(client, subscription_id)` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_subscription_id}`. Tier: `locked`.
+- `pause(client, subscription_id, opts \\ [])` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or local validation errors. Tier: `locked`.
+- `pause_immediately(client, subscription_id, opts \\ [])` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or local validation errors. Tier: `locked`.
+- `resume(client, subscription_id, opts \\ [])` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or local validation errors. Tier: `locked`.
+
+`Paddle.Subscriptions` intentionally does not expose direct create operations. `resume/3` defaults to immediate behavior and can charge immediately depending on billing state, so reconcile final subscription/transaction state via webhook events and canonical fetches.
 
 ### `Paddle.Webhooks`
 
@@ -191,7 +198,7 @@ Product or API surfaces that may eventually be added to oarlock but are not
 supported today. Consumers should not design against any of these in the
 current 0.x series:
 
-- Subscription mutations beyond cancel: `update`, `pause`, `resume`.
+- Subscription updates beyond the documented lifecycle calls above.
 - Payment-method portal update flows beyond the surfaced management URLs.
 - Refunds.
 - Invoice generation.

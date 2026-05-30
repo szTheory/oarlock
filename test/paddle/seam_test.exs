@@ -198,7 +198,8 @@ defmodule Paddle.SeamTest do
         assert request.url.path == "/subscriptions/sub_seam01/resume"
         assert decode_json_body(request.body) == %{"effective_from" => "immediately"}
 
-        {request, Req.Response.new(status: 200, body: %{"data" => subscription_payload_resumed()})}
+        {request,
+         Req.Response.new(status: 200, body: %{"data" => subscription_payload_resumed()})}
       end)
 
     assert {:ok, %Subscription{status: "active"} = resumed_subscription} =

@@ -230,9 +230,14 @@ defmodule Paddle.Subscriptions do
     end
   end
 
-  defp maybe_put_effective_from(body, nil), do: {:ok, Map.put(body, "effective_from", "immediately")}
-  defp maybe_put_effective_from(body, :immediately), do: {:ok, Map.put(body, "effective_from", "immediately")}
-  defp maybe_put_effective_from(body, "immediately"), do: {:ok, Map.put(body, "effective_from", "immediately")}
+  defp maybe_put_effective_from(body, nil),
+    do: {:ok, Map.put(body, "effective_from", "immediately")}
+
+  defp maybe_put_effective_from(body, :immediately),
+    do: {:ok, Map.put(body, "effective_from", "immediately")}
+
+  defp maybe_put_effective_from(body, "immediately"),
+    do: {:ok, Map.put(body, "effective_from", "immediately")}
 
   defp maybe_put_effective_from(body, %DateTime{} = effective_from) do
     {:ok, Map.put(body, "effective_from", DateTime.to_iso8601(effective_from))}
