@@ -314,12 +314,11 @@ end
 | A1 | `mix typecheck.specs` should normalize default-arg heads/arity in a specific way; exact algorithm is not directly specified in official docs. | Common Pitfalls | Could produce false positives/negatives in coverage gate implementation. |
 | A2 | `slopcheck` has no Hex.pm ecosystem support in current version and cannot produce authoritative verdicts for Elixir packages. | Package Legitimacy Audit | Package legitimacy process may need an alternative Hex-native checker later. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **How strict should the public-spec gate be for sealed-but-public utility modules?**
-   - What we know: `@moduledoc false` modules may be excluded only when not part of public seam. [VERIFIED: `11-CONTEXT.md`]
-   - What's unclear: Whether any currently sealed modules under `lib/paddle/` still need enforced specs for Phase 11 success.
-   - Recommendation: Planner should add an explicit module allowlist/denylist decision in Wave 0 of implementation.
+   - Resolution: Sealed `@moduledoc false` internals are excluded from the mechanical public-spec gate unless they are explicitly part of the public seam. The Phase 11 roadmap success criterion applies to the intended public seam across `lib/paddle/`, not to hidden internal/application/http helper modules that remain sealed. [RESOLVED from D-20 in `11-CONTEXT.md`]
+   - Planning consequence: `mix typecheck.specs` should enforce an explicit public-seam allowlist/denylist, while Dialyzer cleanup may still add private/internal specs opportunistically when warnings originate there. This preserves roadmap intent without silently skipping public resource modules. [VERIFIED: `11-CONTEXT.md`; VERIFIED: `.planning/ROADMAP.md`]
 
 ## Environment Availability
 

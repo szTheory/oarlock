@@ -14,7 +14,7 @@
 - [x] Phase 8: Reliability Primitives (4/4 plans) — REL-01, REL-02, REL-03 (completed 2026-05-30)
 - [x] Phase 9: Pagination Ergonomics (1/1 plans) — PAGE-01 (completed 2026-05-30)
 - [x] Phase 10: Subscriptions Surface Completion (3/3 plans) — SUB-04, SUB-05, SUB-06 (completed 2026-05-30)
-- [ ] Phase 11: Type-Safety Pass (0/? plans) — TYPES-01, TYPES-02
+- [ ] Phase 11: Type-Safety Pass (0/5 plans) — TYPES-01, TYPES-02
 - [ ] Phase 12: Documentation Pass (0/? plans) — DOCS-01..05
 - [ ] Phase 13: Process Guard (0/? plans) — PROC-01, PROC-02
 
@@ -111,11 +111,14 @@
   3. `mix dialyzer` runs as a required CI step in `.github/workflows/ci.yml`; a deliberately broken-spec branch in CI fails the gate.
   4. PLT cache is configured (`:dialyxir` `:plt_file` / `:plt_add_apps`) so cold-cache CI completes within a reasonable budget on the project's matrix.
 
-**Plans**: 2 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Add public `@type` / `@spec` coverage across the Phase 11 seam and create the mechanical `mix typecheck.specs` gate.
-- [ ] 11-02-PLAN.md — Wire Dialyxir, empty ignore baseline, `priv/plts` cache config, and a dedicated CI dialyzer/spec job.
+- [ ] 11-01-PLAN.md — Add public `@type t` contracts and shared helper specs to the core seam-carrier modules.
+- [ ] 11-02-PLAN.md — Add public function specs across customer, address, transaction, subscription, and webhook resource modules.
+- [ ] 11-03-PLAN.md — Create the mechanical `mix typecheck.specs` gate for public-spec coverage.
+- [ ] 11-04-PLAN.md — Wire Dialyxir, the empty ignore baseline, and the first clean local Dialyzer pass.
+- [ ] 11-05-PLAN.md — Add the dedicated CI Dialyzer/spec gate and an explicit broken-spec negative-path validation.
 
 ### Phase 12: Documentation Pass
 
@@ -162,7 +165,7 @@ Plans:
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
+| 11. Type-Safety Pass | v1.2 | 0/5 | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
