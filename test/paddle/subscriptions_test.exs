@@ -305,8 +305,7 @@ defmodule Paddle.SubscriptionsTest do
           %{
             path: "/subscriptions",
             query: %{},
-            response:
-              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+            response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
           },
           %{
             path: "/subscriptions",
@@ -327,7 +326,8 @@ defmodule Paddle.SubscriptionsTest do
     end
 
     test "raises ArgumentError for invalid initial params during enumeration" do
-      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+      client =
+        client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
 
       stream = Subscriptions.stream(client, "nope")
 
@@ -342,8 +342,7 @@ defmodule Paddle.SubscriptionsTest do
           %{
             path: "/subscriptions",
             query: %{},
-            response:
-              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+            response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
           }
         ])
 
@@ -358,7 +357,8 @@ defmodule Paddle.SubscriptionsTest do
 
   describe "all/2" do
     test "returns the same ordered subscriptions as stream/2" do
-      {stream_client, stream_requests} = client_with_get_sequence(subscription_pagination_requests())
+      {stream_client, stream_requests} =
+        client_with_get_sequence(subscription_pagination_requests())
 
       stream_ids =
         stream_client
@@ -380,8 +380,7 @@ defmodule Paddle.SubscriptionsTest do
           %{
             path: "/subscriptions",
             query: %{},
-            response:
-              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+            response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
           },
           %{
             path: "/subscriptions",
@@ -395,7 +394,8 @@ defmodule Paddle.SubscriptionsTest do
     end
 
     test "returns validation atoms from the initial list call" do
-      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+      client =
+        client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
 
       assert {:error, :invalid_params} = Subscriptions.all(client, "nope")
     end

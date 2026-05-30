@@ -187,8 +187,7 @@ defmodule Paddle.Customers.AddressesTest do
           %{
             path: "/customers/ctm_01/addresses",
             query: %{},
-            response:
-              address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
+            response: address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
           },
           %{
             path: "/customers/ctm_01/addresses",
@@ -209,7 +208,8 @@ defmodule Paddle.Customers.AddressesTest do
     end
 
     test "raises ArgumentError for invalid initial validation during enumeration" do
-      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+      client =
+        client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
 
       invalid_customer_stream = Addresses.stream(client, nil)
       invalid_params_stream = Addresses.stream(client, "ctm_01", "nope")
@@ -229,8 +229,7 @@ defmodule Paddle.Customers.AddressesTest do
           %{
             path: "/customers/ctm_01/addresses",
             query: %{},
-            response:
-              address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
+            response: address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
           }
         ])
 
@@ -267,8 +266,7 @@ defmodule Paddle.Customers.AddressesTest do
           %{
             path: "/customers/ctm_01/addresses",
             query: %{},
-            response:
-              address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
+            response: address_page(["add_01"], true, "/customers/ctm_01/addresses?after=cursor_1")
           },
           %{
             path: "/customers/ctm_01/addresses",
@@ -282,7 +280,8 @@ defmodule Paddle.Customers.AddressesTest do
     end
 
     test "returns validation atoms from the initial list call" do
-      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+      client =
+        client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
 
       assert {:error, :invalid_customer_id} = Addresses.all(client, nil)
       assert {:error, :invalid_params} = Addresses.all(client, "ctm_01", "nope")
