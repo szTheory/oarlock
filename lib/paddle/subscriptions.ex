@@ -58,6 +58,10 @@ defmodule Paddle.Subscriptions do
     do_pause(client, subscription_id, "immediately", opts)
   end
 
+  def resume(%Client{} = client, subscription_id, opts \\ []) do
+    do_resume(client, subscription_id, opts)
+  end
+
   defp do_cancel(client, subscription_id, effective_from) do
     with :ok <- validate_subscription_id(subscription_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -83,6 +87,20 @@ defmodule Paddle.Subscriptions do
                [json: Map.put(pause_body, "effective_from", effective_from)],
                request_opts
              )
+           ) do
+      {:ok, build_subscription(data)}
+    end
+  end
+
+  defp do_resume(client, subscription_id, opts) do
+    with :ok <- validate_subscription_id(subscription_id),
+         {:ok, resume_body, request_opts} <- normalize_resume_opts(opts),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(
+             client,
+             :post,
+             resume_path(subscription_id),
+             Keyword.merge([json: resume_body], request_opts)
            ) do
       {:ok, build_subscription(data)}
     end
@@ -170,6 +188,65 @@ defmodule Paddle.Subscriptions do
 
   defp maybe_put_on_resume(_body, _on_resume), do: {:error, :invalid_on_resume}
 
+  defp normalize_resume_opts(opts) when is_list(opts) do
+    if Keyword.keyword?(opts) do
+      case Keyword.pop(opts, :retry) do
+        {retry_value, remaining} ->
+          with :ok <- reject_idempotency_key!(remaining),
+               :ok <- reject_unknown_resume_opts(remaining),
+               {:ok, body} <- build_resume_body(remaining) do
+            request_opts =
+              if retry_value == nil and not Keyword.has_key?(opts, :retry),
+                do: [],
+                else: [retry: retry_value]
+
+            {:ok, body, request_opts}
+          end
+      end
+    else
+      raise ArgumentError, "resume options must be a keyword list"
+    end
+  end
+
+  defp normalize_resume_opts(_opts),
+    do: raise(ArgumentError, "resume options must be a keyword list")
+
+  defp reject_unknown_resume_opts(opts) do
+    supported_keys = [:effective_from, :on_resume, :idempotency_key]
+
+    case Enum.find(Keyword.keys(opts), &(&1 not in supported_keys)) do
+      nil ->
+        :ok
+
+      key ->
+        raise ArgumentError, "unknown resume option: #{inspect(key)}"
+    end
+  end
+
+  defp build_resume_body(opts) do
+    with {:ok, body} <- maybe_put_effective_from(%{}, Keyword.get(opts, :effective_from)),
+         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
+      {:ok, body}
+    end
+  end
+
+  defp maybe_put_effective_from(body, nil), do: {:ok, Map.put(body, "effective_from", "immediately")}
+  defp maybe_put_effective_from(body, :immediately), do: {:ok, Map.put(body, "effective_from", "immediately")}
+  defp maybe_put_effective_from(body, "immediately"), do: {:ok, Map.put(body, "effective_from", "immediately")}
+
+  defp maybe_put_effective_from(body, %DateTime{} = effective_from) do
+    {:ok, Map.put(body, "effective_from", DateTime.to_iso8601(effective_from))}
+  end
+
+  defp maybe_put_effective_from(body, effective_from) when is_binary(effective_from) do
+    case DateTime.from_iso8601(effective_from) do
+      {:ok, _datetime, _offset} -> {:ok, Map.put(body, "effective_from", effective_from)}
+      _ -> {:error, :invalid_effective_from}
+    end
+  end
+
+  defp maybe_put_effective_from(_body, _effective_from), do: {:error, :invalid_effective_from}
+
   defp build_subscription(data) when is_map(data) do
     subscription = Http.build_struct(Subscription, data)
 
@@ -225,6 +302,7 @@ defmodule Paddle.Subscriptions do
   defp subscription_path(id), do: "/subscriptions/#{encode_path_segment(id)}"
   defp cancel_path(id), do: subscription_path(id) <> "/cancel"
   defp pause_path(id), do: subscription_path(id) <> "/pause"
+  defp resume_path(id), do: subscription_path(id) <> "/resume"
 
   defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 end
