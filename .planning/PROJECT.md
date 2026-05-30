@@ -53,9 +53,12 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] **TXN-03**: `Paddle.Transactions.get/2` — fetch a transaction by ID with hydrated checkout struct. *(Validated in Phase 6)*
 - [x] **SEAM-01**: End-to-end Accrue seam contract test (adapter-backed; 7-step Accrue path with `is_map/1` opacity checks for `:raw_data`). *(Validated in Phase 7)*
 - [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`) with locked vocabulary and sealed docs surface (`@moduledoc false` on `Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`). *(Validated in Phase 7)*
+- [x] **REL-01**: `idempotency_key:` opt on current `create/*` POSTs with `Idempotency-Key` header forwarding and invalid-key rejection. *(Validated in Phase 8)*
+- [x] **REL-02**: `Paddle.Client.new!/1` default retry policy using `retry: :transient, max_retries: 3`, with per-call `retry: false` opt-out. *(Validated in Phase 8)*
+- [x] **REL-03**: Transport errors normalize to `%Paddle.Error{network_error?: true, retryable?: true, raw_data: %Req.TransportError{}}`. *(Validated in Phase 8)*
 
 ### Active
-_v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`._
+Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 9 pagination ergonomics.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -80,9 +83,9 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 
 - **Locked struct surfaces:** `%Paddle.Transaction{}`, `%Paddle.Transaction.Checkout{}`, `%Paddle.Subscription{}`, `%Paddle.Subscription.ScheduledChange{}`, `%Paddle.Subscription.ManagementUrls{}`, `%Paddle.Event{}`. Field additions are safe (the `:raw_data` field on each preserves forward compatibility); field removals or renames are breaking and require a major bump.
 - **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
-- **Deferred surface (not on near-term roadmap):** subscription mutations (`update`, `pause`, `resume`), payment-method update flows. These remain out of v0.1 scope and are not currently planned for v1.x — Accrue's first slice does not depend on them.
+- **Deferred surface:** subscription `update` and payment-method update flows remain deferred. Subscription `create`, `pause`, and `resume` are now planned for Phase 10 in v1.2.
 
-Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-03`).
+Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-04`).
 
 ## Evolution
 
@@ -102,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-29 — milestone v1.2 (Production Surface) initialized. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
+*Last updated: 2026-05-30 — Phase 8 (Reliability Primitives) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
