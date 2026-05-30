@@ -54,7 +54,7 @@
   - [x] 08-01-PLAN.md — Atomic rename `:raw → :raw_data` in `%Paddle.Error{}` + add explicit `false` defaults for `:network_error?` and `:retryable?` (defexception keyword-syntax migration); co-update `guides/accrue-seam.md:118` and `CHANGELOG.md` in a single commit per D-02. (Wave 1, foundation for REL-03.)
   - [x] 08-02-PLAN.md — REL-03 transport-error normalization: add `Paddle.Error.from_transport/1` (with `transport_type/1` multiclause covering D-14 taxonomy `network_timeout|network_nxdomain|network_closed|network_unknown`); refactor `Http.request/4` `{:error, %Req.TransportError{}}` arm; four adapter-backed reason-variant tests in `http_test.exs`. (Wave 2, depends on 08-01.)
   - [x] 08-03-PLAN.md — REL-01 idempotency-key plumbing: `Keyword.pop(:idempotency_key)` + `ArgumentError` validation in `Http.request/4` (Pitfall 3 ordering); add trailing `opts \\ []` to `Customers.create/3`, `Customers.Addresses.create/4`, `Transactions.create/3`; six unit tests + one integration test locking the locked v1.2 opts vocabulary `:idempotency_key + :retry`. (Wave 3, depends on 08-01 + 08-02.)
-  - [ ] 08-04-PLAN.md — REL-02 retry policy: add `retry: :transient, max_retries: 3` to `Paddle.Client.new!/1`; five Agent-backed retry tests in `http_test.exs` covering 5xx-then-success, 4xx-no-retry, 429-then-success, per-call `retry: false` opt-out, and max-3 ceiling; CHANGELOG entry. (Wave 4, depends on 08-01..08-03.)
+  - [x] 08-04-PLAN.md — REL-02 retry policy: add `retry: :transient, max_retries: 3` to `Paddle.Client.new!/1`; five Agent-backed retry tests in `http_test.exs` covering 5xx-then-success, 4xx-no-retry, 429-then-success, per-call `retry: false` opt-out, and max-3 ceiling; CHANGELOG entry. (Wave 4, depends on 08-01..08-03.)
 
 ### Phase 9: Pagination Ergonomics
 **Goal**: Consumers iterate any list endpoint without hand-rolling cursor loops, while the locked per-resource `list/2` shape stays untouched.
@@ -124,7 +124,7 @@
 | 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
 | 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
-| 8. Reliability Primitives | v1.2 | 3/4 | In Progress|  |
+| 8. Reliability Primitives | v1.2 | 4/4 | Complete   | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 0/? | Pending | — |
 | 10. Subscriptions Surface Completion | v1.2 | 0/? | Pending | — |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
