@@ -14,10 +14,10 @@ Anything not listed here — including internal modules, helper functions, and t
 In particular, the following are **not** part of the supported seam even though
 they may appear in source or generated docs from earlier development snapshots:
 
-- `Paddle.Http` and any submodule under it (transport implementation detail).
+- The internal transport layer and its submodules (transport implementation detail).
 - `Paddle.Internal.*` (helper modules used by the SDK internally).
 - `%Paddle.Client{}` internals such as the `:req` field.
-- The placeholder root `Paddle` module.
+- The placeholder root module.
 - Any function not listed in the **Public Modules** or **Support Types** sections
   below.
 
@@ -59,6 +59,8 @@ The supported consumer entry modules are exactly:
 - `create(client, customer_id, attrs)` returns `{:ok, %Paddle.Address{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_attrs}`. Tier: `locked`.
 - `get(client, customer_id, address_id)` returns `{:ok, %Paddle.Address{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_address_id}`. Tier: `locked`.
 - `list(client, customer_id, params \\ [])` returns `{:ok, %Paddle.Page{data: [%Paddle.Address{}], meta: map()}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_params}`. Tier: `locked`.
+- `stream(client, customer_id, params \\ [])` returns a lazy `Enumerable` of `%Paddle.Address{}` values. Later-page `%Paddle.Error{}` failures raise during enumeration; local validation errors raise `ArgumentError`. Tier: `locked`.
+- `all(client, customer_id, params \\ [])` returns `{:ok, [%Paddle.Address{}]}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_params}` without returning partial results. Tier: `locked`.
 - `update(client, customer_id, address_id, attrs)` returns `{:ok, %Paddle.Address{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_address_id}` / `{:error, :invalid_attrs}`. Tier: `locked`.
 
 ### `Paddle.Transactions`
@@ -70,6 +72,8 @@ The supported consumer entry modules are exactly:
 
 - `get(client, subscription_id)` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_subscription_id}`. Tier: `locked`.
 - `list(client, params \\ [])` returns `{:ok, %Paddle.Page{data: [%Paddle.Subscription{}], meta: map()}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_params}`. Tier: `locked`.
+- `stream(client, params \\ [])` returns a lazy `Enumerable` of `%Paddle.Subscription{}` values. Later-page `%Paddle.Error{}` failures raise during enumeration; local validation errors raise `ArgumentError`. Tier: `locked`.
+- `all(client, params \\ [])` returns `{:ok, [%Paddle.Subscription{}]}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_params}` without returning partial results. Tier: `locked`.
 - `cancel(client, subscription_id)` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_subscription_id}`. Tier: `locked`.
 - `cancel_immediately(client, subscription_id)` returns `{:ok, %Paddle.Subscription{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_subscription_id}`. Tier: `locked`.
 
@@ -105,7 +109,7 @@ The pagination envelope returned from list endpoints.
 
 ### `Paddle.Page.next_cursor/1`
 
-- `Paddle.Page.next_cursor/1` returns the next pagination cursor string or `nil`. Tier: `locked`.
+- `Paddle.Page.next_cursor/1` returns Paddle's next pagination reference string or `nil`. It may return a non-nil reference even when `meta.pagination.has_more` is false; auto-pagination helpers use `has_more` internally to decide whether another page should be fetched. Tier: `locked`.
 
 ### `%Paddle.Error{}`
 

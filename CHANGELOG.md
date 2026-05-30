@@ -17,6 +17,7 @@ This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+* **PAGE-01 auto-pagination helpers**: `Paddle.Subscriptions.stream/2`, `Paddle.Subscriptions.all/2`, `Paddle.Customers.Addresses.stream/3`, and `Paddle.Customers.Addresses.all/3` iterate list endpoints across Paddle pages while preserving the existing `list/2` and `list/3` `{:ok, %Paddle.Page{}}` return shapes. Stream helpers are lazy and may raise during later-page enumeration; eager `all/*` helpers return `{:error, reason}` without partial results on the first failed page.
 * **`%Paddle.Error{}`**: New `:network_error?` field (boolean, defaults to `false`) — to be populated by `Paddle.Error.from_transport/1` in a follow-up plan.
 * **`%Paddle.Error{}`**: New `:retryable?` field (boolean, defaults to `false`) — advisory class predicate populated by `Paddle.Error.from_transport/1` in a follow-up plan.
 * **`Paddle.Error.from_transport/1`**: New public constructor that maps `%Req.TransportError{}` into a normalized `%Paddle.Error{}` with `:network_error?: true`, `:retryable?: true`, and a stable `:type` taxonomy (`"network_timeout"`, `"network_nxdomain"`, `"network_closed"`, `"network_unknown"`). `Paddle.Http.request/4` now returns `{:error, %Paddle.Error{network_error?: true, ...}}` for transport failures instead of leaking the raw `%Req.TransportError{}` to consumers — Accrue and other consumers can now pattern-match on a single error shape across both HTTP and transport failures. (REL-03)
