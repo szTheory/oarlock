@@ -657,7 +657,7 @@ defmodule Paddle.SubscriptionsTest do
           flunk("unexpected request: #{inspect(request)}")
         end)
 
-      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
+      assert_raise ArgumentError, ~r/idempotency_key is not supported for pause operations/, fn ->
         Subscriptions.pause(client, "sub_01", idempotency_key: "attempt-1")
       end
 
@@ -781,9 +781,11 @@ defmodule Paddle.SubscriptionsTest do
           flunk("unexpected request: #{inspect(request)}")
         end)
 
-      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
-        Subscriptions.resume(client, "sub_01", idempotency_key: "attempt-3")
-      end
+      assert_raise ArgumentError,
+                   ~r/idempotency_key is not supported for resume operations/,
+                   fn ->
+                     Subscriptions.resume(client, "sub_01", idempotency_key: "attempt-3")
+                   end
 
       assert_raise ArgumentError, ~r/unknown resume option/, fn ->
         Subscriptions.resume(client, "sub_01", unknown_resume_option: true)

@@ -270,7 +270,7 @@ Today, the library does not try to own:
 - Refund workflows
 - Product and price catalog management
 - Customer portal session creation
-- Direct subscription pause/resume flows
+- Direct subscription creation flows
 
 One more important truth: as of Paddle's current documentation on May 23, 2026,
 subscriptions are normally created indirectly through checkout or invoicing
@@ -279,6 +279,9 @@ intentionally avoids direct subscription-create helpers and checkout-start
 shortcuts on the subscriptions namespace; the practical start path is still
 transaction -> checkout/manual collection -> webhook + `Paddle.Transactions.get/2`
 reconciliation -> `Paddle.Subscriptions.get/2`.
+Once a subscription exists, lifecycle mutations are supported through
+`Paddle.Subscriptions.pause/3`, `pause_immediately/3`, `resume/3`, and
+`cancel/3`.
 
 ## What to Save in Your Own Database
 

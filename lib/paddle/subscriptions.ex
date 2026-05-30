@@ -110,7 +110,7 @@ defmodule Paddle.Subscriptions do
     if Keyword.keyword?(opts) do
       case Keyword.pop(opts, :retry) do
         {retry_value, remaining} ->
-          with :ok <- reject_idempotency_key!(remaining),
+          with :ok <- reject_idempotency_key!(remaining, "pause"),
                :ok <- reject_unknown_pause_opts(remaining),
                {:ok, body} <- build_pause_body(remaining) do
             request_opts =
@@ -129,10 +129,10 @@ defmodule Paddle.Subscriptions do
   defp normalize_pause_opts(_opts),
     do: raise(ArgumentError, "pause options must be a keyword list")
 
-  defp reject_idempotency_key!(opts) do
+  defp reject_idempotency_key!(opts, operation) do
     if Keyword.has_key?(opts, :idempotency_key) do
       raise ArgumentError,
-            "idempotency_key is not supported for pause operations; only retry is supported"
+            "idempotency_key is not supported for #{operation} operations; only retry is supported"
     else
       :ok
     end
@@ -192,7 +192,7 @@ defmodule Paddle.Subscriptions do
     if Keyword.keyword?(opts) do
       case Keyword.pop(opts, :retry) do
         {retry_value, remaining} ->
-          with :ok <- reject_idempotency_key!(remaining),
+          with :ok <- reject_idempotency_key!(remaining, "resume"),
                :ok <- reject_unknown_resume_opts(remaining),
                {:ok, body} <- build_resume_body(remaining) do
             request_opts =
