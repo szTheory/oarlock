@@ -89,7 +89,8 @@ Now create the transaction:
   Paddle.Transactions.create(client,
     customer_id: customer.id,
     address_id: address.id,
-    items: [%{price_id: "pri_monthly_123", quantity: 1}]
+    items: [%{price_id: "pri_monthly_123", quantity: 1}],
+    idempotency_key: "accrue:checkout:user_123:attempt_1"
   )
 ```
 
@@ -139,6 +140,8 @@ For recurring billing, `transaction.completed` is the event that usually moves
 your app from "checkout happened" to "fulfill the purchase." Paddle's own
 subscription guidance also treats webhook-driven provisioning as the normal
 control point for recurring billing.
+`subscription.created` is the companion event that confirms the recurring
+relationship materialized on Paddle's side.
 
 ### What your app should do after verification
 
@@ -174,6 +177,13 @@ read:
 
 For recurring items, the `subscription_id` is the bridge from "purchase" to
 "ongoing relationship."
+
+After you reconcile the transaction outcome, hydrate the canonical typed
+subscription:
+
+```elixir
+{:ok, subscription} = Paddle.Subscriptions.get(client, transaction.subscription_id)
+```
 
 This is the quiet power move in the current library design: the user-facing
 story is not "we have every endpoint." It is "the endpoints we do have connect
@@ -264,9 +274,11 @@ Today, the library does not try to own:
 
 One more important truth: as of Paddle's current documentation on May 23, 2026,
 subscriptions are normally created indirectly through checkout or invoicing
-flows, not by calling a direct "create subscription" API. So the practical
-"start a subscription" job today is still transaction -> checkout -> webhook,
-which is exactly the path this guide teaches.
+flows, not by calling a direct "create subscription" API. The public seam
+intentionally avoids direct subscription-create helpers and checkout-start
+shortcuts on the subscriptions namespace; the practical start path is still
+transaction -> checkout/manual collection -> webhook + `Paddle.Transactions.get/2`
+reconciliation -> `Paddle.Subscriptions.get/2`.
 
 ## What to Save in Your Own Database
 
