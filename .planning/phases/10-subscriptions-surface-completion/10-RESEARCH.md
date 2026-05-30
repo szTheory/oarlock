@@ -372,17 +372,15 @@ client =
 | A2 | Planner should split Phase 10 into three slices (SUB-04 correction, pause, resume) for best execution flow. | Summary | Suboptimal sequencing if repository constraints favor a different slice order. |
 | A3 | `Map.keys(%Paddle.Subscription{})` key-set assertion is the best low-complexity seam regression form. | Common Pitfalls | Could choose a different strictness mechanism in implementation. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should SUB-04 correction be codified first: REQUIREMENTS, ROADMAP, or both in the same plan wave?**
-   - What we know: `10-CONTEXT` locks the correction and requires plans to treat `Subscriptions.create/2` as rejected. [VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-CONTEXT.md`]
-   - What's unclear: Whether process expects requirement-file mutation in planning or execution step.
-   - Recommendation: Add an explicit first task in Phase 10 planning to update both files atomically, or document a signed exception if workflow blocks requirement edits.
+   - RESOLVED: The SUB-04 correction was codified during planning in `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, and `.planning/PROJECT.md`. [VERIFIED: `.planning/REQUIREMENTS.md`; VERIFIED: `.planning/ROADMAP.md`; VERIFIED: `.planning/PROJECT.md`]
+   - RESOLVED: Phase 10 execution now treats those planning files as corrected preconditions rather than execution-batch targets, and Plan `10-01` locks the corrected recurring-start seam in tests/docs instead of reopening planning-file edits. [VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-01-PLAN.md`]
 
 2. **Should seam boundary test (`test/paddle/seam_test.exs`) gain explicit pause/resume journey steps now or stay minimal and rely on module tests?**
-   - What we know: Context says update seam tests only at public boundary and avoid full payload freezing. [VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-CONTEXT.md`]
-   - What's unclear: Minimum acceptable seam test delta for Phase 10.
-   - Recommendation: Keep seam test minimal; prioritize adapter-backed `subscriptions_test.exs` coverage and a dedicated struct-shape regression in `subscription_test.exs`.
+   - RESOLVED: Yes. Plan `10-03` adds explicit pause/resume journey steps at the public seam boundary while keeping assertions limited to typed public behavior and `raw_data` presence. [VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-03-PLAN.md`; VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-CONTEXT.md`]
+   - RESOLVED: Detailed request/response payload coverage stays in `test/paddle/subscriptions_test.exs`, and the `%Paddle.Subscription{}` struct-shape regression stays in `test/paddle/subscription_test.exs`. [VERIFIED: `.planning/phases/10-subscriptions-surface-completion/10-03-PLAN.md`]
 
 ## Environment Availability
 
