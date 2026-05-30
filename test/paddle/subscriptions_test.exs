@@ -575,6 +575,152 @@ defmodule Paddle.SubscriptionsTest do
     end
   end
 
+  describe "pause/3" do
+    test "issues POST /subscriptions/{id}/pause with effective_from=next_billing_period and returns typed hydration" do
+      response_data = subscription_payload_active_with_scheduled_pause()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :post
+          assert request.url.path == "/subscriptions/sub_01/pause"
+
+          assert decode_json_body(request.body) == %{
+                   "effective_from" => "next_billing_period",
+                   "resume_at" => "2026-07-01T00:00:00Z",
+                   "on_resume" => "start_new_billing_period"
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{status: "active"} = subscription} =
+               Subscriptions.pause(client, "sub_01",
+                 resume_at: "2026-07-01T00:00:00Z",
+                 on_resume: :start_new_billing_period
+               )
+
+      assert %ScheduledChange{action: "pause", resume_at: "2026-07-01T00:00:00Z"} =
+               subscription.scheduled_change
+
+      assert %ManagementUrls{} = subscription.management_urls
+    end
+
+    test "encodes DateTime resume_at values as RFC3339 and accepts on_resume provider strings" do
+      response_data = subscription_payload_active_with_scheduled_pause()
+
+      client =
+        client_with_adapter(fn request ->
+          assert decode_json_body(request.body) == %{
+                   "effective_from" => "next_billing_period",
+                   "resume_at" => "2026-07-01T00:00:00Z",
+                   "on_resume" => "continue_existing_billing_period"
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{}} =
+               Subscriptions.pause(client, "sub_01",
+                 resume_at: ~U[2026-07-01 00:00:00Z],
+                 on_resume: "continue_existing_billing_period"
+               )
+    end
+
+    test "returns :invalid_subscription_id for invalid ids without dispatching HTTP" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert {:error, :invalid_subscription_id} = Subscriptions.pause(client, nil)
+      assert {:error, :invalid_subscription_id} = Subscriptions.pause(client, "")
+      assert {:error, :invalid_subscription_id} = Subscriptions.pause(client, "   ")
+      assert {:error, :invalid_subscription_id} = Subscriptions.pause(client, 42)
+    end
+
+    test "returns local validation errors for invalid resume_at and on_resume values" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert {:error, :invalid_resume_at} =
+               Subscriptions.pause(client, "sub_01", resume_at: "not-rfc3339")
+
+      assert {:error, :invalid_on_resume} =
+               Subscriptions.pause(client, "sub_01", on_resume: :not_allowed)
+    end
+
+    test "raises ArgumentError for idempotency_key and unsupported keys before dispatch" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
+        Subscriptions.pause(client, "sub_01", idempotency_key: "attempt-1")
+      end
+
+      assert_raise ArgumentError, ~r/unknown pause option/, fn ->
+        Subscriptions.pause(client, "sub_01", unknown_pause_option: true)
+      end
+    end
+
+    test "per-call retry: false disables retry on 503 pause responses" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          assert request.url.path == "/subscriptions/sub_01/pause"
+          {request, Req.Response.new(status: 503, body: %{})}
+        end)
+
+      assert {:error, %Error{status_code: 503}} =
+               Subscriptions.pause(client, "sub_01", retry: false)
+
+      assert Agent.get(attempts, & &1) == 1
+      Agent.stop(attempts)
+    end
+  end
+
+  describe "pause_immediately/3" do
+    test "issues POST /subscriptions/{id}/pause with effective_from=immediately" do
+      response_data = subscription_payload_active_with_scheduled_pause()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :post
+          assert request.url.path == "/subscriptions/sub_01/pause"
+
+          assert decode_json_body(request.body) == %{
+                   "effective_from" => "immediately",
+                   "resume_at" => "2026-07-01T00:00:00Z",
+                   "on_resume" => "start_new_billing_period"
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{status: "active"}} =
+               Subscriptions.pause_immediately(client, "sub_01",
+                 resume_at: ~U[2026-07-01 00:00:00Z],
+                 on_resume: "start_new_billing_period"
+               )
+    end
+
+    test "raises ArgumentError for idempotency_key" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
+        Subscriptions.pause_immediately(client, "sub_01", idempotency_key: "attempt-2")
+      end
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
@@ -587,6 +733,21 @@ defmodule Paddle.SubscriptionsTest do
     body
     |> IO.iodata_to_binary()
     |> Jason.decode!()
+  end
+
+  defp client_with_retry_adapter(adapter) do
+    %Client{
+      api_key: "sk_test_123",
+      environment: :sandbox,
+      req:
+        Req.new(
+          base_url: "https://sandbox-api.paddle.com",
+          retry: :transient,
+          retry_delay: fn _ -> 0 end,
+          max_retries: 3,
+          adapter: adapter
+        )
+    }
   end
 
   defp client_with_get_sequence(expected_requests) do
@@ -734,6 +895,16 @@ defmodule Paddle.SubscriptionsTest do
         "action" => "cancel",
         "effective_at" => "2024-05-12T10:37:59.556997Z",
         "resume_at" => nil
+      }
+    })
+  end
+
+  defp subscription_payload_active_with_scheduled_pause do
+    Map.merge(subscription_payload_active_with_scheduled_change(), %{
+      "scheduled_change" => %{
+        "action" => "pause",
+        "effective_at" => "2026-06-10T10:37:59.556997Z",
+        "resume_at" => "2026-07-01T00:00:00Z"
       }
     })
   end
