@@ -65,7 +65,8 @@
   2. `Paddle.all/3` returns the same items as `Paddle.stream/3 |> Enum.to_list/1` for the same fixture.
   3. A regression test re-asserts that `Paddle.Subscriptions.list/2` (and at least one other locked `list/2`) still returns `{:ok, %Paddle.Page{}}` — the v1.1 locked shape is unchanged.
   4. `Paddle.Page.next_cursor/1` remains the documented cursor accessor; auto-pagination is built on top of it, not as a replacement.
-**Plans**: TBD
+**Plans**: 1 plan
+  - [x] 09-01-PLAN.md — Per-resource auto-pagination helpers for subscriptions and customer addresses, backed by hidden `Paddle.Internal.Pagination`, adapter-backed stream/all/list-shape/cursor replay tests, and public docs/changelog updates. (Wave 1.)
 
 ### Phase 10: Subscriptions Surface Completion
 **Goal**: Close Accrue's P0 (subscription create) plus P1 (pause/resume) blockers while preserving the v1.1 locked seam contract from `guides/accrue-seam.md`.
@@ -125,7 +126,7 @@
 | 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
-| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete   | 2026-05-30 |
+| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 0/? | Pending | — |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
