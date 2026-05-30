@@ -18,7 +18,7 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Pagination ergonomics
 
-- [ ] **PAGE-01**: Provide `Paddle.stream/3` and `Paddle.all/3` (or per-resource equivalents) that auto-paginate over any list endpoint by chaining `Paddle.Page.next_cursor/1`. Existing per-resource `list/2` shape stays locked. *(Phase 9.)*
+- [x] **PAGE-01**: Provide `Paddle.stream/3` and `Paddle.all/3` (or per-resource equivalents) that auto-paginate over any list endpoint by chaining `Paddle.Page.next_cursor/1`. Existing per-resource `list/2` shape stays locked. *(Phase 9.)*
 
 ### Subscriptions surface completion
 
@@ -78,7 +78,7 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | REL-01      | 8     | Complete | `idempotency_key:` opt -> `Idempotency-Key` header on current `create/*`; Phase 10 inherits pattern for Subscriptions.create/2. |
 | REL-02      | 8     | Complete | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
 | REL-03      | 8     | Complete | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
-| PAGE-01     | 9     | Pending | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
+| PAGE-01     | 9     | Complete | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
 | SUB-04      | 10    | Pending | `Paddle.Subscriptions.create/2`. Closes P0 Accrue blocker. |
 | SUB-05      | 10    | Pending | `Paddle.Subscriptions.pause/2`. |
 | SUB-06      | 10    | Pending | `Paddle.Subscriptions.resume/2`. |
