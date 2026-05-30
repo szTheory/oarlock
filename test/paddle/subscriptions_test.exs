@@ -721,6 +721,114 @@ defmodule Paddle.SubscriptionsTest do
     end
   end
 
+  describe "resume/3" do
+    test "issues POST /subscriptions/{id}/resume and defaults effective_from to immediately" do
+      response_data = subscription_payload_active_with_scheduled_change()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :post
+          assert request.url.path == "/subscriptions/sub_01/resume"
+
+          assert decode_json_body(request.body) == %{
+                   "effective_from" => "immediately",
+                   "on_resume" => "start_new_billing_period"
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{status: "active"}} =
+               Subscriptions.resume(client, "sub_01", on_resume: :start_new_billing_period)
+    end
+
+    test "accepts effective_from DateTime and RFC3339 values and on_resume provider strings" do
+      response_data = subscription_payload_active_with_scheduled_change()
+
+      client =
+        client_with_adapter(fn request ->
+          assert decode_json_body(request.body) == %{
+                   "effective_from" => "2026-07-01T00:00:00Z",
+                   "on_resume" => "continue_existing_billing_period"
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{}} =
+               Subscriptions.resume(client, "sub_01",
+                 effective_from: ~U[2026-07-01 00:00:00Z],
+                 on_resume: "continue_existing_billing_period"
+               )
+    end
+
+    test "returns local validation errors for invalid effective_from and on_resume values" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert {:error, :invalid_effective_from} =
+               Subscriptions.resume(client, "sub_01", effective_from: :not_allowed)
+
+      assert {:error, :invalid_on_resume} =
+               Subscriptions.resume(client, "sub_01", on_resume: :not_allowed)
+    end
+
+    test "raises ArgumentError for idempotency_key and unsupported keys before dispatch" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("unexpected request: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
+        Subscriptions.resume(client, "sub_01", idempotency_key: "attempt-3")
+      end
+
+      assert_raise ArgumentError, ~r/unknown resume option/, fn ->
+        Subscriptions.resume(client, "sub_01", unknown_resume_option: true)
+      end
+    end
+
+    test "per-call retry: false disables retry on 422 resume responses and preserves provider errors" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          assert request.url.path == "/subscriptions/sub_01/resume"
+
+          response =
+            Req.Response.new(
+              status: 422,
+              body: %{
+                "error" => %{
+                  "type" => "request_error",
+                  "code" => "subscription_missing_payment_method_cannot_resume",
+                  "detail" => "Cannot resume subscription without a payment method",
+                  "errors" => []
+                }
+              }
+            )
+            |> Req.Response.put_header("x-request-id", "req_resume_422")
+
+          {request, response}
+        end)
+
+      assert {:error,
+              %Error{
+                status_code: 422,
+                request_id: "req_resume_422",
+                code: "subscription_missing_payment_method_cannot_resume",
+                message: "Cannot resume subscription without a payment method"
+              }} =
+               Subscriptions.resume(client, "sub_01", retry: false)
+
+      assert Agent.get(attempts, & &1) == 1
+      Agent.stop(attempts)
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",

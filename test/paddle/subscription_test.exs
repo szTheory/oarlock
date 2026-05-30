@@ -7,33 +7,33 @@ defmodule Paddle.SubscriptionTest do
   alias Paddle.Subscription.ScheduledChange
 
   describe "%Paddle.Subscription{} struct" do
-    test "exposes the promoted subscription fields plus raw_data" do
-      assert %Subscription{
-               id: nil,
-               status: nil,
-               customer_id: nil,
-               address_id: nil,
-               business_id: nil,
-               currency_code: nil,
-               collection_mode: nil,
-               custom_data: nil,
-               items: nil,
-               scheduled_change: nil,
-               management_urls: nil,
-               current_billing_period: nil,
-               billing_cycle: nil,
-               billing_details: nil,
-               discount: nil,
-               next_billed_at: nil,
-               started_at: nil,
-               first_billed_at: nil,
-               paused_at: nil,
-               canceled_at: nil,
-               created_at: nil,
-               updated_at: nil,
-               import_meta: nil,
-               raw_data: nil
-             } = %Subscription{}
+    test "exposes exactly the locked subscription key set" do
+      assert Map.keys(%Subscription{}) |> Enum.reject(&(&1 == :__struct__)) |> Enum.sort() == [
+               :address_id,
+               :billing_cycle,
+               :billing_details,
+               :business_id,
+               :canceled_at,
+               :collection_mode,
+               :created_at,
+               :currency_code,
+               :current_billing_period,
+               :custom_data,
+               :customer_id,
+               :discount,
+               :first_billed_at,
+               :id,
+               :import_meta,
+               :items,
+               :management_urls,
+               :next_billed_at,
+               :paused_at,
+               :raw_data,
+               :scheduled_change,
+               :started_at,
+               :status,
+               :updated_at
+             ]
     end
 
     test "build_struct/2 promotes known subscription keys and preserves the full payload in raw_data" do

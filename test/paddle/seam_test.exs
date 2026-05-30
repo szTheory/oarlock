@@ -1,6 +1,5 @@
 # This test pins the full oarlock surface that Accrue targets.
-# Scope: customer -> address -> transaction -> webhook -> subscription get -> cancel.
-# Subscription mutations (update/pause/resume) are out of scope for v1.1.
+# Scope: customer -> address -> transaction -> webhook -> subscription get -> pause -> resume -> cancel.
 # Each step uses its own client because adapters are one-shot closures and must not be reused.
 defmodule Paddle.SeamTest do
   use ExUnit.Case, async: false
@@ -20,7 +19,7 @@ defmodule Paddle.SeamTest do
   @seam_timestamp 1_700_000_000
   @transaction_completed_body ~s({"event_id":"evt_seam01","event_type":"transaction.completed","occurred_at":"2024-04-12T10:37:59Z","notification_id":"ntf_seam01","data":{"id":"txn_seam01","status":"completed","customer_id":"ctm_seam01","subscription_id":"sub_seam01","checkout":{"url":"https://checkout.paddle.com/checkout/txn_seam01"},"currency_code":"USD","collection_mode":"automatic"}})
 
-  test "locks the Accrue seam across the customer, checkout, webhook, and subscription flow" do
+  test "locks the Accrue seam across the customer, checkout, webhook, and subscription lifecycle flow" do
     customer_client =
       client_with_adapter(fn request ->
         assert request.method == :post
@@ -169,6 +168,44 @@ defmodule Paddle.SeamTest do
                "https://buyer-portal.paddle.com/subscriptions/sub_seam01/update-payment-method",
              cancel: "https://buyer-portal.paddle.com/subscriptions/sub_seam01/cancel"
            } = subscription.management_urls
+
+    pause_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/subscriptions/sub_seam01/pause"
+
+        assert decode_json_body(request.body) == %{
+                 "effective_from" => "next_billing_period",
+                 "on_resume" => "start_new_billing_period"
+               }
+
+        {request, Req.Response.new(status: 200, body: %{"data" => subscription_payload_paused()})}
+      end)
+
+    assert {:ok, %Subscription{status: "active"} = paused_subscription} =
+             Paddle.Subscriptions.pause(
+               pause_client,
+               subscription.id,
+               on_resume: :start_new_billing_period
+             )
+
+    assert %ScheduledChange{action: "pause"} = paused_subscription.scheduled_change
+    assert is_map(paused_subscription.raw_data)
+
+    resume_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/subscriptions/sub_seam01/resume"
+        assert decode_json_body(request.body) == %{"effective_from" => "immediately"}
+
+        {request, Req.Response.new(status: 200, body: %{"data" => subscription_payload_resumed()})}
+      end)
+
+    assert {:ok, %Subscription{status: "active"} = resumed_subscription} =
+             Paddle.Subscriptions.resume(resume_client, subscription.id)
+
+    assert resumed_subscription.scheduled_change == nil
+    assert is_map(resumed_subscription.raw_data)
 
     cancel_client =
       client_with_adapter(fn request ->
@@ -322,6 +359,24 @@ defmodule Paddle.SeamTest do
         "resume_at" => nil
       },
       "updated_at" => "2024-04-13T10:37:59.556997Z"
+    })
+  end
+
+  defp subscription_payload_paused do
+    Map.merge(subscription_payload(), %{
+      "scheduled_change" => %{
+        "action" => "pause",
+        "effective_at" => "2024-05-12T10:37:59.556997Z",
+        "resume_at" => nil
+      },
+      "updated_at" => "2024-04-13T09:37:59.556997Z"
+    })
+  end
+
+  defp subscription_payload_resumed do
+    Map.merge(subscription_payload(), %{
+      "scheduled_change" => nil,
+      "updated_at" => "2024-04-13T09:47:59.556997Z"
     })
   end
 end
