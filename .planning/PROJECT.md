@@ -19,7 +19,7 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 **Target features:**
 - Reliability primitives: idempotency keys on POSTs, 429/`Retry-After` retry policy, normalized network-error shape
 - Pagination ergonomics: per-resource `stream/*` + `all/*` helpers built on `Paddle.Page.next_cursor/1`
-- Subscriptions surface completion: `create/2`, `pause/2`, `resume/2` (closes the P0 Accrue blocker plus the P1 mutation surface)
+- Subscriptions surface completion: transaction-driven recurring start guidance/tests plus `pause/3`, `pause_immediately/3`, and `resume/3` (closes the P0 Accrue blocker plus the P1 mutation surface truthfully)
 - Type-safety pass: `@spec` on every public function, `:dialyxir` wired with green baseline + CI gate
 - Documentation pass: `@doc` everywhere, `@moduledoc` on every public module, README rewrite, new `guides/getting-started.md` and `guides/telemetry.md`
 - Process guard: pre-commit hook that prevents the v1.1 SUMMARY/git-state drift class
@@ -84,7 +84,7 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 
 - **Locked struct surfaces:** `%Paddle.Transaction{}`, `%Paddle.Transaction.Checkout{}`, `%Paddle.Subscription{}`, `%Paddle.Subscription.ScheduledChange{}`, `%Paddle.Subscription.ManagementUrls{}`, `%Paddle.Event{}`. Field additions are safe (the `:raw_data` field on each preserves forward compatibility); field removals or renames are breaking and require a major bump.
 - **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
-- **Deferred surface:** subscription `update` and payment-method update flows remain deferred. Subscription `create`, `pause`, and `resume` are now planned for Phase 10 in v1.2.
+- **Deferred surface:** subscription `update` and payment-method update flows remain deferred. Phase 10 expands the seam additively with transaction-driven recurring start guidance/tests plus `pause`, `pause_immediately`, and `resume`; it does not add `Paddle.Subscriptions.create/2`.
 
 Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-04`).
 

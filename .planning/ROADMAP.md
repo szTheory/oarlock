@@ -13,7 +13,7 @@
 
 - [x] Phase 8: Reliability Primitives (4/4 plans) — REL-01, REL-02, REL-03 (completed 2026-05-30)
 - [x] Phase 9: Pagination Ergonomics (1/1 plans) — PAGE-01 (completed 2026-05-30)
-- [ ] Phase 10: Subscriptions Surface Completion (0/? plans) — SUB-04, SUB-05, SUB-06
+- [ ] Phase 10: Subscriptions Surface Completion (0/3 plans) — SUB-04, SUB-05, SUB-06
 - [ ] Phase 11: Type-Safety Pass (0/? plans) — TYPES-01, TYPES-02
 - [ ] Phase 12: Documentation Pass (0/? plans) — DOCS-01..05
 - [ ] Phase 13: Process Guard (0/? plans) — PROC-01, PROC-02
@@ -46,7 +46,7 @@
 **Depends on**: v1.1 closed (Phase 7).
 **Requirements**: REL-01, REL-02, REL-03
 **Success Criteria** (what must be TRUE):
-  1. Every `create/*` public function (Customers, Addresses, Transactions, and the new Subscriptions.create/2 from Phase 10) accepts an `idempotency_key:` opt; an adapter-backed test asserts the value is forwarded as the `Idempotency-Key` HTTP header.
+  1. Every create/start public function that truthfully supports idempotency semantics (Customers, Addresses, Transactions, and the corrected Phase 10 recurring-start path through `Paddle.Transactions.create/3`) accepts an `idempotency_key:` opt; an adapter-backed test asserts the value is forwarded as the `Idempotency-Key` HTTP header.
   2. An adapter-backed test exercises a 429 response with `Retry-After: 2` and the request succeeds after the client honors the retry; a sibling test asserts no retry on 4xx other than 429 and a max-3-retry ceiling on 5xx.
   3. A simulated transient network failure (timeout / nxdomain) returns `{:error, %Paddle.Error{network_error?: true, retryable?: true}}` with the existing `:raw_data` field still present (additive change only).
   4. The full pre-existing test suite (≥111 tests at v1.1 close) continues to pass with zero failures — no v1.1 seam regression.
@@ -69,16 +69,20 @@
   - [x] 09-01-PLAN.md — Per-resource auto-pagination helpers for subscriptions and customer addresses, backed by hidden `Paddle.Internal.Pagination`, adapter-backed stream/all/list-shape/cursor replay tests, and public docs/changelog updates. (Wave 1.)
 
 ### Phase 10: Subscriptions Surface Completion
-**Goal**: Close Accrue's P0 (subscription create) plus P1 (pause/resume) blockers while preserving the v1.1 locked seam contract from `guides/accrue-seam.md`.
-**Depends on**: Phase 8 (idempotency keys flow through `Subscriptions.create/2`).
+**Goal**: Close Accrue's P0 recurring-start blocker plus P1 pause/resume blockers while preserving the v1.1 locked seam contract from `guides/accrue-seam.md`.
+**Depends on**: Phase 8 (transaction idempotency + retry boundary reused by recurring-start and lifecycle mutations), Phase 9 (current subscription guide/examples remain additive).
 **Requirements**: SUB-04, SUB-05, SUB-06
 **Success Criteria** (what must be TRUE):
-  1. `Paddle.Subscriptions.create/2` returns `{:ok, %Paddle.Subscription{}}` with hydrated `:scheduled_change` and `:management_urls` when present, and validation atoms (`{:error, :invalid_attrs}`) on bad input — adapter-backed.
-  2. `Paddle.Subscriptions.pause/2` and `Paddle.Subscriptions.resume/2` each return the updated `%Paddle.Subscription{}` with `:status` and `:paused_at` reflecting the action — adapter-backed.
-  3. **Locked-seam discipline**: a struct-shape regression test confirms `%Paddle.Subscription{}` adds zero new locked fields and removes/renames zero existing locked fields. Any new data point flows through `:raw_data` (additive/opaque) per `guides/accrue-seam.md`.
-  4. `guides/accrue-seam.md` is updated to list `create/2`, `pause/2`, `resume/2` under `Paddle.Subscriptions` Public Modules and to remove "Subscription mutations beyond cancel" from the **Out of scope** bucket — closing the documentation/contract delta.
-  5. All v1.1 seam contract tests (`test/paddle/seam_test.exs`) continue to pass without modification — the existing locked surface is untouched.
-**Plans**: TBD
+  1. `Paddle.Transactions.create/3` remains the truthful recurring-start entrypoint for recurring price items: adapter-backed tests and guides show `idempotency_key:` on the transaction create call, checkout/manual-collection completion, webhook correlation, and canonical `Paddle.Subscriptions.get/2` hydration. No public `Paddle.Subscriptions.create/2` is introduced.
+  2. `Paddle.Subscriptions.pause/3` and `Paddle.Subscriptions.pause_immediately/3` return updated `%Paddle.Subscription{}` values with hydrated `:scheduled_change` / `:management_urls`, validated lifecycle opts, explicit `idempotency_key:` rejection, and retry-only request opts — adapter-backed.
+  3. `Paddle.Subscriptions.resume/3` returns the updated `%Paddle.Subscription{}` with validated `:effective_from` / `:on_resume`, explicit `idempotency_key:` rejection, and adapter-backed provider-error passthrough for resume-only state failures.
+  4. **Locked-seam discipline**: a struct-shape regression test confirms `%Paddle.Subscription{}` adds zero new locked fields and removes/renames zero existing locked fields. Any new data point flows through `:raw_data` (additive/opaque) per `guides/accrue-seam.md`.
+  5. `guides/accrue-seam.md` is updated to list `pause/3`, `pause_immediately/3`, and `resume/3` under `Paddle.Subscriptions`, to document transaction-driven recurring start under the existing transaction seam, and to keep direct subscription creation out of the public contract.
+  6. All v1.1 seam contract tests continue to pass while the public seam expands additively with pause/resume and the corrected recurring-start narrative.
+**Plans**: 3 plans
+  - [ ] 10-01-PLAN.md — Lock the corrected SUB-04 contract in transactions/seam tests and getting-started docs around transaction-driven recurring start.
+  - [ ] 10-02-PLAN.md — Add `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with explicit lifecycle/request opt boundaries and adapter-backed pause coverage.
+  - [ ] 10-03-PLAN.md — Add `Paddle.Subscriptions.resume/3`, tighten `%Paddle.Subscription{}` seam regression coverage, and update the public seam guide.
 
 ### Phase 11: Type-Safety Pass
 **Goal**: oarlock has machine-checked specs end-to-end so an Accrue-side type drift fails CI here, not in production.
@@ -129,7 +133,7 @@
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 0/? | Pending | — |
+| 10. Subscriptions Surface Completion | v1.2 | 0/3 | Pending | — |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |

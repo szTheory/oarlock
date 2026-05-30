@@ -12,7 +12,7 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Reliability primitives
 
-- [x] **REL-01**: Accept an optional `idempotency_key:` opt on every current `create/*` function (Customers, Addresses, Transactions) and pass it through as the `Idempotency-Key` request header. *(Phase 8 complete. Phase 10's new Subscriptions.create/2 must copy the same opts pattern from Plan 08-03.)*
+- [x] **REL-01**: Accept an optional `idempotency_key:` opt on every current `create/*` function (Customers, Addresses, Transactions) and pass it through as the `Idempotency-Key` request header. *(Phase 8 complete. Phase 10's corrected recurring-start seam keeps `Paddle.Transactions.create/3` as the idempotent start surface; pause/resume do not gain `idempotency_key:`.)*
 - [x] **REL-02**: Configure `req` with an automatic retry policy that respects `Retry-After`: max 3 retries with exponential backoff, retry only on 429 + 5xx + transient network errors, no retry on 4xx other than 429. *(Phase 8 complete.)*
 - [x] **REL-03**: Normalize transient network failures (timeout, nxdomain, etc.) into `%Paddle.Error{}` with `:network_error?` and `:retryable?` flags. Existing `:raw_data` field on `%Paddle.Error{}` must remain — additive change only, no v1.1 seam break. *(Phase 8 complete.)*
 
@@ -22,13 +22,13 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Subscriptions surface completion
 
-- [ ] **SUB-04**: `Paddle.Subscriptions.create/2` — create a subscription, returning hydrated `%Paddle.Subscription{}`. Pure additive surface; locked seam preserved. *(Phase 10. Closes the P0 Accrue blocker.)*
+- [ ] **SUB-04**: Transaction-driven recurring start — use `Paddle.Transactions.create/3` for recurring price items, then complete checkout or the manual-collection flow, correlate the resulting subscription via webhooks and/or `Paddle.Transactions.get/2`, and hydrate the canonical `%Paddle.Subscription{}` with `Paddle.Subscriptions.get/2`. Do not add a public `Paddle.Subscriptions.create/2`. *(Phase 10. Closes the P0 Accrue blocker truthfully.)*
 - [ ] **SUB-05**: `Paddle.Subscriptions.pause/2` — pause a subscription, returning the updated `%Paddle.Subscription{}`. Reverses the v1.1 PROJECT.md "deferred mutation surface" stance for v1.2. *(Phase 10.)*
 - [ ] **SUB-06**: `Paddle.Subscriptions.resume/2` — resume a previously paused subscription. *(Phase 10.)*
 
 ### Type-safety pass
 
-- [ ] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` (≥33 functions today, plus SUB-04..06 added in Phase 10). *(Phase 11.)*
+- [ ] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` (≥33 functions today, plus the Phase 10 pause/resume additions). *(Phase 11.)*
 - [ ] **TYPES-02**: Wire `:dialyxir` in `mix.exs` with a PLT cache configuration; establish a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`); add `mix dialyzer` as a CI gate in `.github/workflows/ci.yml`. *(Phase 11.)*
 
 ### Documentation pass
@@ -66,7 +66,7 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 - **Marketplaces / Connect**: Excluded for v0.x.
 - **Discounts, Reports, Simulations, Events list endpoint, Payment Methods**: Pure surface expansion; defer until consumer demand surfaces.
 - **Property-based tests with `stream_data`**: Out of scope for v1.2 hardening; revisit if dialyzer surfaces edge cases.
-- **`Paddle.Subscriptions.update/3`**: Open question carried into `/gsd-discuss-phase 10`. Default disposition: include if cleanly bundleable with pause/resume; otherwise defer.
+- **`Paddle.Subscriptions.update/3`**: Deferred beyond Phase 10. The corrected Phase 10 scope is transaction-driven recurring start plus pause/resume only.
 
 ---
 
@@ -80,7 +80,7 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | REL-02      | 8     | Complete | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
 | REL-03      | 8     | Complete | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
 | PAGE-01     | 9     | Complete | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
-| SUB-04      | 10    | Pending | `Paddle.Subscriptions.create/2`. Closes P0 Accrue blocker. |
+| SUB-04      | 10    | Pending | Transaction-driven recurring start via `Paddle.Transactions.create/3` + checkout/manual collection + webhook/canonical fetch; no public `Paddle.Subscriptions.create/2`. |
 | SUB-05      | 10    | Pending | `Paddle.Subscriptions.pause/2`. |
 | SUB-06      | 10    | Pending | `Paddle.Subscriptions.resume/2`. |
 | TYPES-01    | 11    | Pending | `@spec` on every public function across `lib/paddle/`. |
