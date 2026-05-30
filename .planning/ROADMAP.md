@@ -93,7 +93,7 @@
 **Wave 1**
 
   - [x] 10-01-PLAN.md — Lock the corrected SUB-04 contract in transactions/seam tests and getting-started docs around transaction-driven recurring start.
-  - [ ] 10-02-PLAN.md — Add `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with explicit lifecycle/request opt boundaries and adapter-backed pause coverage.
+  - [x] 10-02-PLAN.md — Add `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with explicit lifecycle/request opt boundaries and adapter-backed pause coverage.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -157,7 +157,7 @@
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 0/3 | Pending | — |
+| 10. Subscriptions Surface Completion | v1.2 | 2/3 | In Progress|  |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
