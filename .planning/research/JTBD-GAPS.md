@@ -1,6 +1,6 @@
 # JTBD Gap Map
 
-_Last reviewed: 2026-05-23_
+_Last reviewed: 2026-05-30_
 
 This document is for maintainers, not first-time adopters.
 
@@ -21,6 +21,8 @@ It is strongest at the seam moments:
 - verify and parse webhook
 - fetch transaction
 - fetch/list/cancel subscription
+- auto-paginate subscriptions and customer addresses
+- survive common production HTTP failure modes
 
 For a Phoenix or Ecto SaaS integrator, the biggest remaining value is not
 "cover more Paddle nouns." It is "close the remaining operational gaps in the
@@ -37,15 +39,15 @@ recurring billing lifecycle."
 | Reconcile a completed purchase | Strong | `Paddle.Transactions.get/2` closes the loop cleanly. |
 | Inspect the current state of a subscription | Strong | `get/2` and `list/2` are enough for dashboards and support tooling. |
 | End renewal | Strong | `cancel/2` and `cancel_immediately/2` cover the main off-ramp. |
+| Backfill or operate on large subscription/customer-address sets | Strong | Phase 9 added lazy `stream/*` and eager `all/*` helpers over the current public list endpoints. |
+| Handle production HTTP failure modes confidently | Strong | Phase 8 added idempotency keys, transient retry policy, and normalized transport errors. |
 
 ### Partially supported today
 
 | Job | Current support | Gap |
 | --- | --- | --- |
 | Let customers self-serve billing changes | Partial | `management_urls` are exposed, but there is no customer-portal session helper. |
-| Backfill or operate on large subscription/customer sets | Partial | List endpoints exist, but cursor iteration is still manual. |
 | Explain the integration to a fresh adopter | Partial | This improved with `guides/getting-started.md`, but function docs are still thin. |
-| Handle production HTTP failure modes confidently | Partial | Reliability work is planned, not shipped. |
 
 ### Missing for the SaaS-integrator job map
 
@@ -73,17 +75,9 @@ These close obvious holes in the lifecycle a SaaS team actually operates.
    - "We can charge customers but not reverse a charge" is not a mature SaaS story.
    - Paddle models this through adjustments, not by mutating the original transaction.
 
-3. **Pagination ergonomics**
-   - The current `Page.next_cursor/1` primitive is fine, but manual cursor loops are low-value repetition.
-   - This becomes noticeable as soon as an integrator builds backoffice tooling.
-
-4. **Customer portal session support**
+3. **Customer portal session support**
    - Current subscription entities expose `management_urls`, which is useful.
    - Paddle's current docs make clear that authenticated customer portal sessions are the better signed-in UX for payment-method updates and subscription management.
-
-5. **Production reliability primitives**
-   - Idempotency, retries, and normalized network errors are not glamorous, but they stop support incidents.
-   - These are already on the local roadmap for good reason.
 
 ### Tier 2: useful soon after Tier 1
 
@@ -184,15 +178,15 @@ not endpoint-mirroring.
 If planning restarted today for SaaS-integrator value, the recommended order
 would be:
 
-1. Reliability primitives
-2. Pagination ergonomics
-3. Pause/resume subscription flows
-4. Refund/credit adjustments
-5. Customer portal session support
-6. Read-only prices/products support
+1. Revalidate and finish Phase 10 subscription lifecycle work
+2. Type-safety and docs/process hygiene to close v1.2
+3. Refund/credit adjustments
+4. Customer portal session support
+5. Read-only prices/products support
 
-The reason is simple: these steps complete the operating loop before broadening
-the catalog.
+The reason is simple: reliability and pagination are now shipped; the remaining
+high-leverage work is lifecycle completion, proof/docs hygiene, and then support
+operations before broadening the catalog.
 
 ## Update Procedure
 

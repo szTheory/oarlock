@@ -106,3 +106,33 @@ Two of Accrue's five prereqs do not need backlog entries because oarlock already
 - **De-prioritized subscription mutations** — `update/3`, `pause/3`, `resume/3`, payment-method updates are explicitly out of v0.1 scope and not in any planned phase. Reaffirmed in `PROJECT.md` Out of Scope and Integration Consumers.
 
 If those positions ever shift, these reference points are the place to revisit.
+
+---
+
+## Post-v1.2 Roadmap Candidates
+
+These are ordered by adopter value after v1.2 Production Surface is clean, green, and released.
+
+### B-05 — Support operations: refunds/credits via `Paddle.Adjustments`
+
+**Priority:** High after v1.2.
+
+**Why it matters:** A serious SaaS billing library should not stop at charging customers. Support teams need a provider-native correction path for refunds or credits, and Accrue already has Stripe-side refund vocabulary.
+
+**Done enough:** Typed adjustment create/retrieve surface, normalized errors, raw-data escape hatch, adapter-backed success/error tests, changelog entry, and a guide note that explains Paddle's adjustment model without pretending it is Stripe.
+
+### B-06 — Customer self-serve billing surface
+
+**Priority:** Medium after B-05.
+
+**Why it matters:** Existing subscription `management_urls` help, but signed-in SaaS UX often wants a cleaner customer self-serve path for payment-method or subscription management.
+
+**Done enough:** The smallest current Paddle Billing portal/session/payment-management surface that is provider-native, tested, documented, and kept free of Phoenix/Ecto/UI coupling in core.
+
+### B-07 — Catalog read surface
+
+**Priority:** Medium-low, demand-driven.
+
+**Why it matters:** Products/prices read/list support helps server-driven plan selection and support/admin tools. Full catalog CRUD is likely endpoint-mirroring until a consumer asks for it.
+
+**Done enough:** Read/list products and prices with typed structs, pagination helpers where list endpoints exist, and docs that frame this as catalog inspection rather than full product-management ownership.

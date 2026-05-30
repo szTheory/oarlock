@@ -61,6 +61,7 @@ defmodule Paddle.MixProject do
         "README.md",
         "CHANGELOG.md",
         "LICENSE",
+        "guides/getting-started.md",
         "guides/accrue-seam.md"
       ],
       groups_for_extras: [

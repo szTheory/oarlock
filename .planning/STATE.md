@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
 status: ready_for_planning
-last_updated: 2026-05-30T12:44:55.391Z
+last_updated: 2026-05-30T13:13:17Z
 last_activity: 2026-05-30
 progress:
   total_phases: 6
@@ -11,7 +11,7 @@ progress:
   total_plans: 5
   completed_plans: 5
   percent: 33
-stopped_at: Completed Phase 09; ready for Phase 10 planning
+stopped_at: Local release-truth gate passed; push/CI green required before Phase 10 planning
 ---
 
 # Project State
@@ -21,7 +21,7 @@ stopped_at: Completed Phase 09; ready for Phase 10 planning
 Milestone: v1.2 Production Surface
 Phase: 10
 Plan: Not started
-Status: Ready to plan
+Status: Ready to plan after pushed HEAD is green on CI
 Last activity: 2026-05-30
 
 ## Project Reference
@@ -29,7 +29,7 @@ Last activity: 2026-05-30
 See: `.planning/PROJECT.md` (updated 2026-04-29 at v1.2 start)
 
 **Core value:** Native Elixir interaction with Paddle Billing API v1 via explicit `%Paddle.Client{}` passing, typed struct responses, and pure-function webhook verification.
-**Current focus:** Phase 10 — subscriptions-surface-completion
+**Current focus:** push local main, verify CI, then Phase 10 — subscriptions-surface-completion
 
 ## Accumulated Context
 
@@ -63,6 +63,15 @@ Total estimated plans: 13 (used as `progress.total_plans`; will be reconciled as
 ### v1.2 outline (approved 2026-04-29)
 
 Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria. Plan file: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
+
+### Release-truth reset (2026-05-30)
+
+- Local `main` was 33 commits ahead of `origin/main`; remote CI was green only for stale remote SHA `74f56c5`, not for current local HEAD.
+- Local checks before reset: `mix test`, `mix compile --warnings-as-errors`, and `mix format --check-formatted` passed; `mix docs --warnings-as-errors` failed on a public changelog reference to hidden `Paddle.Http.request/4`.
+- Local release-truth gate passed on 2026-05-30: `mix format --check-formatted`, `mix deps.unlock --check-unused`, `mix compile --warnings-as-errors`, `mix test` (145 tests, 0 failures), and `mix docs --warnings-as-errors`.
+- Immediate gate before Phase 10: push local main and require GitHub CI green on the pushed SHA.
+- Roadmap decision: finish v1.2 before new feature-heavy milestones; post-v1.2 order is refunds/credits, customer self-serve billing, then catalog read/list support.
+- Phase 10 planning must revalidate whether direct `Paddle.Subscriptions.create/2` is a real Paddle Billing surface; if not, replace SUB-04 with the correct transaction/invoice-backed recurring-start surface.
 
 ## Performance Metrics
 

@@ -103,6 +103,8 @@
   5. `guides/telemetry.md` exists, is wired into `:docs` extras, and documents the `[:paddle, :request, :start | :stop | :exception]` events with measurement and metadata schemas matching `lib/paddle/http/telemetry.ex`.
 **Plans**: TBD
 
+**Current note:** README and `guides/getting-started.md` drafts were started during the release-truth reset before Phase 12. Phase 12 should treat them as draft inputs to audit/finalize, not as untouched work.
+
 ### Phase 13: Process Guard
 **Goal**: Close the v1.1 SUMMARY/git-state drift recurrence vector (MILESTONES.md:27-30) so the next milestone cannot ship with an uncommitted-implementation audit gap.
 **Depends on**: Phase 12 (docs pass populates `mix.exs` extras; guard hooks should not race with docs config) — practically can land in parallel with Phase 12 if implementation is decoupled.
@@ -139,3 +141,13 @@
 Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for any prioritized entries that survive milestone close.
 
 Per project memory, Accrue-side asks should be triaged into `BACKLOG.md` rather than auto-inserted as phases here.
+
+## Post-v1.2 Direction
+
+Once v1.2 is clean, green, and released, prefer this order:
+
+1. Support operations: refunds/credits via `Paddle.Adjustments`.
+2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
+3. Catalog read surface: products/prices read/list before any broad CRUD.
+
+Do not mirror Paddle endpoints for their own sake. Promote only work tied to a real Phoenix SaaS adopter job.

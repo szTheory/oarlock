@@ -30,10 +30,16 @@ oarlock-*.tar
 
 # macOS Finder metadata.
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows Explorer metadata.
+Thumbs.db
+Desktop.ini
 
 # Local-only Claude Code state.
 .claude/
 
 # Local research notes / drafts not meant for the public repo.
 /prompts/
-

@@ -17,5 +17,6 @@
   },
   "features": {
     "thinking_partner": true
-  }
+  },
+  "runtime": "codex"
 }

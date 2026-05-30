@@ -35,8 +35,8 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 - [ ] **DOCS-01**: Add `@doc` with at least one example to every public function across `lib/paddle/`. *(Phase 12.)*
 - [ ] **DOCS-02**: Add `@moduledoc` to every public module. The five modules sealed by SEAM-02 (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep their `@moduledoc false` — those sealings are locked. *(Phase 12.)*
-- [ ] **DOCS-03**: Replace the README "TODO: Add description" stub at `README.md:3` with an installation + quick-start + cross-links structure that an outside adopter can follow without reading source. *(Phase 12.)*
-- [ ] **DOCS-04**: Publish a happy-path `guides/getting-started.md` (client → customer → transaction → webhook), wired into `mix.exs` `:docs` extras. *(Phase 12.)*
+- [ ] **DOCS-03**: Replace the README "TODO: Add description" stub at `README.md:3` with an installation + quick-start + cross-links structure that an outside adopter can follow without reading source. *(Phase 12; draft landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
+- [ ] **DOCS-04**: Publish a happy-path `guides/getting-started.md` (client → customer → transaction → webhook), wired into `mix.exs` `:docs` extras. *(Phase 12; draft + docs extra landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
 - [ ] **DOCS-05**: Publish `guides/telemetry.md` documenting the `[:paddle, :request, :start | :stop | :exception]` events emitted from `lib/paddle/http/telemetry.ex`, including measurement and metadata schemas. *(Phase 12.)*
 
 ### Process guard
@@ -48,8 +48,9 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ## Future Requirements (deferred from v1.2)
 
-- [ ] **REFUND-01**: `Paddle.Adjustments` for refunds. Accrue's Stripe path uses `create_refund/2`/`retrieve_refund/2`; oarlock has none. Likely v1.3.
-- [ ] **CATALOG-01**: `Paddle.Products`, `Paddle.Prices` read + create. Demand-driven; defer until a real consumer asks.
+- [ ] **REFUND-01**: `Paddle.Adjustments` for refunds/credits. Accrue's Stripe path uses `create_refund/2`/`retrieve_refund/2`; oarlock has none. Highest-leverage post-v1.2 feature wedge because charging without a correction path is an incomplete support story.
+- [ ] **PORTAL-01**: Smallest provider-native customer self-serve billing surface Paddle supports cleanly (portal/session/payment-management flow), without Phoenix/Ecto/UI coupling in core. Likely after REFUND-01.
+- [ ] **CATALOG-01**: `Paddle.Products`, `Paddle.Prices` read/list support first. Demand-driven; avoid full catalog CRUD unless a real consumer asks.
 - [ ] **NOTIF-01**: Notification Settings endpoint (carried forward from v1.1 deferred list).
 - [ ] **PHX-01**: Phoenix Plug helpers for webhook parsing — explicitly out per PROJECT.md core constraints (would ship as a separate package if ever).
 
@@ -86,8 +87,8 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | TYPES-02    | 11    | Pending | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
 | DOCS-01     | 12    | Pending | `@doc` + example on every public function. |
 | DOCS-02     | 12    | Pending | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
-| DOCS-03     | 12    | Pending | README rewrite (install + quick-start + cross-links), removes line-3 TODO stub. |
-| DOCS-04     | 12    | Pending | `guides/getting-started.md` published into `:docs` extras. |
+| DOCS-03     | 12    | Pending | README rewrite draft exists from release-truth reset; Phase 12 must audit/finalize and keep docs warning-free. |
+| DOCS-04     | 12    | Pending | `guides/getting-started.md` draft is in docs extras; Phase 12 must audit/finalize. |
 | DOCS-05     | 12    | Pending | `guides/telemetry.md` published into `:docs` extras. |
 | PROC-01     | 13    | Pending | Pre-commit hook for SUMMARY/git-state drift. |
 | PROC-02     | 13    | Pending | Same drift check as CI step. |
