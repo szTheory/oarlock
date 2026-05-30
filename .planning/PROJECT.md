@@ -18,7 +18,7 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 
 **Target features:**
 - Reliability primitives: idempotency keys on POSTs, 429/`Retry-After` retry policy, normalized network-error shape
-- Pagination ergonomics: `stream/3` + `all/3` helpers built on `Paddle.Page.next_cursor/1`
+- Pagination ergonomics: per-resource `stream/*` + `all/*` helpers built on `Paddle.Page.next_cursor/1`
 - Subscriptions surface completion: `create/2`, `pause/2`, `resume/2` (closes the P0 Accrue blocker plus the P1 mutation surface)
 - Type-safety pass: `@spec` on every public function, `:dialyxir` wired with green baseline + CI gate
 - Documentation pass: `@doc` everywhere, `@moduledoc` on every public module, README rewrite, new `guides/getting-started.md` and `guides/telemetry.md`
@@ -56,9 +56,10 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] **REL-01**: `idempotency_key:` opt on current `create/*` POSTs with `Idempotency-Key` header forwarding and invalid-key rejection. *(Validated in Phase 8)*
 - [x] **REL-02**: `Paddle.Client.new!/1` default retry policy using `retry: :transient, max_retries: 3`, with per-call `retry: false` opt-out. *(Validated in Phase 8)*
 - [x] **REL-03**: Transport errors normalize to `%Paddle.Error{network_error?: true, retryable?: true, raw_data: %Req.TransportError{}}`. *(Validated in Phase 8)*
+- [x] **PAGE-01**: Per-resource auto-pagination helpers for subscriptions and customer addresses, with lazy streams, eager all-or-error collection, normalized next URL replay, and locked `list/*` page shapes preserved. *(Validated in Phase 9)*
 
 ### Active
-Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 9 pagination ergonomics.
+Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 10 subscriptions surface completion.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -105,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — Phase 8 (Reliability Primitives) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
+*Last updated: 2026-05-30 — Phase 9 (Pagination Ergonomics) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
