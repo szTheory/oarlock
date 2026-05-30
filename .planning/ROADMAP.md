@@ -13,7 +13,7 @@
 
 - [x] Phase 8: Reliability Primitives (4/4 plans) — REL-01, REL-02, REL-03 (completed 2026-05-30)
 - [x] Phase 9: Pagination Ergonomics (1/1 plans) — PAGE-01 (completed 2026-05-30)
-- [ ] Phase 10: Subscriptions Surface Completion (0/3 plans) — SUB-04, SUB-05, SUB-06
+- [x] Phase 10: Subscriptions Surface Completion (3/3 plans) — SUB-04, SUB-05, SUB-06 (completed 2026-05-30)
 - [ ] Phase 11: Type-Safety Pass (0/? plans) — TYPES-01, TYPES-02
 - [ ] Phase 12: Documentation Pass (0/? plans) — DOCS-01..05
 - [ ] Phase 13: Process Guard (0/? plans) — PROC-01, PROC-02
@@ -157,7 +157,7 @@
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete   | 2026-05-30 |
+| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
