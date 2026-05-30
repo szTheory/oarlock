@@ -92,7 +92,7 @@
 
 **Wave 1**
 
-  - [ ] 10-01-PLAN.md — Lock the corrected SUB-04 contract in transactions/seam tests and getting-started docs around transaction-driven recurring start.
+  - [x] 10-01-PLAN.md — Lock the corrected SUB-04 contract in transactions/seam tests and getting-started docs around transaction-driven recurring start.
   - [ ] 10-02-PLAN.md — Add `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with explicit lifecycle/request opt boundaries and adapter-backed pause coverage.
 
 **Wave 2** *(blocked on Wave 1 completion)*
