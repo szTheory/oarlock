@@ -24,7 +24,7 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 - [x] **SUB-04**: Transaction-driven recurring start — use `Paddle.Transactions.create/3` for recurring price items, then complete checkout or the manual-collection flow, correlate the resulting subscription via webhooks and/or `Paddle.Transactions.get/2`, and hydrate the canonical `%Paddle.Subscription{}` with `Paddle.Subscriptions.get/2`. Do not add a public `Paddle.Subscriptions.create/2`. *(Phase 10. Closes the P0 Accrue blocker truthfully.)*
 - [x] **SUB-05**: `Paddle.Subscriptions.pause/2` — pause a subscription, returning the updated `%Paddle.Subscription{}`. Reverses the v1.1 PROJECT.md "deferred mutation surface" stance for v1.2. *(Phase 10.)*
-- [ ] **SUB-06**: `Paddle.Subscriptions.resume/2` — resume a previously paused subscription. *(Phase 10.)*
+- [x] **SUB-06**: `Paddle.Subscriptions.resume/2` — resume a previously paused subscription. *(Phase 10.)*
 
 ### Type-safety pass
 
@@ -82,7 +82,7 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | PAGE-01     | 9     | Complete | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
 | SUB-04      | 10    | Complete | Transaction-driven recurring start via `Paddle.Transactions.create/3` + checkout/manual collection + webhook/canonical fetch; no public `Paddle.Subscriptions.create/2`. |
 | SUB-05      | 10    | Complete | `Paddle.Subscriptions.pause/2`. |
-| SUB-06      | 10    | Pending | `Paddle.Subscriptions.resume/2`. |
+| SUB-06      | 10    | Complete | `Paddle.Subscriptions.resume/2`. |
 | TYPES-01    | 11    | Pending | `@spec` on every public function across `lib/paddle/`. |
 | TYPES-02    | 11    | Pending | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
 | DOCS-01     | 12    | Pending | `@doc` + example on every public function. |

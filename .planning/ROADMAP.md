@@ -97,7 +97,7 @@
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-  - [ ] 10-03-PLAN.md — Add `Paddle.Subscriptions.resume/3`, tighten `%Paddle.Subscription{}` seam regression coverage, and update the public seam guide.
+  - [x] 10-03-PLAN.md — Add `Paddle.Subscriptions.resume/3`, tighten `%Paddle.Subscription{}` seam regression coverage, and update the public seam guide.
 
 ### Phase 11: Type-Safety Pass
 
@@ -157,7 +157,7 @@
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 2/3 | In Progress|  |
+| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete   | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |

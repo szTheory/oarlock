@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
-status: executing
-last_updated: "2026-05-30T14:58:09.730Z"
+status: verifying
+last_updated: "2026-05-30T15:03:19.451Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
-  percent: 67
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -20,7 +20,7 @@ progress:
 Milestone: v1.2 Production Surface
 Phase: 10 (subscriptions-surface-completion) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-30
 
 ## Project Reference
@@ -94,3 +94,9 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 | Phase 08 P04 | 8min | 2 tasks | 3 files |
 | Phase 09 P01 | 24min | 4 tasks | 9 files |
 | Phase 10-subscriptions-surface-completion P01 | 22min | 2 tasks | 3 files |
+| Phase 10-subscriptions-surface-completion P03 | 3min | 3 tasks | 5 files |
+
+## Decisions
+
+- [Phase 10-subscriptions-surface-completion]: Implemented only resume/3 (no resume_immediately/resume_at variants) to keep seam narrow. — Avoid seam bloat while covering full provider capability through effective_from and on_resume options.
+- [Phase 10-subscriptions-surface-completion]: Rejected idempotency_key on resume/pause mutations; only retry is forwarded as request opt. — Preserves the create-only idempotency boundary and avoids false lifecycle mutation safety assumptions.
