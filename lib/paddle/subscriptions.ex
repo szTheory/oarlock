@@ -50,6 +50,14 @@ defmodule Paddle.Subscriptions do
     do_cancel(client, subscription_id, "immediately")
   end
 
+  def pause(%Client{} = client, subscription_id, opts \\ []) do
+    do_pause(client, subscription_id, "next_billing_period", opts)
+  end
+
+  def pause_immediately(%Client{} = client, subscription_id, opts \\ []) do
+    do_pause(client, subscription_id, "immediately", opts)
+  end
+
   defp do_cancel(client, subscription_id, effective_from) do
     with :ok <- validate_subscription_id(subscription_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -62,6 +70,105 @@ defmodule Paddle.Subscriptions do
       {:ok, build_subscription(data)}
     end
   end
+
+  defp do_pause(client, subscription_id, effective_from, opts) do
+    with :ok <- validate_subscription_id(subscription_id),
+         {:ok, pause_body, request_opts} <- normalize_pause_opts(opts),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(
+             client,
+             :post,
+             pause_path(subscription_id),
+             Keyword.merge(
+               [json: Map.put(pause_body, "effective_from", effective_from)],
+               request_opts
+             )
+           ) do
+      {:ok, build_subscription(data)}
+    end
+  end
+
+  defp normalize_pause_opts(opts) when is_list(opts) do
+    if Keyword.keyword?(opts) do
+      case Keyword.pop(opts, :retry) do
+        {retry_value, remaining} ->
+          with :ok <- reject_idempotency_key!(remaining),
+               :ok <- reject_unknown_pause_opts(remaining),
+               {:ok, body} <- build_pause_body(remaining) do
+            request_opts =
+              if retry_value == nil and not Keyword.has_key?(opts, :retry),
+                do: [],
+                else: [retry: retry_value]
+
+            {:ok, body, request_opts}
+          end
+      end
+    else
+      raise ArgumentError, "pause options must be a keyword list"
+    end
+  end
+
+  defp normalize_pause_opts(_opts),
+    do: raise(ArgumentError, "pause options must be a keyword list")
+
+  defp reject_idempotency_key!(opts) do
+    if Keyword.has_key?(opts, :idempotency_key) do
+      raise ArgumentError,
+            "idempotency_key is not supported for pause operations; only retry is supported"
+    else
+      :ok
+    end
+  end
+
+  defp reject_unknown_pause_opts(opts) do
+    supported_keys = [:resume_at, :on_resume, :idempotency_key]
+
+    case Enum.find(Keyword.keys(opts), &(&1 not in supported_keys)) do
+      nil ->
+        :ok
+
+      key ->
+        raise ArgumentError, "unknown pause option: #{inspect(key)}"
+    end
+  end
+
+  defp build_pause_body(opts) do
+    with {:ok, body} <- maybe_put_resume_at(%{}, Keyword.get(opts, :resume_at)),
+         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
+      {:ok, body}
+    end
+  end
+
+  defp maybe_put_resume_at(body, nil), do: {:ok, body}
+
+  defp maybe_put_resume_at(body, %DateTime{} = resume_at) do
+    {:ok, Map.put(body, "resume_at", DateTime.to_iso8601(resume_at))}
+  end
+
+  defp maybe_put_resume_at(body, resume_at) when is_binary(resume_at) do
+    case DateTime.from_iso8601(resume_at) do
+      {:ok, _datetime, _offset} -> {:ok, Map.put(body, "resume_at", resume_at)}
+      _ -> {:error, :invalid_resume_at}
+    end
+  end
+
+  defp maybe_put_resume_at(_body, _resume_at), do: {:error, :invalid_resume_at}
+
+  defp maybe_put_on_resume(body, nil), do: {:ok, body}
+
+  defp maybe_put_on_resume(body, :start_new_billing_period),
+    do: {:ok, Map.put(body, "on_resume", "start_new_billing_period")}
+
+  defp maybe_put_on_resume(body, :continue_existing_billing_period),
+    do: {:ok, Map.put(body, "on_resume", "continue_existing_billing_period")}
+
+  defp maybe_put_on_resume(body, "start_new_billing_period"),
+    do: {:ok, Map.put(body, "on_resume", "start_new_billing_period")}
+
+  defp maybe_put_on_resume(body, "continue_existing_billing_period"),
+    do: {:ok, Map.put(body, "on_resume", "continue_existing_billing_period")}
+
+  defp maybe_put_on_resume(_body, _on_resume), do: {:error, :invalid_on_resume}
 
   defp build_subscription(data) when is_map(data) do
     subscription = Http.build_struct(Subscription, data)
@@ -117,6 +224,7 @@ defmodule Paddle.Subscriptions do
 
   defp subscription_path(id), do: "/subscriptions/#{encode_path_segment(id)}"
   defp cancel_path(id), do: subscription_path(id) <> "/cancel"
+  defp pause_path(id), do: subscription_path(id) <> "/pause"
 
   defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 end
