@@ -115,7 +115,7 @@ The normalized error struct returned in every `{:error, %Paddle.Error{}}` tuple.
 | --- | --- | --- |
 | `:type`, `:code`, `:message`, `:status_code`, `:request_id` | `locked` | Stable normalized error metadata. |
 | `:errors` | `additive` | Forwarded detail entries from Paddle. |
-| `:raw` | `locked` | Forward-compat escape hatch; contents are `opaque`. |
+| `:raw_data` | `locked` | Forward-compat escape hatch; contents are `opaque`. |
 
 ## Locked Structs
 

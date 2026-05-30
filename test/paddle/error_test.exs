@@ -32,7 +32,7 @@ defmodule Paddle.ErrorTest do
                code: "invalid_field",
                message: "Email is invalid",
                errors: [%{"field" => "email", "message" => "must be present"}],
-               raw: %{
+               raw_data: %{
                  "error" => %{
                    "type" => "validation_error",
                    "code" => "invalid_field",
@@ -55,8 +55,28 @@ defmodule Paddle.ErrorTest do
                code: nil,
                message: "Unknown Paddle Error",
                errors: [],
-               raw: %{}
+               raw_data: %{}
              } = Error.from_response(response)
+    end
+  end
+
+  describe "struct defaults" do
+    test "network_error? defaults to false on a bare struct" do
+      assert %Error{network_error?: false} = %Error{}
+    end
+
+    test "retryable? defaults to false on a bare struct" do
+      assert %Error{retryable?: false} = %Error{}
+    end
+
+    test "network_error? defaults to false on from_response/1 result" do
+      response = Req.Response.new(status: 422, body: %{})
+      assert %Error{network_error?: false} = Error.from_response(response)
+    end
+
+    test "retryable? defaults to false on from_response/1 result" do
+      response = Req.Response.new(status: 422, body: %{})
+      assert %Error{retryable?: false} = Error.from_response(response)
     end
   end
 end

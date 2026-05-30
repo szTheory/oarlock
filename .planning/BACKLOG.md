@@ -77,6 +77,27 @@ No new code — purely a rendered surface map. All the truths are already in the
 
 ---
 
+## B-04 — Accrue migration: `%Paddle.Error{}.raw` → `%Paddle.Error{}.raw_data`
+
+**Source:** Phase 8 / Reliability Primitives — atomic rename landed in oarlock per D-01..D-05 (`.planning/phases/08-reliability-primitives/08-CONTEXT.md`).
+**Priority:** Medium — silent runtime breakage on the Accrue side (`%Paddle.Error{raw: r}` pattern matches will fail to bind after consuming the new oarlock version).
+**Status:** Captured 2026-04-30. Oarlock shipped first; Accrue update is a follow-up commit on the consumer side.
+
+**Why it's a gap:** The 0.x cleanup `:raw → :raw_data` is the one breaking change v1.2 spends from PROJECT.md's `bump-minor-pre-major: false` policy. Pattern matches in Accrue against the previous field name will silently miss after the version bump (see oarlock CHANGELOG `## [Unreleased]` → `### Breaking Changes`).
+
+**Surface to update on Accrue side:**
+- Search Accrue's codebase for `%Paddle.Error{raw: ` and `error.raw` (literal struct field access).
+- Replace each with the new field name `:raw_data` / `error.raw_data`.
+- Run Accrue's test suite to confirm.
+
+**Sizing:** ~1 commit, ~15 minutes. Pure rename — no semantic change. Possibly zero occurrences if Accrue never reached into the raw field; the BACKLOG entry is low-cost insurance per RESEARCH.md A4.
+
+**Promotion hint:** Not a phase — handled as a one-line PR on the Accrue side, scheduled when Accrue picks up the new oarlock dependency version.
+
+**Out of scope for B-04:** Anything beyond the rename. The new `:network_error?` and `:retryable?` fields default to `false`; existing Accrue code that does not pattern-match on them is unaffected.
+
+---
+
 ## Integration Posture Reference
 
 Two of Accrue's five prereqs do not need backlog entries because oarlock already meets them:

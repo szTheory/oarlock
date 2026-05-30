@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)** headings like **`[0.1.0]`** for **published Hex releases**. Separately, maintainers track **planning milestones** labeled **v1.0–v1.1** in **`.planning/MILESTONES.md`** — those **v1.x** labels describe shipped *tranches of work*, **not** a second installable version axis on Hex (this repo remains **0.x** on Hex until a real **1.0.0**). When in doubt, treat **`MILESTONES.md`** as canonical for milestone dates and archive paths.
 
+## [Unreleased]
+
+### Breaking Changes
+
+* **`%Paddle.Error{}`**: Field `:raw` renamed to `:raw_data` for consistency with all other locked structs (every `Paddle.Customer`/`Paddle.Address`/`Paddle.Transaction`/`Paddle.Subscription`/etc. already uses `:raw_data` as the documented forward-compat escape hatch). Pattern matches against `%Paddle.Error{raw: r}` will silently miss after this change — update them to `%Paddle.Error{raw_data: r}`. (See `.planning/phases/08-reliability-primitives/08-CONTEXT.md` D-01..D-05 for rationale.)
+
+### Added
+
+* **`%Paddle.Error{}`**: New `:network_error?` field (boolean, defaults to `false`) — to be populated by `Paddle.Error.from_transport/1` in a follow-up plan.
+* **`%Paddle.Error{}`**: New `:retryable?` field (boolean, defaults to `false`) — advisory class predicate populated by `Paddle.Error.from_transport/1` in a follow-up plan.
+* Initial public release of the Paddle Billing SDK for Elixir. The v1.1 "Accrue Seam Hardening" tranche delivered customer/address CRUD, hosted-checkout transaction creation, transaction retrieval by ID, subscription get/list/cancel, pure-function webhook verification, and the locked [`guides/accrue-seam.md`](guides/accrue-seam.md) consumer contract.
+* Docs: rewrite the README for cold-start adopters and add [`guides/getting-started.md`](guides/getting-started.md), a JTBD/user-flow guide for the current Paddle integration path.
+
 ## 0.1.0 (2026-04-29)
 
 
@@ -48,9 +61,3 @@ This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 * **phase-03:** encode resource path ids ([c011262](https://github.com/szTheory/oarlock/commit/c011262e74f6a4145fbfa3c1b77d5a881deeeae0))
 * pin first release to 0.1.0 via release-as ([546467b](https://github.com/szTheory/oarlock/commit/546467b1b2a55b59329b31131c7e8296971a0c90))
 * set Hex package name to oarlock in package/0 ([a69d8e7](https://github.com/szTheory/oarlock/commit/a69d8e7e21e53b5b3dc315d5499acfbe0365c66d))
-
-## [Unreleased]
-
-### Added
-
-* Initial public release of the Paddle Billing SDK for Elixir. See [.planning/milestones/v1.1-ROADMAP.md](.planning/milestones/v1.1-ROADMAP.md) for the v1.1 (Accrue Seam Hardening) feature set: customer/address CRUD, hosted-checkout transaction creation, transaction retrieval by ID, subscription get/list/cancel, pure-function webhook verification, and the locked [`guides/accrue-seam.md`](guides/accrue-seam.md) consumer contract.

@@ -1,5 +1,13 @@
 defmodule Paddle.Error do
-  defexception [:type, :code, :message, :errors, :request_id, :status_code, :raw]
+  defexception type: nil,
+               code: nil,
+               message: nil,
+               errors: [],
+               request_id: nil,
+               status_code: nil,
+               raw_data: nil,
+               network_error?: false,
+               retryable?: false
 
   @impl Exception
   def message(%{message: message}), do: message
@@ -15,7 +23,7 @@ defmodule Paddle.Error do
       code: error_body["code"],
       message: Map.get(error_body, "detail", "Unknown Paddle Error"),
       errors: Map.get(error_body, "errors", []),
-      raw: body
+      raw_data: body
     }
   end
 end
