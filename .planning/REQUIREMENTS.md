@@ -12,9 +12,9 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Reliability primitives
 
-- [ ] **REL-01**: Accept an optional `idempotency_key:` opt on every `create/*` function (Customers, Addresses, Transactions, and the new Subscriptions.create/2 from SUB-04) and pass it through as the `Idempotency-Key` request header. *(Phase 8.)*
-- [ ] **REL-02**: Configure `req` with an automatic retry policy that respects `Retry-After`: max 3 retries with exponential backoff, retry only on 429 + 5xx + transient network errors, no retry on 4xx other than 429. *(Phase 8.)*
-- [ ] **REL-03**: Normalize transient network failures (timeout, nxdomain, etc.) into `%Paddle.Error{}` with `:network_error?` and `:retryable?` flags. Existing `:raw_data` field on `%Paddle.Error{}` must remain — additive change only, no v1.1 seam break. *(Phase 8.)*
+- [x] **REL-01**: Accept an optional `idempotency_key:` opt on every current `create/*` function (Customers, Addresses, Transactions) and pass it through as the `Idempotency-Key` request header. *(Phase 8 complete. Phase 10's new Subscriptions.create/2 must copy the same opts pattern from Plan 08-03.)*
+- [x] **REL-02**: Configure `req` with an automatic retry policy that respects `Retry-After`: max 3 retries with exponential backoff, retry only on 429 + 5xx + transient network errors, no retry on 4xx other than 429. *(Phase 8 complete.)*
+- [x] **REL-03**: Normalize transient network failures (timeout, nxdomain, etc.) into `%Paddle.Error{}` with `:network_error?` and `:retryable?` flags. Existing `:raw_data` field on `%Paddle.Error{}` must remain — additive change only, no v1.1 seam break. *(Phase 8 complete.)*
 
 ### Pagination ergonomics
 
@@ -75,9 +75,9 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 
 | Requirement | Phase | Status  | Notes |
 |-------------|-------|---------|-------|
-| REL-01      | 8     | Pending | `idempotency_key:` opt → `Idempotency-Key` header on every `create/*`. |
-| REL-02      | 8     | Pending | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
-| REL-03      | 8     | Pending | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
+| REL-01      | 8     | Complete | `idempotency_key:` opt -> `Idempotency-Key` header on current `create/*`; Phase 10 inherits pattern for Subscriptions.create/2. |
+| REL-02      | 8     | Complete | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
+| REL-03      | 8     | Complete | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
 | PAGE-01     | 9     | Pending | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
 | SUB-04      | 10    | Pending | `Paddle.Subscriptions.create/2`. Closes P0 Accrue blocker. |
 | SUB-05      | 10    | Pending | `Paddle.Subscriptions.pause/2`. |

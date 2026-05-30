@@ -11,7 +11,7 @@
 <details open>
 <summary>🚧 v1.2 Production Surface (Phases 8-13) — IN PROGRESS</summary>
 
-- [ ] Phase 8: Reliability Primitives (0/4 plans) — REL-01, REL-02, REL-03
+- [x] Phase 8: Reliability Primitives (4/4 plans) — REL-01, REL-02, REL-03 (completed 2026-05-30)
 - [ ] Phase 9: Pagination Ergonomics (0/? plans) — PAGE-01
 - [ ] Phase 10: Subscriptions Surface Completion (0/? plans) — SUB-04, SUB-05, SUB-06
 - [ ] Phase 11: Type-Safety Pass (0/? plans) — TYPES-01, TYPES-02
@@ -124,7 +124,7 @@
 | 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
 | 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
 | 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
-| 8. Reliability Primitives | v1.2 | 4/4 | Complete   | 2026-05-30 |
+| 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 0/? | Pending | — |
 | 10. Subscriptions Surface Completion | v1.2 | 0/? | Pending | — |
 | 11. Type-Safety Pass | v1.2 | 0/? | Pending | — |
