@@ -57,9 +57,12 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] **REL-02**: `Paddle.Client.new!/1` default retry policy using `retry: :transient, max_retries: 3`, with per-call `retry: false` opt-out. *(Validated in Phase 8)*
 - [x] **REL-03**: Transport errors normalize to `%Paddle.Error{network_error?: true, retryable?: true, raw_data: %Req.TransportError{}}`. *(Validated in Phase 8)*
 - [x] **PAGE-01**: Per-resource auto-pagination helpers for subscriptions and customer addresses, with lazy streams, eager all-or-error collection, normalized next URL replay, and locked `list/*` page shapes preserved. *(Validated in Phase 9)*
+- [x] **SUB-04**: Transaction-driven recurring start via `Paddle.Transactions.create/3`, checkout/manual collection, webhook or canonical transaction correlation, and `Paddle.Subscriptions.get/2` hydration; no public `Paddle.Subscriptions.create/2`. *(Validated in Phase 10)*
+- [x] **SUB-05**: `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with typed hydration, strict lifecycle opts, explicit `idempotency_key:` rejection, and retry-only request opts. *(Validated in Phase 10)*
+- [x] **SUB-06**: `Paddle.Subscriptions.resume/3` with validated `effective_from:` / `on_resume:`, explicit `idempotency_key:` rejection, retry-only request opts, and provider-error passthrough. *(Validated in Phase 10)*
 
 ### Active
-Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 10 subscriptions surface completion.
+Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 11 Type-Safety Pass.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -106,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — Phase 9 (Pagination Ergonomics) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
+*Last updated: 2026-05-30 — Phase 10 (Subscriptions Surface Completion) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*

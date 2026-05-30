@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
-status: milestone_complete
-last_updated: 2026-05-30T15:09:11.542Z
+status: planning
+last_updated: 2026-05-30T16:10:00Z
 last_activity: 2026-05-30
 progress:
-  total_phases: 3
+  total_phases: 6
   completed_phases: 3
-  total_plans: 8
+  total_plans: 13
   completed_plans: 8
-  percent: 100
-stopped_at: Milestone complete (Phase 10 was final phase)
+  percent: 62
+stopped_at: Phase 10 complete; Phase 11 ready for planning
 ---
 
 # Project State
@@ -19,9 +19,9 @@ stopped_at: Milestone complete (Phase 10 was final phase)
 ## Current Position
 
 Milestone: v1.2 Production Surface
-Phase: 10
+Phase: 11
 Plan: Not started
-Status: Milestone complete
+Status: Ready to plan
 Last activity: 2026-05-30
 
 ## Project Reference
@@ -29,7 +29,7 @@ Last activity: 2026-05-30
 See: `.planning/PROJECT.md` (updated 2026-04-29 at v1.2 start)
 
 **Core value:** Native Elixir interaction with Paddle Billing API v1 via explicit `%Paddle.Client{}` passing, typed struct responses, and pure-function webhook verification.
-**Current focus:** Milestone complete
+**Current focus:** Phase 11 — Type-Safety Pass
 
 ## Accumulated Context
 
@@ -95,6 +95,7 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 | Phase 08 P04 | 8min | 2 tasks | 3 files |
 | Phase 09 P01 | 24min | 4 tasks | 9 files |
 | Phase 10-subscriptions-surface-completion P01 | 22min | 2 tasks | 3 files |
+| Phase 10-subscriptions-surface-completion P02 | 3min | 2 tasks | 2 files |
 | Phase 10-subscriptions-surface-completion P03 | 3min | 3 tasks | 5 files |
 
 ## Decisions
