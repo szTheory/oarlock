@@ -77,7 +77,11 @@ Adapter-backed tests cover:
 
 ## Code Review Gate
 
-The required advisory code-review gate was invoked, but the configured `gsd-code-reviewer` agent failed before work began because its fixed `composer-2.5-fast` model is not supported for this Codex account. Per execute-phase, review failures are non-blocking. No `09-REVIEW.md` was created.
+Status: PASS.
+
+The registered `gsd-code-reviewer` role failed before work began because its fixed `composer-2.5-fast` model is not supported for this Codex account, even after switching GSD to the balanced profile. A normal Codex subagent then ran the same Phase 09 review scope and wrote `09-REVIEW.md`.
+
+Review result: `status: clean`, 9 files reviewed, 0 findings. The reviewer also reran targeted pagination tests, the full test suite, compile with warnings as errors, and format check successfully.
 
 ## Schema Drift Gate
 
