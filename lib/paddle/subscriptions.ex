@@ -2,6 +2,7 @@ defmodule Paddle.Subscriptions do
   alias Paddle.Client
   alias Paddle.Http
   alias Paddle.Internal.Attrs
+  alias Paddle.Internal.Pagination
   alias Paddle.Subscription
   alias Paddle.Subscription.ManagementUrls
   alias Paddle.Subscription.ScheduledChange
@@ -23,12 +24,22 @@ defmodule Paddle.Subscriptions do
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
            Http.request(client, :get, "/subscriptions", params: query) do
-      {:ok,
-       %Paddle.Page{
-         data: Enum.map(data, &build_subscription/1),
-         meta: meta
-       }}
+      {:ok, build_page(data, meta)}
     end
+  end
+
+  def stream(%Client{} = client, params \\ []) do
+    Pagination.stream(
+      fn -> list(client, params) end,
+      fn path -> next_page(client, path) end
+    )
+  end
+
+  def all(%Client{} = client, params \\ []) do
+    Pagination.all(
+      fn -> list(client, params) end,
+      fn path -> next_page(client, path) end
+    )
   end
 
   def cancel(%Client{} = client, subscription_id) do
@@ -71,6 +82,20 @@ defmodule Paddle.Subscriptions do
       _ ->
         subscription
     end
+  end
+
+  defp next_page(client, path) do
+    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
+           Http.request(client, :get, path) do
+      {:ok, build_page(data, meta)}
+    end
+  end
+
+  defp build_page(data, meta) do
+    %Paddle.Page{
+      data: Enum.map(data, &build_subscription/1),
+      meta: meta
+    }
   end
 
   defp validate_subscription_id(id) when is_binary(id) do

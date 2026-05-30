@@ -2,6 +2,7 @@ defmodule Paddle.Customers.Addresses do
   alias Paddle.Address
   alias Paddle.Http
   alias Paddle.Internal.Attrs
+  alias Paddle.Internal.Pagination
 
   @create_allowlist ~w(description first_line second_line city postal_code region country_code custom_data)
   @list_allowlist ~w(id after per_page order_by status search)
@@ -37,12 +38,22 @@ defmodule Paddle.Customers.Addresses do
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
            Http.request(client, :get, customer_addresses_path(customer_id), params: query) do
-      {:ok,
-       %Paddle.Page{
-         data: Enum.map(data, &Http.build_struct(Address, &1)),
-         meta: meta
-       }}
+      {:ok, build_page(data, meta)}
     end
+  end
+
+  def stream(%Paddle.Client{} = client, customer_id, params \\ []) do
+    Pagination.stream(
+      fn -> list(client, customer_id, params) end,
+      fn path -> next_page(client, path) end
+    )
+  end
+
+  def all(%Paddle.Client{} = client, customer_id, params \\ []) do
+    Pagination.all(
+      fn -> list(client, customer_id, params) end,
+      fn path -> next_page(client, path) end
+    )
   end
 
   def update(%Paddle.Client{} = client, customer_id, address_id, attrs) do
@@ -60,6 +71,20 @@ defmodule Paddle.Customers.Addresses do
 
   defp customer_addresses_path(customer_id),
     do: "/customers/#{encode_path_segment(customer_id)}/addresses"
+
+  defp next_page(client, path) do
+    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
+           Http.request(client, :get, path) do
+      {:ok, build_page(data, meta)}
+    end
+  end
+
+  defp build_page(data, meta) do
+    %Paddle.Page{
+      data: Enum.map(data, &Http.build_struct(Address, &1)),
+      meta: meta
+    }
+  end
 
   defp customer_address_path(customer_id, address_id) do
     "#{customer_addresses_path(customer_id)}/#{encode_path_segment(address_id)}"
