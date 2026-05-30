@@ -13,7 +13,8 @@
     "verifier": true,
     "research_before_questions": true,
     "nyquist_validation": false,
-    "_auto_chain_active": false
+    "_auto_chain_active": false,
+    "use_worktrees": false
   },
   "features": {
     "thinking_partner": true
