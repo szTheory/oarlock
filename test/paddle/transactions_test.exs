@@ -102,6 +102,25 @@ defmodule Paddle.TransactionsTest do
       assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Transactions.get(client, "txn_01")
     end
+
+    test "uses Transactions.get/2 as the canonical bridge from completed recurring transaction to subscription_id" do
+      response_data =
+        transaction_payload()
+        |> Map.put("status", "completed")
+        |> Map.put("subscription_id", "sub_01")
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :get
+          assert request.url.path == "/transactions/txn_01"
+          assert request.body == nil
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Transaction{} = transaction} = Transactions.get(client, "txn_01")
+      assert transaction.subscription_id == "sub_01"
+    end
   end
 
   describe "create/2" do
@@ -468,6 +487,41 @@ defmodule Paddle.TransactionsTest do
                  address_id: "add_01",
                  items: [%{price_id: "pri_01", quantity: 1}]
                )
+    end
+
+    test "for recurring start, forwards idempotency_key and returns checkout-bearing transaction" do
+      response_data = transaction_payload()
+      key = "accrue:checkout:co_123:attempt:1"
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :post
+          assert request.url.path == "/transactions"
+          assert Req.Request.get_header(request, "idempotency-key") == [key]
+
+          assert decode_json_body(request.body) == %{
+                   "address_id" => "add_01",
+                   "collection_mode" => "automatic",
+                   "customer_id" => "ctm_01",
+                   "items" => [%{"price_id" => "pri_recurring_01", "quantity" => 1}]
+                 }
+
+          {request, Req.Response.new(status: 201, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Transaction{} = transaction} =
+               Transactions.create(
+                 client,
+                 [
+                   customer_id: "ctm_01",
+                   address_id: "add_01",
+                   items: [%{price_id: "pri_recurring_01", quantity: 1}]
+                 ],
+                 idempotency_key: key
+               )
+
+      assert %Checkout{} = transaction.checkout
+      assert is_binary(transaction.checkout.url)
     end
   end
 

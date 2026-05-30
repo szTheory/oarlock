@@ -79,6 +79,7 @@ defmodule Paddle.SeamTest do
       client_with_adapter(fn request ->
         assert request.method == :post
         assert request.url.path == "/transactions"
+        assert Req.Request.get_header(request, "idempotency-key") == ["accrue:seam:txn_seam01"]
 
         assert decode_json_body(request.body) == %{
                  "address_id" => "add_seam01",
@@ -91,10 +92,14 @@ defmodule Paddle.SeamTest do
       end)
 
     assert {:ok, %Transaction{id: "txn_seam01"} = transaction} =
-             Paddle.Transactions.create(transaction_create_client,
-               customer_id: customer.id,
-               address_id: address.id,
-               items: [%{price_id: "pri_seam01", quantity: 1}]
+             Paddle.Transactions.create(
+               transaction_create_client,
+               [
+                 customer_id: customer.id,
+                 address_id: address.id,
+                 items: [%{price_id: "pri_seam01", quantity: 1}]
+               ],
+               idempotency_key: "accrue:seam:txn_seam01"
              )
 
     assert %Checkout{url: checkout_url} = transaction.checkout
@@ -142,6 +147,7 @@ defmodule Paddle.SeamTest do
             } = event} = Webhooks.parse_event(@transaction_completed_body)
 
     assert is_map(event.raw_data)
+    refute function_exported?(Paddle.Subscriptions, :create, 2)
 
     subscription_get_client =
       client_with_adapter(fn request ->
