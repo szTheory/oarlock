@@ -1,6 +1,6 @@
 ---
 phase: 10-subscriptions-surface-completion
-reviewed: 2026-05-30T15:04:46Z
+reviewed: 2026-05-30T15:06:27Z
 depth: standard
 files_reviewed: 7
 files_reviewed_list:
@@ -13,56 +13,33 @@ files_reviewed_list:
   - guides/accrue-seam.md
 findings:
   critical: 0
-  warning: 2
+  warning: 0
   info: 0
-  total: 2
-status: issues_found
+  total: 0
+status: clean
 ---
 # Phase 10: Code Review Report
 
-**Reviewed:** 2026-05-30T15:04:46Z
+**Reviewed:** 2026-05-30T15:06:27Z
 **Depth:** standard
 **Files Reviewed:** 7
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-Reviewed all scoped Phase 10 source/docs/tests with a correctness and security-first pass, including new `resume/3` logic and seam guidance. No exploitable security flaws were found, but two quality/contract defects were found that should be fixed before release documentation is treated as authoritative.
+Re-checked Phase 10 after commit `c58a77f` against the two prior warnings (WR-01 and WR-02). Both findings are resolved; no remaining critical, warning, or info issues were identified in the scoped files.
 
 ## Narrative Findings (AI reviewer)
 
-## Warnings
+No open findings.
 
-### WR-01: `resume/3` raises a pause-specific error message
+## Resolved Findings
 
-**File:** `lib/paddle/subscriptions.ex:132`
-**Issue:** `reject_idempotency_key!/1` is reused by both pause and resume flows, but the raised message says `"idempotency_key is not supported for pause operations; only retry is supported"`. Calling `Paddle.Subscriptions.resume/3` with `idempotency_key:` raises a misleading pause-only message, which is an API ergonomics defect and makes caller diagnostics inaccurate.
-**Fix:**
-```elixir
-defp reject_idempotency_key!(opts, operation) do
-  if Keyword.has_key?(opts, :idempotency_key) do
-    raise ArgumentError,
-          "idempotency_key is not supported for #{operation} operations; only retry is supported"
-  else
-    :ok
-  end
-end
-
-# pause path
-reject_idempotency_key!(remaining, "pause")
-
-# resume path
-reject_idempotency_key!(remaining, "resume")
-```
-
-### WR-02: Getting-started guide contradicts implemented subscription lifecycle surface
-
-**File:** `guides/getting-started.md:273`
-**Issue:** The guide still claims oarlock does not own `"Direct subscription pause/resume flows"`, but Phase 10 implemented and documented `Paddle.Subscriptions.pause/3`, `pause_immediately/3`, and `resume/3` (also reflected in `guides/accrue-seam.md`). This creates a contract contradiction across first-party docs and can lead integrators to skip supported lifecycle APIs.
-**Fix:** Update the “does not try to own” list to remove pause/resume exclusion and replace it with a narrower statement that direct *subscription creation* is intentionally absent while lifecycle mutations are supported via the documented `Paddle.Subscriptions` calls.
+- **WR-01 resolved:** [subscriptions.ex](/Users/jon/projects/oarlock/lib/paddle/subscriptions.ex:132) now parameterizes the operation in `reject_idempotency_key!/2` and passes `"pause"`/`"resume"` from each path, so `resume/3` no longer emits a pause-specific message.
+- **WR-02 resolved:** [getting-started.md](/Users/jon/projects/oarlock/guides/getting-started.md:273) now says direct subscription *creation* flows are excluded and explicitly documents supported lifecycle mutations (`pause/3`, `pause_immediately/3`, `resume/3`, `cancel/3`), removing the prior contract contradiction.
 
 ---
 
-_Reviewed: 2026-05-30T15:04:46Z_
+_Reviewed: 2026-05-30T15:06:27Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
