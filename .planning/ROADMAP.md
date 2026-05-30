@@ -111,7 +111,11 @@
   3. `mix dialyzer` runs as a required CI step in `.github/workflows/ci.yml`; a deliberately broken-spec branch in CI fails the gate.
   4. PLT cache is configured (`:dialyxir` `:plt_file` / `:plt_add_apps`) so cold-cache CI completes within a reasonable budget on the project's matrix.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Add public `@type` / `@spec` coverage across the Phase 11 seam and create the mechanical `mix typecheck.specs` gate.
+- [ ] 11-02-PLAN.md — Wire Dialyxir, empty ignore baseline, `priv/plts` cache config, and a dedicated CI dialyzer/spec job.
 
 ### Phase 12: Documentation Pass
 
