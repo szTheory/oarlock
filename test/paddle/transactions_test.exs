@@ -93,13 +93,13 @@ defmodule Paddle.TransactionsTest do
               }} = Transactions.get(client, "txn_missing")
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Transactions.get(client, "txn_01")
     end
   end
@@ -456,13 +456,13 @@ defmodule Paddle.TransactionsTest do
                )
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Transactions.create(client,
                  customer_id: "ctm_01",
                  address_id: "add_01",

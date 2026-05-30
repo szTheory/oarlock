@@ -48,13 +48,50 @@ defmodule Paddle.HttpTest do
             }} = Http.request(client, :post, "/customers", body: %{})
   end
 
-  test "request/4 surfaces transport exceptions unchanged" do
+  test "request/4 normalizes transport exceptions into Paddle.Error" do
     client =
       client_with_adapter(fn request ->
         {request, %Req.TransportError{reason: :timeout}}
       end)
 
-    assert {:error, %Req.TransportError{reason: :timeout}} =
+    assert {:error,
+            %Paddle.Error{
+              network_error?: true,
+              retryable?: true,
+              type: "network_timeout",
+              raw_data: %Req.TransportError{reason: :timeout}
+            }} = Http.request(client, :get, "/customers")
+  end
+
+  test "request/4 maps nxdomain to network_nxdomain type" do
+    client =
+      client_with_adapter(fn request ->
+        {request, %Req.TransportError{reason: :nxdomain}}
+      end)
+
+    assert {:error,
+            %Paddle.Error{type: "network_nxdomain", network_error?: true, retryable?: true}} =
+             Http.request(client, :get, "/customers")
+  end
+
+  test "request/4 maps closed to network_closed type" do
+    client =
+      client_with_adapter(fn request ->
+        {request, %Req.TransportError{reason: :closed}}
+      end)
+
+    assert {:error, %Paddle.Error{type: "network_closed", network_error?: true, retryable?: true}} =
+             Http.request(client, :get, "/customers")
+  end
+
+  test "request/4 maps unknown transport reason to network_unknown type" do
+    client =
+      client_with_adapter(fn request ->
+        {request, %Req.TransportError{reason: :econnrefused}}
+      end)
+
+    assert {:error,
+            %Paddle.Error{type: "network_unknown", network_error?: true, retryable?: true}} =
              Http.request(client, :get, "/customers")
   end
 

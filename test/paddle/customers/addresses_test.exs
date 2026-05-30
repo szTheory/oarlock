@@ -268,23 +268,23 @@ defmodule Paddle.Customers.AddressesTest do
               }} = Addresses.get(client, "ctm_01", "add_404")
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Addresses.update(client, "ctm_01", "add_01", %{city: "New York"})
     end
 
-    test "surfaces list transport exceptions unchanged" do
+    test "normalizes list transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Addresses.list(client, "ctm_01", status: "archived")
     end
   end

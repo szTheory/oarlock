@@ -78,13 +78,13 @@ defmodule Paddle.CustomersTest do
               }} = Customers.create(client, %{email: "invalid"})
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Customers.create(client, %{email: "ada@example.com"})
     end
   end

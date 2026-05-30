@@ -113,13 +113,13 @@ defmodule Paddle.SubscriptionsTest do
               }} = Subscriptions.get(client, "sub_missing")
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Subscriptions.get(client, "sub_01")
     end
 
@@ -274,13 +274,14 @@ defmodule Paddle.SubscriptionsTest do
       assert Page.next_cursor(page) == nil
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} = Subscriptions.list(client)
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+               Subscriptions.list(client)
     end
   end
 
@@ -363,13 +364,13 @@ defmodule Paddle.SubscriptionsTest do
               }} = Subscriptions.cancel(client, "sub_01")
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Subscriptions.cancel(client, "sub_01")
     end
   end
@@ -447,13 +448,13 @@ defmodule Paddle.SubscriptionsTest do
               }} = Subscriptions.cancel_immediately(client, "sub_missing")
     end
 
-    test "surfaces transport exceptions unchanged" do
+    test "normalizes transport exceptions into Paddle.Error" do
       client =
         client_with_adapter(fn request ->
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Req.TransportError{reason: :timeout}} =
+      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
                Subscriptions.cancel_immediately(client, "sub_01")
     end
   end

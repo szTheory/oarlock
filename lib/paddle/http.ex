@@ -11,6 +11,9 @@ defmodule Paddle.Http do
       {:ok, %Req.Response{} = resp} ->
         {:error, Paddle.Error.from_response(resp)}
 
+      {:error, %Req.TransportError{} = exception} ->
+        {:error, Paddle.Error.from_transport(exception)}
+
       {:error, exception} ->
         {:error, exception}
     end

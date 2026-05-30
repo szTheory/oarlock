@@ -26,4 +26,19 @@ defmodule Paddle.Error do
       raw_data: body
     }
   end
+
+  def from_transport(%Req.TransportError{reason: reason} = exception) do
+    %__MODULE__{
+      type: transport_type(reason),
+      message: Exception.message(exception),
+      network_error?: true,
+      retryable?: true,
+      raw_data: exception
+    }
+  end
+
+  defp transport_type(:timeout), do: "network_timeout"
+  defp transport_type(:nxdomain), do: "network_nxdomain"
+  defp transport_type(:closed), do: "network_closed"
+  defp transport_type(_), do: "network_unknown"
 end

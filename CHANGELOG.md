@@ -19,6 +19,7 @@ This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 * **`%Paddle.Error{}`**: New `:network_error?` field (boolean, defaults to `false`) — to be populated by `Paddle.Error.from_transport/1` in a follow-up plan.
 * **`%Paddle.Error{}`**: New `:retryable?` field (boolean, defaults to `false`) — advisory class predicate populated by `Paddle.Error.from_transport/1` in a follow-up plan.
+* **`Paddle.Error.from_transport/1`**: New public constructor that maps `%Req.TransportError{}` into a normalized `%Paddle.Error{}` with `:network_error?: true`, `:retryable?: true`, and a stable `:type` taxonomy (`"network_timeout"`, `"network_nxdomain"`, `"network_closed"`, `"network_unknown"`). `Paddle.Http.request/4` now returns `{:error, %Paddle.Error{network_error?: true, ...}}` for transport failures instead of leaking the raw `%Req.TransportError{}` to consumers — Accrue and other consumers can now pattern-match on a single error shape across both HTTP and transport failures. (REL-03)
 * Initial public release of the Paddle Billing SDK for Elixir. The v1.1 "Accrue Seam Hardening" tranche delivered customer/address CRUD, hosted-checkout transaction creation, transaction retrieval by ID, subscription get/list/cancel, pure-function webhook verification, and the locked [`guides/accrue-seam.md`](guides/accrue-seam.md) consumer contract.
 * Docs: rewrite the README for cold-start adopters and add [`guides/getting-started.md`](guides/getting-started.md), a JTBD/user-flow guide for the current Paddle integration path.
 
