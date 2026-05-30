@@ -25,5 +25,19 @@ defmodule Paddle.PageTest do
     test "returns nil when no next cursor exists" do
       assert Page.next_cursor(%Page{data: [], meta: %{}}) == nil
     end
+
+    test "returns next even when has_more is false" do
+      page = %Page{
+        data: [],
+        meta: %{
+          "pagination" => %{
+            "next" => "https://api.paddle.com/subscriptions?after=sub_01",
+            "has_more" => false
+          }
+        }
+      }
+
+      assert Page.next_cursor(page) == "https://api.paddle.com/subscriptions?after=sub_01"
+    end
   end
 end

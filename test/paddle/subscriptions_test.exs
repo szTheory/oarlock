@@ -285,6 +285,122 @@ defmodule Paddle.SubscriptionsTest do
     end
   end
 
+  describe "stream/2" do
+    test "streams subscriptions across three pages in order and replays Paddle next URLs" do
+      {client, requests} = client_with_get_sequence(subscription_pagination_requests())
+
+      subscriptions =
+        client
+        |> Subscriptions.stream(status: "active")
+        |> Enum.to_list()
+
+      assert Enum.map(subscriptions, & &1.id) == ["sub_01", "sub_02", "sub_03"]
+      assert Enum.all?(subscriptions, &match?(%Subscription{}, &1))
+      assert_no_more_requests(requests)
+    end
+
+    test "raises Paddle.Error when a later page fails" do
+      {client, _requests} =
+        client_with_get_sequence([
+          %{
+            path: "/subscriptions",
+            query: %{},
+            response:
+              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+          },
+          %{
+            path: "/subscriptions",
+            query: %{"after" => "cursor_1"},
+            response: paddle_unavailable_response()
+          }
+        ])
+
+      error =
+        assert_raise Error, fn ->
+          client
+          |> Subscriptions.stream()
+          |> Enum.to_list()
+        end
+
+      assert error.status_code == 503
+      assert error.message == "Paddle unavailable"
+    end
+
+    test "raises ArgumentError for invalid initial params during enumeration" do
+      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+
+      stream = Subscriptions.stream(client, "nope")
+
+      assert_raise ArgumentError, ~r/:invalid_params/, fn ->
+        Enum.to_list(stream)
+      end
+    end
+
+    test "fetches only the first page when the consumer stops early" do
+      {client, requests} =
+        client_with_get_sequence([
+          %{
+            path: "/subscriptions",
+            query: %{},
+            response:
+              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+          }
+        ])
+
+      assert [%Subscription{id: "sub_01"}] =
+               client
+               |> Subscriptions.stream()
+               |> Enum.take(1)
+
+      assert_no_more_requests(requests)
+    end
+  end
+
+  describe "all/2" do
+    test "returns the same ordered subscriptions as stream/2" do
+      {stream_client, stream_requests} = client_with_get_sequence(subscription_pagination_requests())
+
+      stream_ids =
+        stream_client
+        |> Subscriptions.stream(status: "active")
+        |> Enum.map(& &1.id)
+
+      assert_no_more_requests(stream_requests)
+
+      {all_client, all_requests} = client_with_get_sequence(subscription_pagination_requests())
+
+      assert {:ok, subscriptions} = Subscriptions.all(all_client, status: "active")
+      assert Enum.map(subscriptions, & &1.id) == stream_ids
+      assert_no_more_requests(all_requests)
+    end
+
+    test "returns the first later-page Paddle.Error without partial results" do
+      {client, _requests} =
+        client_with_get_sequence([
+          %{
+            path: "/subscriptions",
+            query: %{},
+            response:
+              subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+          },
+          %{
+            path: "/subscriptions",
+            query: %{"after" => "cursor_1"},
+            response: paddle_unavailable_response()
+          }
+        ])
+
+      assert {:error, %Error{status_code: 503, message: "Paddle unavailable"}} =
+               Subscriptions.all(client)
+    end
+
+    test "returns validation atoms from the initial list call" do
+      client = client_with_adapter(fn request -> flunk("unexpected request: #{inspect(request)}") end)
+
+      assert {:error, :invalid_params} = Subscriptions.all(client, "nope")
+    end
+  end
+
   describe "cancel/2" do
     test "issues POST /subscriptions/{id}/cancel with effective_from=next_billing_period and returns the updated subscription" do
       response_data = subscription_payload_active_with_scheduled_change()
@@ -471,6 +587,105 @@ defmodule Paddle.SubscriptionsTest do
     body
     |> IO.iodata_to_binary()
     |> Jason.decode!()
+  end
+
+  defp client_with_get_sequence(expected_requests) do
+    {:ok, requests} = Agent.start_link(fn -> expected_requests end)
+
+    client =
+      client_with_adapter(fn request ->
+        expected =
+          Agent.get_and_update(requests, fn
+            [expected | rest] ->
+              {expected, rest}
+
+            [] ->
+              flunk("unexpected request: #{request.method} #{URI.to_string(request.url)}")
+          end)
+
+        assert request.method == :get
+        assert request.url.path == expected.path
+        assert URI.decode_query(request.url.query || "") == expected.query
+        assert request.body == nil
+
+        {request, expected.response}
+      end)
+
+    {client, requests}
+  end
+
+  defp assert_no_more_requests(requests) do
+    assert Agent.get(requests, & &1) == []
+  end
+
+  defp subscription_pagination_requests do
+    [
+      %{
+        path: "/subscriptions",
+        query: %{"status" => "active"},
+        response:
+          subscription_page(
+            ["sub_01"],
+            true,
+            "https://api.paddle.com/subscriptions?status=active&after=cursor_1"
+          )
+      },
+      %{
+        path: "/subscriptions",
+        query: %{"status" => "active", "after" => "cursor_1"},
+        response:
+          subscription_page(
+            ["sub_02"],
+            true,
+            "/subscriptions?status=active&after=cursor_2"
+          )
+      },
+      %{
+        path: "/subscriptions",
+        query: %{"status" => "active", "after" => "cursor_2"},
+        response:
+          subscription_page(
+            ["sub_03"],
+            false,
+            "/subscriptions?status=active&after=cursor_3"
+          )
+      }
+    ]
+  end
+
+  defp subscription_page(ids, has_more, next) do
+    Req.Response.new(
+      status: 200,
+      body: %{
+        "data" => Enum.map(ids, &subscription_payload/1),
+        "meta" => %{
+          "pagination" => %{
+            "per_page" => 1,
+            "next" => next,
+            "has_more" => has_more,
+            "estimated_total" => 3
+          }
+        }
+      }
+    )
+  end
+
+  defp subscription_payload(id) do
+    Map.put(subscription_payload_active_with_scheduled_change(), "id", id)
+  end
+
+  defp paddle_unavailable_response do
+    Req.Response.new(
+      status: 503,
+      body: %{
+        "error" => %{
+          "type" => "request_error",
+          "code" => "service_unavailable",
+          "detail" => "Paddle unavailable",
+          "errors" => []
+        }
+      }
+    )
   end
 
   defp subscription_payload_canceled do
