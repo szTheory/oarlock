@@ -7,11 +7,11 @@ defmodule Paddle.Customers do
   @create_allowlist ~w(email name custom_data locale)
   @update_allowlist ~w(name email status custom_data locale)
 
-  def create(%Client{} = client, attrs) do
+  def create(%Client{} = client, attrs, opts \\ []) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/customers", json: body) do
+           Http.request(client, :post, "/customers", Keyword.merge([json: body], opts)) do
       {:ok, Http.build_struct(Customer, data)}
     end
   end

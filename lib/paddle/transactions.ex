@@ -13,7 +13,7 @@ defmodule Paddle.Transactions do
     end
   end
 
-  def create(%Client{} = client, attrs) do
+  def create(%Client{} = client, attrs, opts \\ []) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          {:ok, customer_id} <- validate_customer_id(attrs),
          {:ok, address_id} <- validate_address_id(attrs),
@@ -22,7 +22,7 @@ defmodule Paddle.Transactions do
          {:ok, checkout} <- validate_checkout(attrs),
          body <- build_body(customer_id, address_id, items, custom_data, checkout),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/transactions", json: body) do
+           Http.request(client, :post, "/transactions", Keyword.merge([json: body], opts)) do
       {:ok, build_transaction(data)}
     end
   end

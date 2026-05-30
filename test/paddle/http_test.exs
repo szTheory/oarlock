@@ -107,6 +107,94 @@ defmodule Paddle.HttpTest do
     assert %SampleStruct{raw_data: ^data} = Http.build_struct(SampleStruct, data)
   end
 
+  describe "request/4 idempotency_key opt" do
+    test "forwards the supplied key as Idempotency-Key header on POST" do
+      client =
+        client_with_adapter(fn request ->
+          assert Req.Request.get_header(request, "idempotency-key") == ["my-key-123"]
+          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_1"}})}
+        end)
+
+      assert {:ok, _} =
+               Http.request(client, :post, "/customers",
+                 json: %{name: "x"},
+                 idempotency_key: "my-key-123"
+               )
+    end
+
+    test "sends no Idempotency-Key header when the opt is absent" do
+      client =
+        client_with_adapter(fn request ->
+          assert Req.Request.get_header(request, "idempotency-key") == []
+          {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
+        end)
+
+      assert {:ok, _} = Http.request(client, :get, "/customers")
+    end
+
+    test "raises ArgumentError when idempotency_key is nil" do
+      client =
+        client_with_adapter(fn request ->
+          flunk(
+            "adapter should not be called when idempotency_key is invalid; got: #{inspect(request)}"
+          )
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
+        Http.request(client, :post, "/customers", json: %{}, idempotency_key: nil)
+      end
+    end
+
+    test "raises ArgumentError when idempotency_key is the empty string" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("adapter should not be called; got: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
+        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "")
+      end
+    end
+
+    test "raises ArgumentError when idempotency_key is whitespace-only" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("adapter should not be called; got: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
+        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "   ")
+      end
+    end
+
+    test "raises ArgumentError when idempotency_key is not a binary" do
+      client =
+        client_with_adapter(fn request ->
+          flunk("adapter should not be called; got: #{inspect(request)}")
+        end)
+
+      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
+        Http.request(client, :post, "/customers", json: %{}, idempotency_key: 12345)
+      end
+    end
+
+    test "Paddle.Customers.create/3 forwards idempotency_key as Idempotency-Key header" do
+      client =
+        client_with_adapter(fn request ->
+          assert Req.Request.get_header(request, "idempotency-key") == [
+                   "accrue:job:42:attempt:1"
+                 ]
+
+          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_999"}})}
+        end)
+
+      assert {:ok, %Paddle.Customer{id: "cus_999"}} =
+               Paddle.Customers.create(client, %{email: "x@example.com", name: "X"},
+                 idempotency_key: "accrue:job:42:attempt:1"
+               )
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",

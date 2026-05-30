@@ -7,12 +7,17 @@ defmodule Paddle.Customers.Addresses do
   @list_allowlist ~w(id after per_page order_by status search)
   @update_allowlist ~w(description first_line second_line city postal_code region country_code custom_data status)
 
-  def create(%Paddle.Client{} = client, customer_id, attrs) do
+  def create(%Paddle.Client{} = client, customer_id, attrs, opts \\ []) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, customer_addresses_path(customer_id), json: body) do
+           Http.request(
+             client,
+             :post,
+             customer_addresses_path(customer_id),
+             Keyword.merge([json: body], opts)
+           ) do
       {:ok, Http.build_struct(Address, data)}
     end
   end
