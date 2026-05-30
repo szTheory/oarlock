@@ -195,11 +195,115 @@ defmodule Paddle.HttpTest do
     end
   end
 
+  describe "request/4 retry policy" do
+    test "retries on 503 then succeeds" do
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+
+          if count == 0 do
+            {request, Req.Response.new(status: 503, body: %{})}
+          else
+            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
+          end
+        end)
+
+      assert {:ok, _} = Http.request(client, :get, "/customers")
+      assert Agent.get(agent, & &1) == 2
+      Agent.stop(agent)
+    end
+
+    test "does not retry on 422 validation error" do
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          Agent.update(agent, fn n -> n + 1 end)
+          {request, Req.Response.new(status: 422, body: %{"error" => %{"detail" => "invalid"}})}
+        end)
+
+      assert {:error, %Error{status_code: 422}} =
+               Http.request(client, :post, "/customers", json: %{})
+
+      assert Agent.get(agent, & &1) == 1
+      Agent.stop(agent)
+    end
+
+    test "retries on 429 then succeeds" do
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+
+          if count == 0 do
+            {request,
+             Req.Response.new(status: 429, body: %{"error" => %{"code" => "too_many_requests"}})}
+          else
+            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
+          end
+        end)
+
+      assert {:ok, _} = Http.request(client, :get, "/customers")
+      assert Agent.get(agent, & &1) == 2
+      Agent.stop(agent)
+    end
+
+    test "per-call retry: false disables retry on 5xx" do
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          Agent.update(agent, fn n -> n + 1 end)
+          {request, Req.Response.new(status: 503, body: %{})}
+        end)
+
+      assert {:error, %Error{status_code: 503}} =
+               Http.request(client, :get, "/customers", retry: false)
+
+      assert Agent.get(agent, & &1) == 1
+      Agent.stop(agent)
+    end
+
+    test "caps retries at 3 on persistent 5xx (max-3 ceiling)" do
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          Agent.update(agent, fn n -> n + 1 end)
+          {request, Req.Response.new(status: 503, body: %{})}
+        end)
+
+      assert {:error, %Error{status_code: 503}} =
+               Http.request(client, :get, "/customers")
+
+      assert Agent.get(agent, & &1) == 4
+      Agent.stop(agent)
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
       req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+    }
+  end
+
+  defp client_with_retry_adapter(adapter) do
+    %Client{
+      api_key: "sk_test_123",
+      environment: :sandbox,
+      req:
+        Req.new(
+          base_url: "https://sandbox-api.paddle.com",
+          retry: :transient,
+          max_retries: 3,
+          retry_delay: 0,
+          adapter: adapter
+        )
     }
   end
 end

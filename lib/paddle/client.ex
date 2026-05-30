@@ -15,7 +15,9 @@ defmodule Paddle.Client do
       Req.new(
         base_url: base_url,
         auth: {:bearer, api_key},
-        headers: [{"Paddle-Version", "1"}]
+        headers: [{"Paddle-Version", "1"}],
+        retry: :transient,
+        max_retries: 3
       )
       |> Paddle.Http.Telemetry.attach()
 
