@@ -1,4 +1,34 @@
 defmodule Paddle.Error do
+  @moduledoc """
+  Represents normalized network and provider-side errors.
+
+  Rather than returning disparate raw HTTP errors, Req exceptions, or nested Paddle error bodies,
+  the SDK normalizes all API and transport errors into a single `%Paddle.Error{}` struct.
+  This struct preserves the original Paddle `code` and `request_id` for debugging.
+
+  If a request fails before reaching Paddle (e.g., local validation), the SDK returns
+  an atom like `{:error, :invalid_id}`. Once a request hits the network, failures are
+  returned as `{:error, %Paddle.Error{}}`.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Customers.get(client, "ctm_123") do
+    {:ok, %Paddle.Customer{} = customer} ->
+      customer
+
+    {:error, %Paddle.Error{code: "not_found", status_code: 404}} ->
+      # Resource not found on Paddle
+
+    {:error, %Paddle.Error{network_error?: true}} ->
+      # A transport issue (e.g., timeout)
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Errors](https://developer.paddle.com/api-reference/about/errors)
+  """
+
   @type t :: %__MODULE__{
           type: String.t() | nil,
           code: String.t() | nil,
