@@ -1,4 +1,28 @@
 defmodule Paddle.Subscriptions do
+  @moduledoc """
+  Provides operations for managing Paddle Subscriptions.
+
+  ## Example Pipeline
+
+  ```elixir
+  client = Paddle.Client.new!(api_key: "sk_test_123", environment: :sandbox)
+
+  case Paddle.Subscriptions.get(client, "sub_123") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      # Handle successful fetch
+      IO.puts("Fetched subscription: \#{subscription.id}")
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider or network errors
+      IO.puts("Failed: \#{error.message}")
+
+    {:error, local_error} ->
+      # Handle validation errors (e.g. :invalid_subscription_id)
+      IO.puts("Validation failed: \#{inspect(local_error)}")
+  end
+  ```
+  """
+
   alias Paddle.Client
   alias Paddle.Http
   alias Paddle.Internal.Attrs
@@ -10,17 +34,40 @@ defmodule Paddle.Subscriptions do
   @type subscription_id :: String.t()
   @type pause_opt ::
           {:resume_at, DateTime.t() | String.t()}
-          | {:on_resume, :start_new_billing_period | :continue_existing_billing_period | String.t()}
+          | {:on_resume,
+             :start_new_billing_period | :continue_existing_billing_period | String.t()}
           | {:retry, boolean()}
   @type resume_opt ::
           {:effective_from, :immediately | DateTime.t() | String.t()}
-          | {:on_resume, :start_new_billing_period | :continue_existing_billing_period | String.t()}
+          | {:on_resume,
+             :start_new_billing_period | :continue_existing_billing_period | String.t()}
           | {:retry, boolean()}
 
   @list_allowlist ~w(id customer_id address_id price_id status
                      scheduled_change_action collection_mode
                      next_billed_at order_by after per_page)
 
+  @doc """
+  Retrieves a subscription by ID.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.get(client, "sub_123") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Get a subscription](https://developer.paddle.com/api-reference/subscriptions/get-subscription)
+  """
   @spec get(Paddle.Client.t(), subscription_id()) ::
           {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def get(%Client{} = client, subscription_id) do
@@ -31,6 +78,30 @@ defmodule Paddle.Subscriptions do
     end
   end
 
+  @doc """
+  Lists subscriptions.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.list(client, per_page: 10) do
+    {:ok, %Paddle.Page{} = page} ->
+      page.data
+
+    {:error, :invalid_params} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Provider behavior
+  Filtering and sorting options must match the allowlist.
+
+  ## Related Paddle docs
+  - [List subscriptions](https://developer.paddle.com/api-reference/subscriptions/list-subscriptions)
+  """
   @spec list(Paddle.Client.t(), map() | keyword()) ::
           {:ok, Paddle.Page.t()} | {:error, Paddle.Error.t() | :invalid_params}
   def list(%Client{} = client, params \\ []) do
@@ -42,6 +113,24 @@ defmodule Paddle.Subscriptions do
     end
   end
 
+  @doc """
+  Returns a stream of subscriptions.
+
+  ## Examples
+
+  ```elixir
+  stream = Paddle.Subscriptions.stream(client, per_page: 50)
+
+  # Stream handles pagination automatically
+  Enum.each(stream, fn
+    {:ok, %Paddle.Subscription{} = sub} -> IO.puts("Sub: \#{sub.id}")
+    {:error, _} = error -> IO.puts("Error: \#{inspect(error)}")
+  end)
+  ```
+
+  ## Related Paddle docs
+  - [List subscriptions](https://developer.paddle.com/api-reference/subscriptions/list-subscriptions)
+  """
   @spec stream(Paddle.Client.t(), map() | keyword()) :: Enumerable.t()
   def stream(%Client{} = client, params \\ []) do
     Pagination.stream(
@@ -50,6 +139,28 @@ defmodule Paddle.Subscriptions do
     )
   end
 
+  @doc """
+  Retrieves all subscriptions, automatically handling pagination.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.all(client, status: "active") do
+    {:ok, subscriptions} ->
+      # A list of Paddle.Subscription structs
+      subscriptions
+
+    {:error, :invalid_params} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [List subscriptions](https://developer.paddle.com/api-reference/subscriptions/list-subscriptions)
+  """
   @spec all(Paddle.Client.t(), map() | keyword()) ::
           {:ok, [Paddle.Subscription.t()]} | {:error, Paddle.Error.t() | :invalid_params}
   def all(%Client{} = client, params \\ []) do
@@ -59,18 +170,87 @@ defmodule Paddle.Subscriptions do
     )
   end
 
+  @doc """
+  Cancels a subscription at the end of the next billing period.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.cancel(client, "sub_123") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Cancel a subscription](https://developer.paddle.com/api-reference/subscriptions/cancel-subscription)
+  """
   @spec cancel(Paddle.Client.t(), subscription_id()) ::
           {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def cancel(%Client{} = client, subscription_id) do
     do_cancel(client, subscription_id, "next_billing_period")
   end
 
+  @doc """
+  Cancels a subscription immediately.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.cancel_immediately(client, "sub_123") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Cancel a subscription](https://developer.paddle.com/api-reference/subscriptions/cancel-subscription)
+  """
   @spec cancel_immediately(Paddle.Client.t(), subscription_id()) ::
           {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def cancel_immediately(%Client{} = client, subscription_id) do
     do_cancel(client, subscription_id, "immediately")
   end
 
+  @doc """
+  Pauses a subscription at the end of the next billing period.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.pause(client, "sub_123", on_resume: :continue_existing_billing_period) do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, :invalid_resume_at} ->
+      # Handle local validation error
+
+    {:error, :invalid_on_resume} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Pause a subscription](https://developer.paddle.com/api-reference/subscriptions/pause-subscription)
+  """
   @spec pause(Paddle.Client.t(), subscription_id(), [pause_opt()]) ::
           {:ok, Paddle.Subscription.t()}
           | {:error,
@@ -82,6 +262,33 @@ defmodule Paddle.Subscriptions do
     do_pause(client, subscription_id, "next_billing_period", opts)
   end
 
+  @doc """
+  Pauses a subscription immediately.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.pause_immediately(client, "sub_123") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, :invalid_resume_at} ->
+      # Handle local validation error
+
+    {:error, :invalid_on_resume} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Pause a subscription](https://developer.paddle.com/api-reference/subscriptions/pause-subscription)
+  """
   @spec pause_immediately(Paddle.Client.t(), subscription_id(), [pause_opt()]) ::
           {:ok, Paddle.Subscription.t()}
           | {:error,
@@ -93,6 +300,33 @@ defmodule Paddle.Subscriptions do
     do_pause(client, subscription_id, "immediately", opts)
   end
 
+  @doc """
+  Resumes a paused subscription.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Subscriptions.resume(client, "sub_123", effective_from: :immediately) do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      subscription
+
+    {:error, :invalid_subscription_id} ->
+      # Handle local validation error
+
+    {:error, :invalid_effective_from} ->
+      # Handle local validation error
+
+    {:error, :invalid_on_resume} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Resume a subscription](https://developer.paddle.com/api-reference/subscriptions/resume-subscription)
+  """
   @spec resume(Paddle.Client.t(), subscription_id(), [resume_opt()]) ::
           {:ok, Paddle.Subscription.t()}
           | {:error,
