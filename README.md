@@ -81,14 +81,17 @@ Create a transaction for a recurring price, then redirect the user to the hosted
 checkout URL:
 
 ```elixir
-{:ok, transaction} =
-  Paddle.Transactions.create(client,
-    customer_id: customer.id,
-    address_id: address.id,
-    items: [%{price_id: "pri_monthly_123", quantity: 1}]
-  )
-
-checkout_url = transaction.checkout.url
+case Paddle.Transactions.create(client,
+       customer_id: customer.id,
+       address_id: address.id,
+       items: [%{price_id: "pri_monthly_123", quantity: 1}]
+     ) do
+  {:ok, %Paddle.Transaction{} = transaction} ->
+    checkout_url = transaction.checkout.url
+    # Redirect user to checkout_url
+  {:error, error} ->
+    raise "Failed: #{error.message}"
+end
 ```
 
 Later, when Paddle calls your webhook endpoint, verify the raw body before you
@@ -125,4 +128,6 @@ oarlock is intentionally not:
 - A complete Paddle endpoint mirror.
 
 If you need the exact supported public surface, use the
+[Accrue Seam Contract](guides/accrue-seam.md) as the source of truth.
+ public surface, use the
 [Accrue Seam Contract](guides/accrue-seam.md) as the source of truth.
