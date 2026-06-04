@@ -5,6 +5,11 @@ defmodule Paddle.Transactions do
   alias Paddle.Transaction
   alias Paddle.Transaction.Checkout
 
+  @type transaction_id :: String.t()
+  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+
+  @spec get(Paddle.Client.t(), transaction_id()) ::
+          {:ok, Paddle.Transaction.t()} | {:error, Paddle.Error.t() | :invalid_transaction_id}
   def get(%Client{} = client, transaction_id) do
     with :ok <- validate_transaction_id(transaction_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -13,6 +18,16 @@ defmodule Paddle.Transactions do
     end
   end
 
+  @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
+          {:ok, Paddle.Transaction.t()}
+          | {:error,
+             Paddle.Error.t()
+             | :invalid_attrs
+             | :invalid_customer_id
+             | :invalid_address_id
+             | :invalid_items
+             | :invalid_custom_data
+             | :invalid_checkout}
   def create(%Client{} = client, attrs, opts \\ []) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          {:ok, customer_id} <- validate_customer_id(attrs),

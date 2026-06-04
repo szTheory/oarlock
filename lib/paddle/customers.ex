@@ -4,9 +4,14 @@ defmodule Paddle.Customers do
   alias Paddle.Http
   alias Paddle.Internal.Attrs
 
+  @type customer_id :: String.t()
+  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+
   @create_allowlist ~w(email name custom_data locale)
   @update_allowlist ~w(name email status custom_data locale)
 
+  @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
+          {:ok, Paddle.Customer.t()} | {:error, Paddle.Error.t() | :invalid_attrs}
   def create(%Client{} = client, attrs, opts \\ []) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
@@ -16,6 +21,8 @@ defmodule Paddle.Customers do
     end
   end
 
+  @spec get(Paddle.Client.t(), customer_id()) ::
+          {:ok, Paddle.Customer.t()} | {:error, Paddle.Error.t() | :invalid_customer_id}
   def get(%Client{} = client, customer_id) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -24,6 +31,9 @@ defmodule Paddle.Customers do
     end
   end
 
+  @spec update(Paddle.Client.t(), customer_id(), map() | keyword()) ::
+          {:ok, Paddle.Customer.t()}
+          | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_attrs}
   def update(%Client{} = client, customer_id, attrs) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, attrs} <- Attrs.normalize(attrs),

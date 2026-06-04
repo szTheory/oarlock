@@ -4,10 +4,17 @@ defmodule Paddle.Customers.Addresses do
   alias Paddle.Internal.Attrs
   alias Paddle.Internal.Pagination
 
+  @type customer_id :: String.t()
+  @type address_id :: String.t()
+  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+
   @create_allowlist ~w(description first_line second_line city postal_code region country_code custom_data)
   @list_allowlist ~w(id after per_page order_by status search)
   @update_allowlist ~w(description first_line second_line city postal_code region country_code custom_data status)
 
+  @spec create(Paddle.Client.t(), customer_id(), map() | keyword(), [request_opt()]) ::
+          {:ok, Paddle.Address.t()}
+          | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_attrs}
   def create(%Paddle.Client{} = client, customer_id, attrs, opts \\ []) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, attrs} <- Attrs.normalize(attrs),
@@ -23,6 +30,9 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
+  @spec get(Paddle.Client.t(), customer_id(), address_id()) ::
+          {:ok, Paddle.Address.t()}
+          | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_address_id}
   def get(%Paddle.Client{} = client, customer_id, address_id) do
     with :ok <- validate_customer_id(customer_id),
          :ok <- validate_address_id(address_id),
@@ -32,6 +42,9 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
+  @spec list(Paddle.Client.t(), customer_id(), map() | keyword()) ::
+          {:ok, Paddle.Page.t()}
+          | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_params}
   def list(%Paddle.Client{} = client, customer_id, params \\ []) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, params} <- normalize_params(params),
@@ -42,6 +55,7 @@ defmodule Paddle.Customers.Addresses do
     end
   end
 
+  @spec stream(Paddle.Client.t(), customer_id(), map() | keyword()) :: Enumerable.t()
   def stream(%Paddle.Client{} = client, customer_id, params \\ []) do
     Pagination.stream(
       fn -> list(client, customer_id, params) end,
@@ -49,6 +63,9 @@ defmodule Paddle.Customers.Addresses do
     )
   end
 
+  @spec all(Paddle.Client.t(), customer_id(), map() | keyword()) ::
+          {:ok, [Paddle.Address.t()]}
+          | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_params}
   def all(%Paddle.Client{} = client, customer_id, params \\ []) do
     Pagination.all(
       fn -> list(client, customer_id, params) end,
@@ -56,6 +73,10 @@ defmodule Paddle.Customers.Addresses do
     )
   end
 
+  @spec update(Paddle.Client.t(), customer_id(), address_id(), map() | keyword()) ::
+          {:ok, Paddle.Address.t()}
+          | {:error,
+             Paddle.Error.t() | :invalid_customer_id | :invalid_address_id | :invalid_attrs}
   def update(%Paddle.Client{} = client, customer_id, address_id, attrs) do
     with :ok <- validate_customer_id(customer_id),
          :ok <- validate_address_id(address_id),
