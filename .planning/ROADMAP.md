@@ -116,7 +116,7 @@
 Plans:
 **Wave 1**
 
-- [ ] 11-01-PLAN.md — Add public `@type t` contracts and shared helper specs to the core seam-carrier modules.
+- [x] 11-01-PLAN.md — Add public `@type t` contracts and shared helper specs to the core seam-carrier modules.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -179,7 +179,7 @@ Plans:
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 0/5 | Pending | — |
+| 11. Type-Safety Pass | v1.2 | 1/5 | In Progress|  |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
