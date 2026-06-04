@@ -1,4 +1,16 @@
 defmodule Paddle.Error do
+  @type t :: %__MODULE__{
+          type: String.t() | nil,
+          code: String.t() | nil,
+          message: String.t() | nil,
+          errors: list(map()),
+          request_id: String.t() | nil,
+          status_code: integer() | nil,
+          raw_data: map() | struct() | nil,
+          network_error?: boolean(),
+          retryable?: boolean()
+        }
+
   defexception type: nil,
                code: nil,
                message: nil,

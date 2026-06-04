@@ -1,4 +1,10 @@
 defmodule Paddle.Client do
+  @type t :: %__MODULE__{
+          api_key: String.t(),
+          environment: :sandbox | :live,
+          req: struct()
+        }
+
   @enforce_keys [:api_key, :environment]
   defstruct [:api_key, :environment, :req]
 

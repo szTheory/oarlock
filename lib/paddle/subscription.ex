@@ -1,4 +1,31 @@
 defmodule Paddle.Subscription do
+  @type t :: %__MODULE__{
+          id: String.t() | nil,
+          status: String.t() | nil,
+          customer_id: String.t() | nil,
+          address_id: String.t() | nil,
+          business_id: String.t() | nil,
+          currency_code: String.t() | nil,
+          collection_mode: String.t() | nil,
+          custom_data: map() | nil,
+          items: list(map()) | nil,
+          scheduled_change: Paddle.Subscription.ScheduledChange.t() | nil,
+          management_urls: Paddle.Subscription.ManagementUrls.t() | nil,
+          current_billing_period: map() | nil,
+          billing_cycle: map() | nil,
+          billing_details: map() | nil,
+          discount: map() | nil,
+          next_billed_at: String.t() | nil,
+          started_at: String.t() | nil,
+          first_billed_at: String.t() | nil,
+          paused_at: String.t() | nil,
+          canceled_at: String.t() | nil,
+          created_at: String.t() | nil,
+          updated_at: String.t() | nil,
+          import_meta: map() | nil,
+          raw_data: map() | nil
+        }
+
   defstruct [
     :id,
     :status,
