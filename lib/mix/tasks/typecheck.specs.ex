@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Typecheck.Specs do
   """
 
   @impl Mix.Task
+  @spec run(any()) :: no_return()
   def run(_args) do
     files =
       Path.wildcard("lib/paddle/**/*.ex") ++ Path.wildcard("lib/paddle.ex")
@@ -53,7 +54,7 @@ defmodule Mix.Tasks.Typecheck.Specs do
     if is_sealed do
       []
     else
-      check_exprs(exprs, file, nil, MapSet.new(), [])
+      check_exprs(exprs, file, nil, [], [])
     end
   end
 
@@ -81,10 +82,10 @@ defmodule Mix.Tasks.Typecheck.Specs do
     case extract_name_arity(signature) do
       {name, arity} ->
         # Multiple heads only need a spec on the first one or a general spec before them
-        if MapSet.member?(known_defs, {name, arity}) do
+        if Enum.member?(known_defs, {name, arity}) do
           check_exprs(rest, file, last_spec, known_defs, acc)
         else
-          new_known = MapSet.put(known_defs, {name, arity})
+          new_known = [{name, arity} | known_defs]
 
           if last_spec == {name, arity} do
             check_exprs(rest, file, nil, new_known, acc)
