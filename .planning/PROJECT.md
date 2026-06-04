@@ -62,9 +62,10 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] **SUB-06**: `Paddle.Subscriptions.resume/3` with validated `effective_from:` / `on_resume:`, explicit `idempotency_key:` rejection, retry-only request opts, and provider-error passthrough. *(Validated in Phase 10)*
 - [x] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` mechanically enforced by `mix typecheck.specs`. *(Validated in Phase 11)*
 - [x] **TYPES-02**: Wire `:dialyxir` with a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`) and CI gate. *(Validated in Phase 11)*
+- [x] **DOCS**: Documentation pass with `@doc` and `@moduledoc` coverage, README rewrite, new guides (`getting-started.md`, `telemetry.md`), explicit `## Examples`, and hiding internal functions. *(Validated in Phase 12)*
 
 ### Active
-Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 12 Documentation pass.
+Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 13.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -111,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 — Phase 10 (Subscriptions Surface Completion) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
+*Last updated: 2026-06-04 — Phase 12 (Documentation Pass) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
