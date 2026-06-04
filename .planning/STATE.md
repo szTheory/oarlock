@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
 status: completed
-last_updated: "2026-06-04T18:23:11.802Z"
-last_activity: 2026-06-04 -- Phase 12 Plan 2 complete
+last_updated: "2026-06-04T18:32:02.604Z"
+last_activity: 2026-06-04 -- Phase 12 Plan 3 complete
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 19
-  completed_plans: 15
-  percent: 79
+  completed_plans: 18
+  percent: 85
 ---
 
 # Project State
@@ -19,9 +19,9 @@ progress:
 
 Milestone: v1.2 Production Surface
 Phase: 12
-Plan: 2/6
+Plan: 4/6
 Status: Completed
-Last activity: 2026-06-04 -- Phase 12 Plan 2 complete
+Last activity: 2026-06-04 -- Phase 12 Plan 4 complete
 
 ## Project Reference
 
@@ -90,15 +90,20 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 | Phase 10-subscriptions-surface-completion P03 | 3min | 3 tasks | 5 files |
 | Phase 12-documentation-pass P01 | 2min | 3 tasks | 4 files |
 | Phase 12-documentation-pass P02 | 5min | 2 tasks | 6 files |
+| Phase 12-documentation-pass P03 | 2min | 2 tasks | 5 files |
+| Phase 12-documentation-pass P04 | 6min | 2 tasks | 3 files |
 
 ## Last session
 
-- Timestamp: 2026-06-04T16:17:17Z
-- Stopped at: Completed Phase 12 Plan 2
+- Timestamp: 2026-06-04T18:40:00Z
+- Stopped at: Completed Phase 12 Plan 4
 - Resume file: None
 
 ## Decisions
 
+- [Phase 12-documentation-pass]: Documented core controllers (Customers, Addresses, Webhooks) with explicit module pipelines, error structures, and domain documentation links.
+
+- [Phase 12-documentation-pass]: Documented Subscription and Transaction domain structs with concise field descriptions and external links to Paddle Billing domain rules.
 - [Phase 12-documentation-pass]: Escaped string interpolation in module docstrings to fix compilation errors.
 - [Phase 12-documentation-pass]: Applied 'Hybrid Explicit' approach to README.md and Getting Started guide code examples, transforming direct assignments (`{:ok, struct} = ...`) into explicit `case` blocks.
 - [Phase 10-subscriptions-surface-completion]: Implemented only resume/3 (no resume_immediately/resume_at variants) to keep seam narrow. — Avoid seam bloat while covering full provider capability through effective_from and on_resume options.
