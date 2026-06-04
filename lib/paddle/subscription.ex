@@ -1,4 +1,15 @@
 defmodule Paddle.Subscription do
+  @moduledoc """
+  Represents a Paddle Subscription.
+  
+  A subscription entity tracks the recurring billing relationship with a customer,
+  including items, billing periods, scheduled changes, and management URLs.
+  
+  ## Related Paddle docs
+  - [Subscription concept](https://developer.paddle.com/concepts/subscriptions)
+  - [Subscription API reference](https://developer.paddle.com/api-reference/subscriptions/overview)
+  """
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
           status: String.t() | nil,
