@@ -151,7 +151,7 @@ Plans:
 
 **Wave 1**
 - [x] 12-01-PLAN.md — Guides and README (DOCS-03, DOCS-04, DOCS-05)
-- [ ] 12-02-PLAN.md — Core SDK Struct Docs (DOCS-01, DOCS-02)
+- [x] 12-02-PLAN.md — Core SDK Struct Docs (DOCS-01, DOCS-02)
 - [ ] 12-03-PLAN.md — Billing Struct Docs (DOCS-02)
 - [ ] 12-04-PLAN.md — Core Controllers Docs (DOCS-01, DOCS-02)
 - [ ] 12-05-PLAN.md — Billing Controllers Docs (DOCS-01, DOCS-02)
@@ -190,7 +190,7 @@ Plans:
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 1/6 | In Progress|  |
+| 12. Documentation Pass | v1.2 | 2/6 | In Progress|  |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
 ---

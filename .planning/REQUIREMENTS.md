@@ -33,8 +33,8 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Documentation pass
 
-- [ ] **DOCS-01**: Add `@doc` with at least one example to every public function across `lib/paddle/`. *(Phase 12.)*
-- [ ] **DOCS-02**: Add `@moduledoc` to every public module. The five modules sealed by SEAM-02 (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep their `@moduledoc false` — those sealings are locked. *(Phase 12.)*
+- [x] **DOCS-01**: Add `@doc` with at least one example to every public function across `lib/paddle/`. *(Phase 12.)*
+- [x] **DOCS-02**: Add `@moduledoc` to every public module. The five modules sealed by SEAM-02 (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep their `@moduledoc false` — those sealings are locked. *(Phase 12.)*
 - [x] **DOCS-03**: Replace the README "TODO: Add description" stub at `README.md:3` with an installation + quick-start + cross-links structure that an outside adopter can follow without reading source. *(Phase 12; draft landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
 - [x] **DOCS-04**: Publish a happy-path `guides/getting-started.md` (client → customer → transaction → webhook), wired into `mix.exs` `:docs` extras. *(Phase 12; draft + docs extra landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
 - [x] **DOCS-05**: Publish `guides/telemetry.md` documenting the `[:paddle, :request, :start | :stop | :exception]` events emitted from `lib/paddle/http/telemetry.ex`, including measurement and metadata schemas. *(Phase 12.)*
@@ -85,8 +85,8 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | SUB-06      | 10    | Complete | `Paddle.Subscriptions.resume/2`. |
 | TYPES-01    | 11    | Complete | `@spec` on every public function across `lib/paddle/`. |
 | TYPES-02    | 11    | Complete | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
-| DOCS-01     | 12    | Pending | `@doc` + example on every public function. |
-| DOCS-02     | 12    | Pending | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
+| DOCS-01     | 12    | Complete | `@doc` + example on every public function. |
+| DOCS-02     | 12    | Complete | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
 | DOCS-03     | 12    | Complete | README rewrite draft exists from release-truth reset; Phase 12 must audit/finalize and keep docs warning-free. |
 | DOCS-04     | 12    | Complete | `guides/getting-started.md` draft is in docs extras; Phase 12 must audit/finalize. |
 | DOCS-05     | 12    | Complete | `guides/telemetry.md` published into `:docs` extras. |

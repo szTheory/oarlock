@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
-status: executing
-last_updated: "2026-06-04T18:18:16.521Z"
-last_activity: 2026-06-04 -- Phase 12 planning complete
+status: completed
+last_updated: "2026-06-04T18:23:11.802Z"
+last_activity: 2026-06-04 -- Phase 12 Plan 2 complete
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 19
-  completed_plans: 14
-  percent: 74
+  completed_plans: 15
+  percent: 79
 ---
 
 # Project State
@@ -18,10 +18,10 @@ progress:
 ## Current Position
 
 Milestone: v1.2 Production Surface
-Phase: 11
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-06-04 -- Phase 12 planning complete
+Phase: 12
+Plan: 2/6
+Status: Completed
+Last activity: 2026-06-04 -- Phase 12 Plan 2 complete
 
 ## Project Reference
 
@@ -76,14 +76,6 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 
 (Reset for v1.2 — populated as phases complete.)
 
-## Last session
-
-- Timestamp: 2026-06-04T16:17:17Z
-- Stopped at: Phase 12 context gathered
-- Resume file: `.planning/phases/12-documentation-pass/12-CONTEXT.md`
-
-**Planned Phase:** 8 (Reliability Primitives) — 4 plans — 2026-04-30T16:11:08.498Z
-
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
@@ -97,9 +89,17 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 | Phase 10-subscriptions-surface-completion P02 | 3min | 2 tasks | 2 files |
 | Phase 10-subscriptions-surface-completion P03 | 3min | 3 tasks | 5 files |
 | Phase 12-documentation-pass P01 | 2min | 3 tasks | 4 files |
+| Phase 12-documentation-pass P02 | 5min | 2 tasks | 6 files |
+
+## Last session
+
+- Timestamp: 2026-06-04T16:17:17Z
+- Stopped at: Completed Phase 12 Plan 2
+- Resume file: None
 
 ## Decisions
 
+- [Phase 12-documentation-pass]: Escaped string interpolation in module docstrings to fix compilation errors.
 - [Phase 12-documentation-pass]: Applied 'Hybrid Explicit' approach to README.md and Getting Started guide code examples, transforming direct assignments (`{:ok, struct} = ...`) into explicit `case` blocks.
 - [Phase 10-subscriptions-surface-completion]: Implemented only resume/3 (no resume_immediately/resume_at variants) to keep seam narrow. — Avoid seam bloat while covering full provider capability through effective_from and on_resume options.
 - [Phase 10-subscriptions-surface-completion]: Rejected idempotency_key on resume/pause mutations; only retry is forwarded as request opt. — Preserves the create-only idempotency boundary and avoids false lifecycle mutation safety assumptions.
