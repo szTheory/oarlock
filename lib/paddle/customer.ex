@@ -1,4 +1,16 @@
 defmodule Paddle.Customer do
+  @moduledoc """
+  Represents a Paddle Customer.
+
+  Customers are the primary entities in Paddle that purchase products or subscriptions.
+  This struct encapsulates their details, such as `name`, `email`, and `locale`.
+
+  The `raw_data` field contains the original, unparsed response from the Paddle API.
+
+  ## Related Paddle docs
+  - [Customer entity](https://developer.paddle.com/api-reference/customers/overview)
+  """
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
           name: String.t() | nil,
