@@ -55,6 +55,7 @@ defmodule Paddle.Error do
   @spec message(t()) :: String.t()
   def message(%{message: message}), do: message || ""
 
+  @doc false
   @spec from_response(Req.Response.t()) :: t()
   def from_response(%Req.Response{status: status, body: body} = resp) do
     body = if is_map(body), do: body, else: %{}
@@ -71,6 +72,7 @@ defmodule Paddle.Error do
     }
   end
 
+  @doc false
   @spec from_transport(Exception.t()) :: t()
   def from_transport(%Req.TransportError{reason: reason} = exception) do
     %__MODULE__{
