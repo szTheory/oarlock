@@ -380,4 +380,17 @@ defmodule Paddle.SeamTest do
       "updated_at" => "2024-04-13T09:47:59.556997Z"
     })
   end
+
+  test "sealed modules remain undocumented" do
+    for module <- [
+          Paddle,
+          Paddle.Http,
+          Paddle.Http.Telemetry,
+          Paddle.Application,
+          Paddle.Internal.Attrs,
+          Paddle.Internal.Pagination
+        ] do
+      assert {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(module)
+    end
+  end
 end
