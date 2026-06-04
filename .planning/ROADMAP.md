@@ -114,10 +114,24 @@
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 11-01-PLAN.md — Add public `@type t` contracts and shared helper specs to the core seam-carrier modules.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 11-02-PLAN.md — Add public function specs across customer, address, transaction, subscription, and webhook resource modules.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 11-03-PLAN.md — Create the mechanical `mix typecheck.specs` gate for public-spec coverage.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 11-04-PLAN.md — Wire Dialyxir, the empty ignore baseline, and the first clean local Dialyzer pass.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 11-05-PLAN.md — Add the dedicated CI Dialyzer/spec gate and an explicit broken-spec negative-path validation.
 
 ### Phase 12: Documentation Pass
