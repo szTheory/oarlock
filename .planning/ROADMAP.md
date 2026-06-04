@@ -120,11 +120,11 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 11-02-PLAN.md — Add public function specs across customer, address, transaction, subscription, and webhook resource modules.
+- [x] 11-02-PLAN.md — Add public function specs across customer, address, transaction, subscription, and webhook resource modules.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 11-03-PLAN.md — Create the mechanical `mix typecheck.specs` gate for public-spec coverage.
+- [x] 11-03-PLAN.md — Create the mechanical `mix typecheck.specs` gate for public-spec coverage.
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -179,7 +179,7 @@ Plans:
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 1/5 | In Progress|  |
+| 11. Type-Safety Pass | v1.2 | 3/5 | In Progress|  |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
