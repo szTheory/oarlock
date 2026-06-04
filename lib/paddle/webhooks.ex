@@ -1,10 +1,88 @@
 defmodule Paddle.Webhooks do
+  @moduledoc """
+  Provides functions for verifying and parsing webhooks from the Paddle Billing API.
+
+  ## Example Pipeline
+
+  ```elixir
+  # In a Phoenix controller or similar HTTP handler
+
+  secret_key = System.fetch_env!("PADDLE_WEBHOOK_SECRET")
+  signature_header = get_req_header(conn, "paddle-signature")
+  raw_body = conn.assigns.raw_body # Note: Ensure you have the raw, unparsed body
+
+  case Paddle.Webhooks.verify_signature(raw_body, signature_header, secret_key) do
+    {:ok, :verified} ->
+      case Paddle.Webhooks.parse_event(raw_body) do
+        {:ok, %Paddle.Event{} = event} ->
+          # Process the event
+          IO.puts("Received event: \#{event.event_type}")
+
+        {:error, :invalid_event_payload} ->
+          IO.puts("Event payload was missing required fields.")
+
+        {:error, :invalid_json} ->
+          IO.puts("Body could not be decoded as JSON.")
+      end
+
+    {:error, :signature_mismatch} ->
+      IO.puts("Signature did not match. Possible tampering.")
+
+    {:error, reason} ->
+      IO.puts("Failed to verify webhook: \#{reason}")
+  end
+  ```
+  """
+
   @default_tolerance 5
   @required_digest_bytes 32
   @required_keys ~w(event_id event_type occurred_at notification_id data)
 
   @type verify_opt :: {:tolerance, non_neg_integer()} | {:now, integer()}
 
+  @doc """
+  Verifies the `Paddle-Signature` header from an incoming webhook request.
+
+  This ensures that the request originated from Paddle and has not been tampered with in transit.
+
+  ```elixir
+  raw_body = "{\\"data\\":{...}}"
+  signature_header = "ts=1690000000;h1=abcd..."
+  secret_key = "pdl_wh_..."
+
+  case Paddle.Webhooks.verify_signature(raw_body, signature_header, secret_key) do
+    {:ok, :verified} ->
+      # Signature is valid
+      :ok
+
+    {:error, :signature_mismatch} ->
+      # The signatures did not match
+      :error
+
+    {:error, :stale_timestamp} ->
+      # The webhook is too old (older than tolerance)
+      :error
+
+    {:error, :invalid_signature_header} ->
+      # The header was malformed
+      :error
+  end
+  ```
+
+  ## Errors
+  - `{:error, :invalid_signature_header}`: The `Paddle-Signature` header is malformed.
+  - `{:error, :invalid_timestamp}`: The timestamp in the header could not be parsed.
+  - `{:error, :invalid_tolerance}`: The provided tolerance option was invalid.
+  - `{:error, :empty_signature}`: The header contained an empty signature value.
+  - `{:error, :missing_timestamp}`: The header did not contain a timestamp (`ts=`).
+  - `{:error, :missing_signature}`: The header did not contain a signature (`h1=`).
+  - `{:error, :stale_timestamp}`: The timestamp is older than `now - tolerance`.
+  - `{:error, :future_timestamp}`: The timestamp is further in the future than `now + tolerance`.
+  - `{:error, :signature_mismatch}`: The computed signature did not match any of the provided signatures.
+
+  ## Related Paddle docs
+  https://developer.paddle.com/webhooks/overview
+  """
   @spec verify_signature(String.t(), String.t(), String.t(), [verify_opt()]) ::
           {:ok, :verified}
           | {:error,
@@ -43,6 +121,36 @@ defmodule Paddle.Webhooks do
     {:error, :invalid_signature_header}
   end
 
+  @doc """
+  Parses the raw webhook body into a `Paddle.Event` struct.
+
+  It is highly recommended to call `verify_signature/4` before parsing the event.
+
+  ```elixir
+  raw_body = "{\\"event_id\\":\\"evt_123\\",\\"event_type\\":\\"customer.created\\",...}"
+
+  case Paddle.Webhooks.parse_event(raw_body) do
+    {:ok, %Paddle.Event{} = event} ->
+      # Event parsed successfully
+      event
+
+    {:error, :invalid_json} ->
+      # The body is not valid JSON
+      :error
+
+    {:error, :invalid_event_payload} ->
+      # The JSON is missing required top-level event fields
+      :error
+  end
+  ```
+
+  ## Errors
+  - `{:error, :invalid_json}`: The raw body could not be decoded by Jason.
+  - `{:error, :invalid_event_payload}`: The JSON payload was decoded but did not contain the required webhook wrapper keys (`event_id`, `event_type`, `occurred_at`, `notification_id`, `data`).
+
+  ## Related Paddle docs
+  https://developer.paddle.com/webhooks/overview
+  """
   @spec parse_event(String.t()) ::
           {:ok, Paddle.Event.t()}
           | {:error, :invalid_json | :invalid_event_payload}
