@@ -3,6 +3,20 @@ defmodule Paddle.Webhooks do
   @required_digest_bytes 32
   @required_keys ~w(event_id event_type occurred_at notification_id data)
 
+  @type verify_opt :: {:tolerance, non_neg_integer()} | {:now, integer()}
+
+  @spec verify_signature(String.t(), String.t(), String.t(), [verify_opt()]) ::
+          {:ok, :verified}
+          | {:error,
+             :invalid_signature_header
+             | :invalid_timestamp
+             | :invalid_tolerance
+             | :empty_signature
+             | :missing_timestamp
+             | :missing_signature
+             | :stale_timestamp
+             | :future_timestamp
+             | :signature_mismatch}
   def verify_signature(raw_body, signature_header, secret_key, opts \\ [])
 
   def verify_signature(raw_body, signature_header, secret_key, opts)
@@ -29,6 +43,9 @@ defmodule Paddle.Webhooks do
     {:error, :invalid_signature_header}
   end
 
+  @spec parse_event(String.t()) ::
+          {:ok, Paddle.Event.t()}
+          | {:error, :invalid_json | :invalid_event_payload}
   def parse_event(raw_body) when is_binary(raw_body) do
     case Jason.decode(raw_body) do
       {:ok, %{"data" => data} = payload} when is_map(data) ->

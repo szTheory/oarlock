@@ -7,10 +7,22 @@ defmodule Paddle.Subscriptions do
   alias Paddle.Subscription.ManagementUrls
   alias Paddle.Subscription.ScheduledChange
 
+  @type subscription_id :: String.t()
+  @type pause_opt ::
+          {:resume_at, DateTime.t() | String.t()}
+          | {:on_resume, :start_new_billing_period | :continue_existing_billing_period | String.t()}
+          | {:retry, boolean()}
+  @type resume_opt ::
+          {:effective_from, :immediately | DateTime.t() | String.t()}
+          | {:on_resume, :start_new_billing_period | :continue_existing_billing_period | String.t()}
+          | {:retry, boolean()}
+
   @list_allowlist ~w(id customer_id address_id price_id status
                      scheduled_change_action collection_mode
                      next_billed_at order_by after per_page)
 
+  @spec get(Paddle.Client.t(), subscription_id()) ::
+          {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def get(%Client{} = client, subscription_id) do
     with :ok <- validate_subscription_id(subscription_id),
          {:ok, %{"data" => data}} when is_map(data) <-
@@ -19,6 +31,8 @@ defmodule Paddle.Subscriptions do
     end
   end
 
+  @spec list(Paddle.Client.t(), map() | keyword()) ::
+          {:ok, Paddle.Page.t()} | {:error, Paddle.Error.t() | :invalid_params}
   def list(%Client{} = client, params \\ []) do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
@@ -28,6 +42,7 @@ defmodule Paddle.Subscriptions do
     end
   end
 
+  @spec stream(Paddle.Client.t(), map() | keyword()) :: Enumerable.t()
   def stream(%Client{} = client, params \\ []) do
     Pagination.stream(
       fn -> list(client, params) end,
@@ -35,6 +50,8 @@ defmodule Paddle.Subscriptions do
     )
   end
 
+  @spec all(Paddle.Client.t(), map() | keyword()) ::
+          {:ok, [Paddle.Subscription.t()]} | {:error, Paddle.Error.t() | :invalid_params}
   def all(%Client{} = client, params \\ []) do
     Pagination.all(
       fn -> list(client, params) end,
@@ -42,22 +59,47 @@ defmodule Paddle.Subscriptions do
     )
   end
 
+  @spec cancel(Paddle.Client.t(), subscription_id()) ::
+          {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def cancel(%Client{} = client, subscription_id) do
     do_cancel(client, subscription_id, "next_billing_period")
   end
 
+  @spec cancel_immediately(Paddle.Client.t(), subscription_id()) ::
+          {:ok, Paddle.Subscription.t()} | {:error, Paddle.Error.t() | :invalid_subscription_id}
   def cancel_immediately(%Client{} = client, subscription_id) do
     do_cancel(client, subscription_id, "immediately")
   end
 
+  @spec pause(Paddle.Client.t(), subscription_id(), [pause_opt()]) ::
+          {:ok, Paddle.Subscription.t()}
+          | {:error,
+             Paddle.Error.t()
+             | :invalid_subscription_id
+             | :invalid_resume_at
+             | :invalid_on_resume}
   def pause(%Client{} = client, subscription_id, opts \\ []) do
     do_pause(client, subscription_id, "next_billing_period", opts)
   end
 
+  @spec pause_immediately(Paddle.Client.t(), subscription_id(), [pause_opt()]) ::
+          {:ok, Paddle.Subscription.t()}
+          | {:error,
+             Paddle.Error.t()
+             | :invalid_subscription_id
+             | :invalid_resume_at
+             | :invalid_on_resume}
   def pause_immediately(%Client{} = client, subscription_id, opts \\ []) do
     do_pause(client, subscription_id, "immediately", opts)
   end
 
+  @spec resume(Paddle.Client.t(), subscription_id(), [resume_opt()]) ::
+          {:ok, Paddle.Subscription.t()}
+          | {:error,
+             Paddle.Error.t()
+             | :invalid_subscription_id
+             | :invalid_effective_from
+             | :invalid_on_resume}
   def resume(%Client{} = client, subscription_id, opts \\ []) do
     do_resume(client, subscription_id, opts)
   end
