@@ -60,9 +60,11 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] **SUB-04**: Transaction-driven recurring start via `Paddle.Transactions.create/3`, checkout/manual collection, webhook or canonical transaction correlation, and `Paddle.Subscriptions.get/2` hydration; no public `Paddle.Subscriptions.create/2`. *(Validated in Phase 10)*
 - [x] **SUB-05**: `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with typed hydration, strict lifecycle opts, explicit `idempotency_key:` rejection, and retry-only request opts. *(Validated in Phase 10)*
 - [x] **SUB-06**: `Paddle.Subscriptions.resume/3` with validated `effective_from:` / `on_resume:`, explicit `idempotency_key:` rejection, retry-only request opts, and provider-error passthrough. *(Validated in Phase 10)*
+- [x] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` mechanically enforced by `mix typecheck.specs`. *(Validated in Phase 11)*
+- [x] **TYPES-02**: Wire `:dialyxir` with a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`) and CI gate. *(Validated in Phase 11)*
 
 ### Active
-Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 11 Type-Safety Pass.
+Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 12 Documentation pass.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
