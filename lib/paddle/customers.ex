@@ -36,6 +36,8 @@ defmodule Paddle.Customers do
   @doc """
   Creates a new customer.
 
+  ## Examples
+
   ```elixir
   attrs = %{
     email: "jane.doe@example.com",
@@ -82,6 +84,8 @@ defmodule Paddle.Customers do
   @doc """
   Retrieves a specific customer by ID.
 
+  ## Examples
+
   ```elixir
   case Paddle.Customers.get(client, "ctm_12345") do
     {:ok, %Paddle.Customer{} = customer} ->
@@ -117,6 +121,8 @@ defmodule Paddle.Customers do
 
   @doc """
   Updates an existing customer.
+
+  ## Examples
 
   ```elixir
   attrs = %{

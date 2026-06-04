@@ -100,6 +100,8 @@ defmodule Paddle.Customers.Addresses do
   @doc """
   Retrieves a specific address for a customer by ID.
 
+  ## Examples
+
   ```elixir
   case Paddle.Customers.Addresses.get(client, "ctm_12345", "add_12345") do
     {:ok, %Paddle.Address{} = address} ->
@@ -142,6 +144,8 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Lists addresses for a customer, returning a paginated `Paddle.Page`.
+
+  ## Examples
 
   ```elixir
   case Paddle.Customers.Addresses.list(client, "ctm_12345", status: "active") do
@@ -222,6 +226,8 @@ defmodule Paddle.Customers.Addresses do
 
   Unlike `stream/3`, this function blocks and fetches all data into a single list.
 
+  ## Examples
+
   ```elixir
   case Paddle.Customers.Addresses.all(client, "ctm_12345", status: "active") do
     {:ok, addresses} when is_list(addresses) ->
@@ -261,6 +267,8 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Updates an existing address for a customer.
+
+  ## Examples
 
   ```elixir
   attrs = %{

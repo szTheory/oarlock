@@ -126,6 +126,8 @@ defmodule Paddle.Webhooks do
 
   It is highly recommended to call `verify_signature/4` before parsing the event.
 
+  ## Examples
+
   ```elixir
   raw_body = "{\\"event_id\\":\\"evt_123\\",\\"event_type\\":\\"customer.created\\",...}"
 
