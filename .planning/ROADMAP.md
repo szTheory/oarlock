@@ -157,7 +157,7 @@ Plans:
 - [x] 12-05-PLAN.md — Billing Controllers Docs (DOCS-01, DOCS-02)
 
 **Wave 2**
-- [ ] 12-06-PLAN.md — Sealed Module Verification (DOCS-02)
+- [x] 12-06-PLAN.md — Sealed Module Verification (DOCS-02)
 
 **Current note:** README and `guides/getting-started.md` drafts were started during the release-truth reset before Phase 12. Phase 12 should treat them as draft inputs to audit/finalize, not as untouched work.
 
@@ -190,7 +190,7 @@ Plans:
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 5/6 | In Progress|  |
+| 12. Documentation Pass | v1.2 | 6/6 | Complete   | 2026-06-04 |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
 ---

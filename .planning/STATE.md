@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Production Surface
 status: completed
-last_updated: "2026-06-04T18:36:38.197Z"
+last_updated: "2026-06-04T18:38:37.974Z"
 last_activity: 2026-06-04 -- Phase 12 Plan 4 complete
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
-  completed_plans: 18
-  percent: 80
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State
@@ -19,9 +19,9 @@ progress:
 
 Milestone: v1.2 Production Surface
 Phase: 12
-Plan: 4/6
+Plan: 6/6
 Status: Completed
-Last activity: 2026-06-04 -- Phase 12 Plan 4 complete
+Last activity: 2026-06-04 -- Phase 12 Plan 6 complete
 
 ## Project Reference
 
@@ -92,15 +92,17 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 | Phase 12-documentation-pass P02 | 5min | 2 tasks | 6 files |
 | Phase 12-documentation-pass P03 | 2min | 2 tasks | 5 files |
 | Phase 12-documentation-pass P04 | 6min | 2 tasks | 3 files |
+| Phase 12-documentation-pass P06 | 1min | 3 tasks | 1 files |
 
 ## Last session
 
-- Timestamp: 2026-06-04T18:40:00Z
-- Stopped at: Completed Phase 12 Plan 4
+- Timestamp: 2026-06-04T18:38:22Z
+- Stopped at: Completed Phase 12 Plan 6
 - Resume file: None
 
 ## Decisions
 
+- [Phase 12-documentation-pass]: Explicitly enforce @moduledoc false on internal and configuration modules to prevent their leakage into public hexdocs.
 - [Phase 12-documentation-pass]: Documented core controllers (Customers, Addresses, Webhooks) with explicit module pipelines, error structures, and domain documentation links.
 
 - [Phase 12-documentation-pass]: Documented Subscription and Transaction domain structs with concise field descriptions and external links to Paddle Billing domain rules.
