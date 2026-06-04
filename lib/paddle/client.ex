@@ -13,11 +13,11 @@ defmodule Paddle.Client do
   case Paddle.Customers.create(client, email: "ada@example.com", name: "Ada Lovelace") do
     {:ok, %Paddle.Customer{} = customer} ->
       # Store customer.id
-      IO.puts("Created: #{customer.id}")
+      IO.puts("Created: \#{customer.id}")
 
     {:error, %Paddle.Error{} = error} ->
       # Handle API or network errors
-      IO.puts("Failed: #{error.message}")
+      IO.puts("Failed: \#{error.message}")
   end
   ```
   """
