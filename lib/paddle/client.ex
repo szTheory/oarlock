@@ -8,6 +8,7 @@ defmodule Paddle.Client do
   @enforce_keys [:api_key, :environment]
   defstruct [:api_key, :environment, :req]
 
+  @spec new!(keyword()) :: t()
   def new!(opts \\ []) do
     api_key = Keyword.fetch!(opts, :api_key)
     environment = Keyword.get(opts, :environment, :sandbox)

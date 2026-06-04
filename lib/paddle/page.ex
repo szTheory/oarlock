@@ -6,6 +6,7 @@ defmodule Paddle.Page do
 
   defstruct [:data, :meta]
 
+  @spec next_cursor(t() | term()) :: String.t() | nil
   def next_cursor(%__MODULE__{meta: %{"pagination" => %{"next" => next}}}) when is_binary(next) do
     next
   end

@@ -22,8 +22,10 @@ defmodule Paddle.Error do
                retryable?: false
 
   @impl Exception
-  def message(%{message: message}), do: message
+  @spec message(t()) :: String.t()
+  def message(%{message: message}), do: message || ""
 
+  @spec from_response(Req.Response.t()) :: t()
   def from_response(%Req.Response{status: status, body: body} = resp) do
     body = if is_map(body), do: body, else: %{}
     error_body = Map.get(body, "error", %{})
@@ -39,6 +41,7 @@ defmodule Paddle.Error do
     }
   end
 
+  @spec from_transport(Exception.t()) :: t()
   def from_transport(%Req.TransportError{reason: reason} = exception) do
     %__MODULE__{
       type: transport_type(reason),
