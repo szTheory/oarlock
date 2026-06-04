@@ -15,7 +15,7 @@
 - [x] Phase 9: Pagination Ergonomics (1/1 plans) — PAGE-01 (completed 2026-05-30)
 - [x] Phase 10: Subscriptions Surface Completion (3/3 plans) — SUB-04, SUB-05, SUB-06 (completed 2026-05-30)
 - [x] Phase 11: Type-Safety Pass (0/5 plans) — TYPES-01, TYPES-02 (completed 2026-06-04)
-- [ ] Phase 12: Documentation Pass (0/7 plans) — DOCS-01..05
+- [x] Phase 12: Documentation Pass (0/7 plans) — DOCS-01..05 (completed 2026-06-04)
 - [ ] Phase 13: Process Guard (0/? plans) — PROC-01, PROC-02
 
 </details>
@@ -160,7 +160,7 @@ Plans:
 - [x] 12-06-PLAN.md — Sealed Module Verification (DOCS-02)
 
 **Wave 3 (Gap Closure)**
-- [ ] 12-07-PLAN.md — Add `## Examples` to controller docs & hide internal functions (DOCS-01)
+- [x] 12-07-PLAN.md — Add `## Examples` to controller docs & hide internal functions (DOCS-01)
 
 **Current note:** README and `guides/getting-started.md` drafts were started during the release-truth reset before Phase 12. Phase 12 should treat them as draft inputs to audit/finalize, not as untouched work.
 
@@ -193,7 +193,7 @@ Plans:
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 6/7 | In Progress | — |
+| 12. Documentation Pass | v1.2 | 7/7 | Complete    | 2026-06-04 |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 
 ---
