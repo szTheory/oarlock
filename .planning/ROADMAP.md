@@ -128,11 +128,11 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 11-04-PLAN.md — Wire Dialyxir, the empty ignore baseline, and the first clean local Dialyzer pass.
+- [x] 11-04-PLAN.md — Wire Dialyxir, the empty ignore baseline, and the first clean local Dialyzer pass.
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 11-05-PLAN.md — Add the dedicated CI Dialyzer/spec gate and an explicit broken-spec negative-path validation.
+- [x] 11-05-PLAN.md — Add the dedicated CI Dialyzer/spec gate and an explicit broken-spec negative-path validation.
 
 ### Phase 12: Documentation Pass
 
@@ -179,7 +179,7 @@ Plans:
 | 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
 | 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 3/5 | In Progress|  |
+| 11. Type-Safety Pass | v1.2 | 5/5 | Complete   | 2026-06-04 |
 | 12. Documentation Pass | v1.2 | 0/? | Pending | — |
 | 13. Process Guard | v1.2 | 0/? | Pending | — |
 

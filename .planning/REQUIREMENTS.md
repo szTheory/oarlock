@@ -29,7 +29,7 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 ### Type-safety pass
 
 - [x] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` (≥33 functions today, plus the Phase 10 pause/resume additions). *(Phase 11.)*
-- [ ] **TYPES-02**: Wire `:dialyxir` in `mix.exs` with a PLT cache configuration; establish a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`); add `mix dialyzer` as a CI gate in `.github/workflows/ci.yml`. *(Phase 11.)*
+- [x] **TYPES-02**: Wire `:dialyxir` in `mix.exs` with a PLT cache configuration; establish a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`); add `mix dialyzer` as a CI gate in `.github/workflows/ci.yml`. *(Phase 11.)*
 
 ### Documentation pass
 
@@ -84,7 +84,7 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | SUB-05      | 10    | Complete | `Paddle.Subscriptions.pause/2`. |
 | SUB-06      | 10    | Complete | `Paddle.Subscriptions.resume/2`. |
 | TYPES-01    | 11    | Complete | `@spec` on every public function across `lib/paddle/`. |
-| TYPES-02    | 11    | Pending | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
+| TYPES-02    | 11    | Complete | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
 | DOCS-01     | 12    | Pending | `@doc` + example on every public function. |
 | DOCS-02     | 12    | Pending | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
 | DOCS-03     | 12    | Pending | README rewrite draft exists from release-truth reset; Phase 12 must audit/finalize and keep docs warning-free. |
