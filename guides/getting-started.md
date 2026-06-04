@@ -60,12 +60,19 @@ client =
 Then create the customer you want Paddle to know about:
 
 ```elixir
-{:ok, customer} =
-  Paddle.Customers.create(client,
-    email: "ada@example.com",
-    name: "Ada Lovelace",
-    locale: "en"
-  )
+case Paddle.Customers.create(client,
+       email: "ada@example.com",
+       name: "Ada Lovelace",
+       locale: "en"
+     ) do
+  {:ok, %Paddle.Customer{} = customer} ->
+    # Proceed with the customer
+    customer
+
+  {:error, %Paddle.Error{} = error} ->
+    # Handle the error
+    raise "Failed to create customer: #{error.message}"
+end
 ```
 
 Then attach the address Paddle needs for billing and tax:
@@ -85,13 +92,20 @@ Then attach the address Paddle needs for billing and tax:
 Now create the transaction:
 
 ```elixir
-{:ok, transaction} =
-  Paddle.Transactions.create(client,
-    customer_id: customer.id,
-    address_id: address.id,
-    items: [%{price_id: "pri_monthly_123", quantity: 1}],
-    idempotency_key: "accrue:checkout:user_123:attempt_1"
-  )
+case Paddle.Transactions.create(client,
+       customer_id: customer.id,
+       address_id: address.id,
+       items: [%{price_id: "pri_monthly_123", quantity: 1}],
+       idempotency_key: "accrue:checkout:user_123:attempt_1"
+     ) do
+  {:ok, %Paddle.Transaction{} = transaction} ->
+    # Hand off to the browser
+    transaction
+
+  {:error, %Paddle.Error{} = error} ->
+    # Handle the error
+    raise "Failed to create transaction: #{error.message}"
+end
 ```
 
 If Paddle returns checkout data, you now have the next move:
