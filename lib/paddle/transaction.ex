@@ -1,4 +1,15 @@
 defmodule Paddle.Transaction do
+  @moduledoc """
+  Represents a Paddle Transaction.
+  
+  A transaction entity represents an exchange of money for goods or services.
+  It is generated for one-time purchases and as part of a recurring subscription lifecycle.
+  
+  ## Related Paddle docs
+  - [Transaction concept](https://developer.paddle.com/concepts/transactions)
+  - [Transaction API reference](https://developer.paddle.com/api-reference/transactions/overview)
+  """
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
           status: String.t() | nil,
