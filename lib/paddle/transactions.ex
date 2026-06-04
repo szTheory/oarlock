@@ -1,4 +1,32 @@
 defmodule Paddle.Transactions do
+  @moduledoc """
+  Provides operations for managing Paddle Transactions.
+
+  ## Example Pipeline
+
+  ```elixir
+  client = Paddle.Client.new!(api_key: "sk_test_123", environment: :sandbox)
+
+  case Paddle.Transactions.create(client, %{
+    "customer_id" => "ctm_123",
+    "address_id" => "add_123",
+    "items" => [%{"price_id" => "pri_123", "quantity" => 1}]
+  }) do
+    {:ok, %Paddle.Transaction{} = transaction} ->
+      # Handle successful transaction creation
+      IO.puts("Created transaction: \#{transaction.id}")
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider or network errors
+      IO.puts("Failed: \#{error.message}")
+
+    {:error, local_error} ->
+      # Handle validation errors (e.g. :invalid_customer_id)
+      IO.puts("Validation failed: \#{inspect(local_error)}")
+  end
+  ```
+  """
+
   alias Paddle.Client
   alias Paddle.Http
   alias Paddle.Internal.Attrs
@@ -8,6 +36,27 @@ defmodule Paddle.Transactions do
   @type transaction_id :: String.t()
   @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
 
+  @doc """
+  Retrieves a transaction by ID.
+
+  ## Examples
+
+  ```elixir
+  case Paddle.Transactions.get(client, "txn_123") do
+    {:ok, %Paddle.Transaction{} = transaction} ->
+      transaction
+
+    {:error, :invalid_transaction_id} ->
+      # Handle local validation error
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Related Paddle docs
+  - [Get a transaction](https://developer.paddle.com/api-reference/transactions/get-transaction)
+  """
   @spec get(Paddle.Client.t(), transaction_id()) ::
           {:ok, Paddle.Transaction.t()} | {:error, Paddle.Error.t() | :invalid_transaction_id}
   def get(%Client{} = client, transaction_id) do
@@ -18,6 +67,46 @@ defmodule Paddle.Transactions do
     end
   end
 
+  @doc """
+  Creates a new transaction.
+
+  Local validation is performed on the provided attributes before sending the request to the provider.
+
+  ## Validation Errors
+  - `:invalid_attrs` - The attributes provided are not a valid map or keyword list.
+  - `:invalid_customer_id` - The `customer_id` is empty or not a string.
+  - `:invalid_address_id` - The `address_id` is empty or not a string.
+  - `:invalid_items` - The `items` array is missing, empty, or contains invalid item configurations.
+  - `:invalid_custom_data` - The `custom_data` is not a valid map.
+  - `:invalid_checkout` - The `checkout` parameter is not valid.
+
+  ## Examples
+
+  ```elixir
+  attrs = %{
+    "customer_id" => "ctm_123",
+    "address_id" => "add_123",
+    "items" => [%{"price_id" => "pri_123", "quantity" => 1}]
+  }
+
+  case Paddle.Transactions.create(client, attrs) do
+    {:ok, %Paddle.Transaction{} = transaction} ->
+      transaction
+
+    {:error, :invalid_items} ->
+      # Handle local validation error for items
+
+    {:error, %Paddle.Error{} = error} ->
+      # Handle provider/network error
+  end
+  ```
+
+  ## Provider behavior
+  When a transaction is created, its `collection_mode` will be automatically set to `automatic` by the SDK as required by the typical checkout flow.
+
+  ## Related Paddle docs
+  - [Create a transaction](https://developer.paddle.com/api-reference/transactions/create-transaction)
+  """
   @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
           {:ok, Paddle.Transaction.t()}
           | {:error,
