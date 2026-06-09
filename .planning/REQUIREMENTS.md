@@ -45,17 +45,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PORTAL-01 | Phase [N] | Pending |
-| PORTAL-02 | Phase [N] | Pending |
-| ADJ-01 | Phase [N] | Pending |
-| ADJ-02 | Phase [N] | Pending |
-| ADJ-03 | Phase [N] | Pending |
-| ADJ-04 | Phase [N] | Pending |
+| PORTAL-01 | Phase 14 | Pending |
+| PORTAL-02 | Phase 14 | Pending |
+| ADJ-01 | Phase 15 | Pending |
+| ADJ-02 | Phase 15 | Pending |
+| ADJ-03 | Phase 15 | Pending |
+| ADJ-04 | Phase 15 | Pending |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0
-- Unmapped: 6 ⚠️
+- Mapped to phases: 6
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-09*

@@ -1,64 +1,46 @@
 # Roadmap
 
-## Milestones
-
-- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09) — see [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29) — see [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
-- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; foundational SDK surface)
-
 ## Phases
 
-<details>
-<summary>✅ v1.1 Accrue Seam Hardening (Phases 6-7) — SHIPPED 2026-04-29</summary>
+- [ ] **Phase 14: Customer Portal Sessions** - Generate on-demand, authenticated portal session URLs for customers
+- [ ] **Phase 15: Adjustments** - Handle refunds, credits, and their status tracking
+- [ ] **Phase 16: Seam Validation & Documentation** - Ensure Accrue consumer contract is updated and validated with new entities
 
-- [x] Phase 6: Transactions Retrieval (1/1 plans) — TXN-03
-- [x] Phase 7: Accrue Seam Lock (2/2 plans) — SEAM-01, SEAM-02
+## Phase Details
 
-</details>
+### Phase 14: Customer Portal Sessions
+**Goal**: Users can generate short-lived, authenticated portal session URLs for customers
+**Depends on**: Nothing
+**Requirements**: PORTAL-01, PORTAL-02
+**Success Criteria** (what must be TRUE):
+  1. User can successfully request a portal session URL for a given customer ID
+  2. User can optionally restrict the generated portal session to specific subscription IDs
+**Plans**: TBD
 
-<details>
-<summary>✅ v1.0 MVP (Phases 1-5) — pre-archival baseline</summary>
+### Phase 15: Adjustments
+**Goal**: Users can issue full and partial refunds or credits and retrieve their statuses
+**Depends on**: Nothing
+**Requirements**: ADJ-01, ADJ-02, ADJ-03, ADJ-04
+**Success Criteria** (what must be TRUE):
+  1. User can issue a full adjustment (refund or credit) for a transaction
+  2. User can issue a partial adjustment targeting specific transaction line items
+  3. User can fetch a specific adjustment by ID to check its approval status
+  4. User can list adjustments using standard auto-pagination
+**Plans**: TBD
 
-- [x] Phase 1: Core Transport & Client Setup (3/3 plans) — CORE-01..05
-- [x] Phase 2: Webhook Verification (2/2 plans) — WEB-01..03
-- [x] Phase 3: Core Entities (Customers & Addresses) (3/3 plans) — CUST-01, ADDR-01
-- [x] Phase 4: Transactions & Hosted Checkout (2/2 plans) — TXN-01, TXN-02
-- [x] Phase 5: Subscriptions Management (3/3 plans) — SUB-01..03
-
-</details>
+### Phase 16: Seam Validation & Documentation
+**Goal**: The newly added entities are explicitly documented and integrated into the Accrue seam contract
+**Depends on**: Phase 14, Phase 15
+**Requirements**: None (Cross-cutting validation)
+**Success Criteria** (what must be TRUE):
+  1. The new structs (`Paddle.PortalSession`, `Paddle.Adjustment`) are documented in `guides/accrue-seam.md` with explicit field tiers
+  2. End-to-end Accrue seam test (`seam_test.exs`) successfully incorporates adjustments and portal session flows
+**Plans**: TBD
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status   | Completed  |
-|-------|-----------|----------------|----------|------------|
-| 1. Core Transport & Client Setup | v1.0 | 3/3 | Complete | pre-archival |
-| 2. Webhook Verification | v1.0 | 2/2 | Complete | pre-archival |
-| 3. Core Entities (Customers & Addresses) | v1.0 | 3/3 | Complete | pre-archival |
-| 4. Transactions & Hosted Checkout | v1.0 | 2/2 | Complete | pre-archival |
-| 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
-| 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
-| 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
-| 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
-| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 7/7 | Complete    | 2026-06-04 |
-| 13. Process Guard | v1.2 | 1/1 | Complete   | 2026-06-09 |
-
----
-
-## Future Work — Accrue Integration
-
-Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for any prioritized entries that survive milestone close.
-
-Per project memory, Accrue-side asks should be triaged into `BACKLOG.md` rather than auto-inserted as phases here.
-
-## Post-v1.2 Direction
-
-Once v1.2 is clean, green, and released, prefer this order:
-
-1. Support operations: refunds/credits via `Paddle.Adjustments`.
-2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
-3. Catalog read surface: products/prices read/list before any broad CRUD.
-
-Do not mirror Paddle endpoints for their own sake. Promote only work tied to a real Phoenix SaaS adopter job.
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 14. Customer Portal Sessions | 0/0 | Not started | - |
+| 15. Adjustments | 0/0 | Not started | - |
+| 16. Seam Validation & Documentation | 0/0 | Not started | - |
