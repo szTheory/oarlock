@@ -44,7 +44,9 @@ The supported consumer entry modules are exactly:
 
 - `Paddle.Customers`
 - `Paddle.Customers.Addresses`
+- `Paddle.Customers.PortalSessions`
 - `Paddle.Transactions`
+- `Paddle.Adjustments`
 - `Paddle.Subscriptions`
 - `Paddle.Webhooks`
 
@@ -63,12 +65,20 @@ The supported consumer entry modules are exactly:
 - `all(client, customer_id, params \\ [])` returns `{:ok, [%Paddle.Address{}]}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_params}` without returning partial results. Tier: `locked`.
 - `update(client, customer_id, address_id, attrs)` returns `{:ok, %Paddle.Address{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / `{:error, :invalid_address_id}` / `{:error, :invalid_attrs}`. Tier: `locked`.
 
+### `Paddle.Customers.PortalSessions`
+
+- `create(client, customer_id, attrs \\ %{}, opts \\ [])` returns `{:ok, %Paddle.PortalSession{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_customer_id}` / validation errors. Tier: `locked`.
+
 ### `Paddle.Transactions`
 
 - `get(client, transaction_id)` returns `{:ok, %Paddle.Transaction{}}`, `{:error, %Paddle.Error{}}`, or `{:error, :invalid_transaction_id}`. Tier: `locked`.
 - `create(client, attrs, opts \\ [])` returns `{:ok, %Paddle.Transaction{}}`, `{:error, %Paddle.Error{}}`, or validation error atoms. Tier: `locked`.
 
 Recurring subscriptions start from this transaction seam (checkout or manual collection) and are then reconciled through webhooks plus canonical fetches (`Paddle.Transactions.get/2` -> `Paddle.Subscriptions.get/2`).
+
+### `Paddle.Adjustments`
+
+- `create(client, attrs, opts \\ [])` returns `{:ok, %Paddle.Adjustment{}}`, `{:error, %Paddle.Error{}}`, or validation error atoms. Tier: `locked`.
 
 ### `Paddle.Subscriptions`
 
@@ -190,6 +200,22 @@ The normalized error struct returned in every `{:error, %Paddle.Error{}}` tuple.
 | --- | --- | --- |
 | `:event_id`, `:event_type`, `:occurred_at`, `:notification_id` | `locked` | Typed webhook envelope fields. |
 | `:data` | `opaque` | Event body is forwarded as a map; its shape depends on the event type and is not part of the typed seam. |
+| `:raw_data` | `locked` | Forward-compat escape hatch; contents are `opaque`. |
+
+### `%Paddle.PortalSession{}`
+
+| Field | Tier | Notes |
+| --- | --- | --- |
+| `:id`, `:customer_id`, `:created_at`, `:custom_data` | `locked` | Typed top-level portal session fields. |
+| `:urls` | `opaque` | Forwarded provider data; nested shape is not part of the typed seam. |
+| `:raw_data` | `locked` | Forward-compat escape hatch; contents are `opaque`. |
+
+### `%Paddle.Adjustment{}`
+
+| Field | Tier | Notes |
+| --- | --- | --- |
+| `:id`, `:action`, `:transaction_id`, `:subscription_id`, `:customer_id`, `:reason`, `:credit_applied_to_balance`, `:currency_code`, `:status`, `:created_at`, `:updated_at` | `locked` | Typed top-level adjustment fields. |
+| `:items`, `:totals`, `:payouts` | `opaque` | Forwarded provider data; nested shape is not part of the typed seam. |
 | `:raw_data` | `locked` | Forward-compat escape hatch; contents are `opaque`. |
 
 ## Out of scope for the current 0.x seam
