@@ -45,8 +45,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PORTAL-01 | Phase 14 | Pending |
-| PORTAL-02 | Phase 14 | Pending |
+| PORTAL-01 | Phase 14 | Completed |
+| PORTAL-02 | Phase 14 | Completed |
 | ADJ-01 | Phase 15 | Pending |
 | ADJ-02 | Phase 15 | Pending |
 | ADJ-03 | Phase 15 | Pending |
