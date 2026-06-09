@@ -4,7 +4,7 @@
 
 - [ ] **Phase 14: Customer Portal Sessions** - Generate on-demand, authenticated portal session URLs for customers
 - [x] **Phase 15: Adjustments** - Handle refunds, credits, and their status tracking (completed 2026-06-09)
-- [ ] **Phase 16: Seam Validation & Documentation** - Ensure Accrue consumer contract is updated and validated with new entities
+- [x] **Phase 16: Seam Validation & Documentation** - Ensure Accrue consumer contract is updated and validated with new entities (completed 2026-06-09)
 
 ## Phase Details
 
@@ -37,7 +37,7 @@
   1. The new structs (`Paddle.PortalSession`, `Paddle.Adjustment`) are documented in `guides/accrue-seam.md` with explicit field tiers
   2. End-to-end Accrue seam test (`seam_test.exs`) successfully incorporates adjustments and portal session flows
 **Plans**: 1 plan
-- [ ] 16-01-PLAN.md — Update seam tests and documentation to include Portal Sessions and Adjustments
+- [x] 16-01-PLAN.md — Update seam tests and documentation to include Portal Sessions and Adjustments
 
 ## Progress
 
@@ -45,4 +45,4 @@
 |-------|----------------|--------|-----------|
 | 14. Customer Portal Sessions | 1/1 | Complete | Yes |
 | 15. Adjustments | 1/1 | Complete   | 2026-06-09 |
-| 16. Seam Validation & Documentation | 0/1 | Planned | - |
+| 16. Seam Validation & Documentation | 1/1 | Complete   | 2026-06-09 |
