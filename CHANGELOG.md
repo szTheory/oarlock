@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)** headings like **`[0.1.0]`** for **published Hex releases**. Separately, maintainers track **planning milestones** labeled **v1.0–v1.1** in **`.planning/MILESTONES.md`** — those **v1.x** labels describe shipped *tranches of work*, **not** a second installable version axis on Hex (this repo remains **0.x** on Hex until a real **1.0.0**). When in doubt, treat **`MILESTONES.md`** as canonical for milestone dates and archive paths.
 
+## [0.1.2](https://github.com/szTheory/oarlock/compare/v0.1.1...v0.1.2) (2026-06-09)
+
+
+### Features
+
+* **08-01:** rename Paddle.Error raw data field ([01f3552](https://github.com/szTheory/oarlock/commit/01f355242d13b20bea369c2993872b3bf1304190))
+* **08-02:** normalize transport errors ([c7341ae](https://github.com/szTheory/oarlock/commit/c7341ae78e149d4d6059e487f23bb31e48b5181c))
+* **08-03:** add idempotency key support ([9113570](https://github.com/szTheory/oarlock/commit/91135702d03e2effc1980bf2d1249ee66ab2439e))
+* **08-04:** enable transient retry policy ([11ccffd](https://github.com/szTheory/oarlock/commit/11ccffd5aeab440be7c2dd4f6f0a5f8192a3105b))
+* **09-01:** add resource auto-pagination helpers ([14114af](https://github.com/szTheory/oarlock/commit/14114afc34afeb38bc835538d067262808d748ce))
+* **10-01:** lock recurring-start seam coverage ([d15d11e](https://github.com/szTheory/oarlock/commit/d15d11e0750c9a384004fba0e4e44cd7b0a3e3e2))
+* **10-02:** implement pause and pause_immediately APIs ([f41ea7a](https://github.com/szTheory/oarlock/commit/f41ea7a4baf34bc0450313a0fa650104355e9299))
+* **10-03:** implement resume lifecycle mutation ([a76aa6b](https://github.com/szTheory/oarlock/commit/a76aa6b04ae91579b2d9f843308c040a39227254))
+* **11-01:** add public [@type](https://github.com/type) t contracts to the core seam carriers ([0f23e7d](https://github.com/szTheory/oarlock/commit/0f23e7dea6a965d2a6135650047c916fd75424bb))
+* **11-01:** add shared helper specs and keep the seam behavior unchanged ([8fd70c5](https://github.com/szTheory/oarlock/commit/8fd70c595ea19534fbb6a0d9c9ced3430b10a30e))
+* **11-02:** spec customer, address, and transaction resource functions ([d695965](https://github.com/szTheory/oarlock/commit/d695965b3357171ef3ea2ad055adc52b0082c061))
+* **11-02:** spec subscription and webhook resource functions ([f84831d](https://github.com/szTheory/oarlock/commit/f84831dd7139661ef337ee66f67df89bd18c7141))
+* **11-03:** implement Mix.Tasks.Typecheck.Specs as public-seam gate ([75b2e43](https://github.com/szTheory/oarlock/commit/75b2e43f458867ee2605b8e3e1c0f05a1cc0b412))
+* **13-process-guard-01:** create git hook and installer scripts ([5f67421](https://github.com/szTheory/oarlock/commit/5f67421b718204ac661a78cdb2b06dc800d19700))
+* **13-process-guard-01:** integrate process guard into CI ([fa3419c](https://github.com/szTheory/oarlock/commit/fa3419c242d03b0ffed60bb576d5b4b2ac11f639))
+* **13-process-guard-01:** wire hook distribution into mix.exs ([825ecc5](https://github.com/szTheory/oarlock/commit/825ecc5bcdaeb19958829562a216a21b6e6c3da7))
+
+
+### Bug Fixes
+
+* **11:** revise plans based on checker feedback ([31fc41f](https://github.com/szTheory/oarlock/commit/31fc41f6d4f9bd6821864df4c7d1d439c7717b72))
+* **12-02:** escape string interpolation in Client moduledoc ([21e1c63](https://github.com/szTheory/oarlock/commit/21e1c638c5c1ab8b6c123bfed8de3fa2e29e4adc))
+* **phase-10:** address subscription lifecycle review findings ([c58a77f](https://github.com/szTheory/oarlock/commit/c58a77fc19be82519ea9221650ffc3a2b7a5f49a))
+
 ## [Unreleased]
 
 ### Breaking Changes
