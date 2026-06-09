@@ -4,7 +4,6 @@ defmodule Paddle.AdjustmentsTest do
   alias Paddle.Adjustment
   alias Paddle.Adjustments
   alias Paddle.Client
-  alias Paddle.Error
   alias Paddle.Page
 
   describe "get/2" do
@@ -62,11 +61,14 @@ defmodule Paddle.AdjustmentsTest do
           assert request.url.path == "/adjustments"
 
           body = decode_json_body(request.body)
+
           assert body == %{
                    "action" => "refund",
                    "reason" => "fraud",
                    "transaction_id" => "txn_01",
-                   "items" => [%{"item_id" => "txnitm_01", "type" => "partial", "amount" => "100"}]
+                   "items" => [
+                     %{"item_id" => "txnitm_01", "type" => "partial", "amount" => "100"}
+                   ]
                  }
 
           {request, Req.Response.new(status: 201, body: %{"data" => response_data})}
@@ -106,7 +108,9 @@ defmodule Paddle.AdjustmentsTest do
            )}
         end)
 
-      assert {:ok, %Page{} = page} = Adjustments.list(client, action: "refund", status: "pending", ignored: "drop")
+      assert {:ok, %Page{} = page} =
+               Adjustments.list(client, action: "refund", status: "pending", ignored: "drop")
+
       assert [%Adjustment{id: "adj_01"}] = page.data
     end
   end
