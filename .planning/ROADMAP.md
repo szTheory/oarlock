@@ -36,7 +36,8 @@
 **Success Criteria** (what must be TRUE):
   1. The new structs (`Paddle.PortalSession`, `Paddle.Adjustment`) are documented in `guides/accrue-seam.md` with explicit field tiers
   2. End-to-end Accrue seam test (`seam_test.exs`) successfully incorporates adjustments and portal session flows
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 16-01-PLAN.md — Update seam tests and documentation to include Portal Sessions and Adjustments
 
 ## Progress
 
@@ -44,5 +45,4 @@
 |-------|----------------|--------|-----------|
 | 14. Customer Portal Sessions | 1/1 | Complete | Yes |
 | 15. Adjustments | 1/1 | Complete   | 2026-06-09 |
-| 16. Seam Validation & Documentation | 0/0 | Not started | - |
-
+| 16. Seam Validation & Documentation | 0/1 | Planned | - |
