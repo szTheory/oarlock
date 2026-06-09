@@ -69,10 +69,10 @@ Potential targets include:
 - [x] **TYPES-02**: Wire `:dialyxir` with CI gate. *(Validated in Phase 11)*
 - [x] **DOCS**: Documentation pass with guides. *(Validated in Phase 12)*
 - [x] **PROC-01 / PROC-02**: Pre-commit hook and CI step to prevent SUMMARY drift. *(Validated in Phase 13)*
+- [x] **PORTAL-01**: Customer Portal Sessions (`Paddle.Customers.PortalSessions.create/3`). *(Validated in Phase 14)*
+- [x] **ADJ-01**: Adjustments (`Paddle.Adjustments` for refunds and credits). *(Validated in Phase 15)*
 
 ### Active
-- [ ] **PORTAL-01**: Customer Portal Sessions (`Paddle.Customers.PortalSessions.create/3`)
-- [ ] **ADJ-01**: Adjustments (`Paddle.Adjustments` for refunds and credits)
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
