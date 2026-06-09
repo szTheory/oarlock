@@ -41,8 +41,8 @@ Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
 
 ### Process guard
 
-- [ ] **PROC-01**: Add a pre-commit hook (or `mix gsd.precommit` task) that fails the commit if any in-progress phase SUMMARY claims files are committed but `git status --porcelain` shows them dirty/untracked. Closes the v1.1 audit-trail recurrence vector documented in `MILESTONES.md:27-30`. *(Phase 13.)*
-- [ ] **PROC-02**: Add the same SUMMARY/git-state drift check as a CI step in `.github/workflows/ci.yml`, so the guard works even when contributors skip local hooks. *(Phase 13.)*
+- [x] **PROC-01**: Add a pre-commit hook (or `mix gsd.precommit` task) that fails the commit if any in-progress phase SUMMARY claims files are committed but `git status --porcelain` shows them dirty/untracked. Closes the v1.1 audit-trail recurrence vector documented in `MILESTONES.md:27-30`. *(Phase 13.)*
+- [x] **PROC-02**: Add the same SUMMARY/git-state drift check as a CI step in `.github/workflows/ci.yml`, so the guard works even when contributors skip local hooks. *(Phase 13.)*
 
 ---
 
@@ -90,8 +90,8 @@ Coverage: 14 / 14 v1.2 requirements mapped (100%).
 | DOCS-03     | 12    | Complete | README rewrite draft exists from release-truth reset; Phase 12 must audit/finalize and keep docs warning-free. |
 | DOCS-04     | 12    | Complete | `guides/getting-started.md` draft is in docs extras; Phase 12 must audit/finalize. |
 | DOCS-05     | 12    | Complete | `guides/telemetry.md` published into `:docs` extras. |
-| PROC-01     | 13    | Pending | Pre-commit hook for SUMMARY/git-state drift. |
-| PROC-02     | 13    | Pending | Same drift check as CI step. |
+| PROC-01     | 13    | Complete | Pre-commit hook for SUMMARY/git-state drift. |
+| PROC-02     | 13    | Complete | Same drift check as CI step. |
 
 ---
 

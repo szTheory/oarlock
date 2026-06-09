@@ -194,7 +194,7 @@ Plans:
 | 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
 | 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
 | 12. Documentation Pass | v1.2 | 7/7 | Complete    | 2026-06-04 |
-| 13. Process Guard | v1.2 | 0/? | Pending | — |
+| 13. Process Guard | v1.2 | 1/1 | Complete   | 2026-06-09 |
 
 ---
 
