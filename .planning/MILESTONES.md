@@ -4,6 +4,37 @@ Chronological record of shipped milestones. Newest first.
 
 ---
 
+## v1.3 Support & Self-Serve Surface — 2026-06-09
+
+**Status:** ✅ Shipped
+**Phases:** 14-16 (3 plans, 6 tasks)
+**Test suite at tag:** Passes locally (see CI for total tests count)
+
+### Delivered
+
+1. **Customer Portal Sessions** - `Paddle.Customers.PortalSessions.create/3`
+2. **Adjustments** - `Paddle.Adjustments` for full and partial refunds and credits.
+3. **Seam Validation & Documentation** - Expanded `guides/accrue-seam.md` with explicit field tiers for new entities. End-to-end Accrue seam test incorporates adjustments and portal session flows.
+
+### Key Decisions
+
+- Avoided deeply validating `subscription_ids` for portal sessions, deferring to the API.
+- Implemented custom `Inspect` protocols to redact sensitive temporary URLs.
+- Instantiated distinct one-shot clients for test isolation.
+- Used custom `Req` mock instead of `Tesla.Mock` for tests to match established conventions.
+
+### Known Gaps / Audit Trail
+
+- **No formal milestone audit (`v1.3-MILESTONE-AUDIT.md`) was produced before close.** Proceeded with archival accepting gaps as tech debt.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v1.3-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.3-REQUIREMENTS.md`
+- Tag: `v1.3`
+
+---
+
 ## v1.1 Accrue Seam Hardening — 2026-04-29
 
 **Status:** ✅ Shipped
