@@ -10,6 +10,7 @@ defmodule Paddle.MixProject do
       version: @version,
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps(),
       name: "oarlock",
       description:
@@ -42,6 +43,12 @@ defmodule Paddle.MixProject do
       {:telemetry, "~> 1.4"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4.7", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      setup: ["deps.get", "cmd ./bin/install_hooks.sh"]
     ]
   end
 
