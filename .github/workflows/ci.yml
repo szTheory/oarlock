@@ -60,6 +60,9 @@ jobs:
           MIX_ENV: test
         run: mix test
 
+      - name: Check for SUMMARY/git-state drift
+        run: ./bin/check_summary_drift.sh
+
   dialyzer:
     name: static analysis
     runs-on: ubuntu-latest
