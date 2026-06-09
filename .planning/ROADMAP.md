@@ -26,7 +26,8 @@
   2. User can issue a partial adjustment targeting specific transaction line items
   3. User can fetch a specific adjustment by ID to check its approval status
   4. User can list adjustments using standard auto-pagination
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 15-01-PLAN.md — Implement Adjustments for Paddle API v1
 
 ### Phase 16: Seam Validation & Documentation
 **Goal**: The newly added entities are explicitly documented and integrated into the Accrue seam contract
@@ -42,6 +43,6 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 14. Customer Portal Sessions | 1/1 | Complete | Yes |
-| 15. Adjustments | 0/0 | Not started | - |
+| 15. Adjustments | 0/1 | Planned | - |
 | 16. Seam Validation & Documentation | 0/0 | Not started | - |
 
