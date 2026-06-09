@@ -14,10 +14,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Adjustments
 
-- [ ] **ADJ-01**: User can create a full refund or credit adjustment for a completed/billed transaction (`Paddle.Adjustments.create/2`).
-- [ ] **ADJ-02**: User can create a partial refund or credit adjustment by specifying line items and amounts.
-- [ ] **ADJ-03**: User can retrieve an existing adjustment by its ID (`Paddle.Adjustments.get/2`).
-- [ ] **ADJ-04**: User can list adjustments with standard pagination (`Paddle.Adjustments.stream`, `Paddle.Adjustments.all`).
+- [x] **ADJ-01**: User can create a full refund or credit adjustment for a completed/billed transaction (`Paddle.Adjustments.create/2`).
+- [x] **ADJ-02**: User can create a partial refund or credit adjustment by specifying line items and amounts.
+- [x] **ADJ-03**: User can retrieve an existing adjustment by its ID (`Paddle.Adjustments.get/2`).
+- [x] **ADJ-04**: User can list adjustments with standard pagination (`Paddle.Adjustments.stream`, `Paddle.Adjustments.all`).
 
 ## v2 Requirements
 
@@ -47,10 +47,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | PORTAL-01 | Phase 14 | Completed |
 | PORTAL-02 | Phase 14 | Completed |
-| ADJ-01 | Phase 15 | Pending |
-| ADJ-02 | Phase 15 | Pending |
-| ADJ-03 | Phase 15 | Pending |
-| ADJ-04 | Phase 15 | Pending |
+| ADJ-01 | Phase 15 | Complete |
+| ADJ-02 | Phase 15 | Complete |
+| ADJ-03 | Phase 15 | Complete |
+| ADJ-04 | Phase 15 | Complete |
 
 **Coverage:**
 - v1 requirements: 6 total

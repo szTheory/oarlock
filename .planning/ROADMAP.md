@@ -3,7 +3,7 @@
 ## Phases
 
 - [ ] **Phase 14: Customer Portal Sessions** - Generate on-demand, authenticated portal session URLs for customers
-- [ ] **Phase 15: Adjustments** - Handle refunds, credits, and their status tracking
+- [x] **Phase 15: Adjustments** - Handle refunds, credits, and their status tracking (completed 2026-06-09)
 - [ ] **Phase 16: Seam Validation & Documentation** - Ensure Accrue consumer contract is updated and validated with new entities
 
 ## Phase Details
@@ -27,7 +27,7 @@
   3. User can fetch a specific adjustment by ID to check its approval status
   4. User can list adjustments using standard auto-pagination
 **Plans**: 1 plan
-- [ ] 15-01-PLAN.md — Implement Adjustments for Paddle API v1
+- [x] 15-01-PLAN.md — Implement Adjustments for Paddle API v1
 
 ### Phase 16: Seam Validation & Documentation
 **Goal**: The newly added entities are explicitly documented and integrated into the Accrue seam contract
@@ -43,6 +43,6 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 14. Customer Portal Sessions | 1/1 | Complete | Yes |
-| 15. Adjustments | 0/1 | Planned | - |
+| 15. Adjustments | 1/1 | Complete   | 2026-06-09 |
 | 16. Seam Validation & Documentation | 0/0 | Not started | - |
 
