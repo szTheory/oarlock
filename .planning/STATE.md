@@ -17,15 +17,14 @@ progress:
 
 ## Current Position
 
-Milestone: v1.2 Production Surface
-Phase: 13
-Plan: All plans completed
-Status: Executed and verified
-Last activity: 2026-06-09 -- Phase 13 execution complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-09 -- Milestone v1.3 started
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-29 at v1.2 start)
+See: `.planning/PROJECT.md` (updated 2026-06-09 at v1.3 start)
 
 **Core value:** Native Elixir interaction with Paddle Billing API v1 via explicit `%Paddle.Client{}` passing, typed struct responses, and pure-function webhook verification.
 **Current focus:** Milestone complete
@@ -103,6 +102,7 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 
 ## Decisions
 
+- [Assessment]: Prioritized Customer Portal Sessions and Adjustments (Refunds/Credits) as the most critical next wedges; Catalog sync deferred due to lower immediate ROI.
 - [Phase 12-documentation-pass]: Explicitly enforce @moduledoc false on internal and configuration modules to prevent their leakage into public hexdocs.
 - [Phase 12-documentation-pass]: Documented core controllers (Customers, Addresses, Webhooks) with explicit module pipelines, error structures, and domain documentation links.
 
@@ -111,3 +111,4 @@ Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria.
 - [Phase 12-documentation-pass]: Applied 'Hybrid Explicit' approach to README.md and Getting Started guide code examples, transforming direct assignments (`{:ok, struct} = ...`) into explicit `case` blocks.
 - [Phase 10-subscriptions-surface-completion]: Implemented only resume/3 (no resume_immediately/resume_at variants) to keep seam narrow. — Avoid seam bloat while covering full provider capability through effective_from and on_resume options.
 - [Phase 10-subscriptions-surface-completion]: Rejected idempotency_key on resume/pause mutations; only retry is forwarded as request opt. — Preserves the create-only idempotency boundary and avoids false lifecycle mutation safety assumptions.
+otency boundary and avoids false lifecycle mutation safety assumptions.
