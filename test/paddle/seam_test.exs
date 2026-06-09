@@ -43,6 +43,19 @@ defmodule Paddle.SeamTest do
 
     assert is_map(customer.raw_data)
 
+    portal_session_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/customers/ctm_seam01/portal-sessions"
+
+        {request, Req.Response.new(status: 201, body: %{"data" => portal_session_payload()})}
+      end)
+
+    assert {:ok, %Paddle.PortalSession{id: "pts_seam01", customer_id: "ctm_seam01"} = portal_session} =
+             Paddle.Customers.PortalSessions.create(portal_session_client, customer.id)
+
+    assert is_map(portal_session.raw_data)
+
     address_client =
       client_with_adapter(fn request ->
         assert request.method == :post
@@ -146,6 +159,32 @@ defmodule Paddle.SeamTest do
             } = event} = Webhooks.parse_event(@transaction_completed_body)
 
     assert is_map(event.raw_data)
+
+    adjustment_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/adjustments"
+
+        assert decode_json_body(request.body) == %{
+                 "action" => "refund",
+                 "reason" => "fraud",
+                 "transaction_id" => "txn_seam01",
+                 "items" => [%{"item_id" => "pri_seam01", "type" => "full"}]
+               }
+
+        {request, Req.Response.new(status: 201, body: %{"data" => adjustment_payload()})}
+      end)
+
+    assert {:ok, %Paddle.Adjustment{id: "adj_seam01"} = adjustment} =
+             Paddle.Adjustments.create(adjustment_client,
+               action: "refund",
+               reason: "fraud",
+               transaction_id: "txn_seam01",
+               items: [%{item_id: "pri_seam01", type: "full"}]
+             )
+
+    assert is_map(adjustment.raw_data)
+
     refute function_exported?(Paddle.Subscriptions, :create, 2)
 
     subscription_get_client =
@@ -379,6 +418,38 @@ defmodule Paddle.SeamTest do
       "scheduled_change" => nil,
       "updated_at" => "2024-04-13T09:47:59.556997Z"
     })
+  end
+
+  defp portal_session_payload do
+    %{
+      "id" => "pts_seam01",
+      "customer_id" => "ctm_seam01",
+      "urls" => %{
+        "general" => %{"overview" => "https://buyer-portal.paddle.com/pts_seam01"},
+        "subscriptions" => [%{"id" => "sub_seam01", "cancel" => "https://buyer-portal.paddle.com/cancel/sub_seam01"}]
+      },
+      "custom_data" => %{},
+      "created_at" => "2024-04-12T10:16:30Z"
+    }
+  end
+
+  defp adjustment_payload do
+    %{
+      "id" => "adj_seam01",
+      "action" => "refund",
+      "transaction_id" => "txn_seam01",
+      "subscription_id" => "sub_seam01",
+      "customer_id" => "ctm_seam01",
+      "reason" => "fraud",
+      "credit_applied_to_balance" => false,
+      "currency_code" => "USD",
+      "status" => "pending_approval",
+      "items" => [],
+      "totals" => %{"subtotal" => "1000", "tax" => "0", "total" => "1000", "fee" => "0", "earnings" => "1000"},
+      "payouts" => %{"subtotal" => "1000", "tax" => "0", "total" => "1000", "fee" => "0", "earnings" => "1000"},
+      "created_at" => "2024-04-12T10:38:00Z",
+      "updated_at" => "2024-04-12T10:38:00Z"
+    }
   end
 
   test "sealed modules remain undocumented" do

@@ -15,7 +15,8 @@ defmodule Paddle.PortalSession do
           customer_id: String.t() | nil,
           urls: map() | nil,
           created_at: String.t() | nil,
-          custom_data: map() | nil
+          custom_data: map() | nil,
+          raw_data: map() | nil
         }
 
   defstruct [
@@ -23,7 +24,8 @@ defmodule Paddle.PortalSession do
     :customer_id,
     :urls,
     :created_at,
-    :custom_data
+    :custom_data,
+    :raw_data
   ]
 end
 
