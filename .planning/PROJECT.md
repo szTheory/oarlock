@@ -12,23 +12,19 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - Must retain forward compatibility via `__raw__` mapping of API responses.
 - Explicit deferment of complex domain areas (refunds, invoices, marketplaces, payment portals) to v0.2+.
 
-## Current Milestone: v1.2 Production Surface
+## Current State
 
-**Goal:** Drive oarlock to genuine production-readiness as a hex package while completing the subscription surface Accrue needs for its Phase 97+ Paddle slice.
+**Shipped:** v1.2 Production Surface on 2026-06-09 — see `.planning/milestones/v1.2-ROADMAP.md`.
 
-**Target features:**
-- Reliability primitives: idempotency keys on POSTs, 429/`Retry-After` retry policy, normalized network-error shape
-- Pagination ergonomics: per-resource `stream/*` + `all/*` helpers built on `Paddle.Page.next_cursor/1`
-- Subscriptions surface completion: transaction-driven recurring start guidance/tests plus `pause/3`, `pause_immediately/3`, and `resume/3` (closes the P0 Accrue blocker plus the P1 mutation surface truthfully)
-- Type-safety pass: `@spec` on every public function, `:dialyxir` wired with green baseline + CI gate
-- Documentation pass: `@doc` everywhere, `@moduledoc` on every public module, README rewrite, new `guides/getting-started.md` and `guides/telemetry.md`
-- Process guard: pre-commit hook that prevents the v1.1 SUMMARY/git-state drift class
+oarlock now exposes a fully typed, documented, and resilient consumer surface:
+- Reliability primitives: idempotency keys, automatic retries, and transport error normalization.
+- Pagination ergonomics: per-resource `stream/*` + `all/*` helpers.
+- Subscriptions surface: `pause`, `resume`, and validated recurring-start flows.
+- Full type safety and complete `@moduledoc` / `@doc` coverage with guides.
+- Process guard preventing SUMMARY drift.
 
-**Phase numbering:** continues from v1.1 → Phases 8–13. Six phases.
-
-## Previous State
-
-**Shipped:** v1.1 Accrue Seam Hardening on 2026-04-29 — see `.planning/milestones/v1.1-ROADMAP.md`.
+<details>
+<summary>v1.1 Accrue Seam Hardening (Shipped 2026-04-29)</summary>
 
 oarlock exposed a closed, documented consumer surface for Accrue:
 - `Paddle.Transactions.get/2` retrieval (TXN-03)
@@ -36,7 +32,16 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 - Canonical seam guide `guides/accrue-seam.md` with locked/additive/opaque vocabulary, sealed internal modules via `@moduledoc false` (SEAM-02)
 - 111 tests, 0 failures at v1.1 tag
 
-Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-inserted as phases.
+</details>
+
+## Next Milestone Goals
+
+*Pending definition via `/gsd:new-milestone`.*
+
+Potential targets include:
+1. Support operations: refunds/credits via `Paddle.Adjustments`.
+2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
+3. Catalog read surface: products/prices read/list before any broad CRUD.
 
 ## Requirements
 
@@ -48,32 +53,33 @@ Accrue-side asks continue to be triaged into `.planning/BACKLOG.md`, not auto-in
 - [x] `Paddle.Customers` (create, get, update). *(Phase 3)*
 - [x] `Paddle.Customers.Addresses` (create, list, update). *(Phase 3)*
 - [x] `Paddle.Transactions.create/2` returning hosted checkout URL. *(Phase 4)*
-- [x] `Paddle.Subscriptions` (get, list, cancel). *(Phase 5 — `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2` with hydrated `%ScheduledChange{}` and `%ManagementUrls{}`; 23 adapter-backed tests.)*
-- [x] Testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc. *(Phase 1 baseline; carried through v1.0)*
+- [x] `Paddle.Subscriptions` (get, list, cancel). *(Phase 5)*
+- [x] Testing matrix across Elixir/Erlang versions, Credo, Dialyzer, ExDoc. *(Phase 1 baseline)*
 - [x] **TXN-03**: `Paddle.Transactions.get/2` — fetch a transaction by ID with hydrated checkout struct. *(Validated in Phase 6)*
-- [x] **SEAM-01**: End-to-end Accrue seam contract test (adapter-backed; 7-step Accrue path with `is_map/1` opacity checks for `:raw_data`). *(Validated in Phase 7)*
-- [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`) with locked vocabulary and sealed docs surface (`@moduledoc false` on `Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`). *(Validated in Phase 7)*
-- [x] **REL-01**: `idempotency_key:` opt on current `create/*` POSTs with `Idempotency-Key` header forwarding and invalid-key rejection. *(Validated in Phase 8)*
-- [x] **REL-02**: `Paddle.Client.new!/1` default retry policy using `retry: :transient, max_retries: 3`, with per-call `retry: false` opt-out. *(Validated in Phase 8)*
-- [x] **REL-03**: Transport errors normalize to `%Paddle.Error{network_error?: true, retryable?: true, raw_data: %Req.TransportError{}}`. *(Validated in Phase 8)*
-- [x] **PAGE-01**: Per-resource auto-pagination helpers for subscriptions and customer addresses, with lazy streams, eager all-or-error collection, normalized next URL replay, and locked `list/*` page shapes preserved. *(Validated in Phase 9)*
-- [x] **SUB-04**: Transaction-driven recurring start via `Paddle.Transactions.create/3`, checkout/manual collection, webhook or canonical transaction correlation, and `Paddle.Subscriptions.get/2` hydration; no public `Paddle.Subscriptions.create/2`. *(Validated in Phase 10)*
-- [x] **SUB-05**: `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with typed hydration, strict lifecycle opts, explicit `idempotency_key:` rejection, and retry-only request opts. *(Validated in Phase 10)*
-- [x] **SUB-06**: `Paddle.Subscriptions.resume/3` with validated `effective_from:` / `on_resume:`, explicit `idempotency_key:` rejection, retry-only request opts, and provider-error passthrough. *(Validated in Phase 10)*
-- [x] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` mechanically enforced by `mix typecheck.specs`. *(Validated in Phase 11)*
-- [x] **TYPES-02**: Wire `:dialyxir` with a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`) and CI gate. *(Validated in Phase 11)*
-- [x] **DOCS**: Documentation pass with `@doc` and `@moduledoc` coverage, README rewrite, new guides (`getting-started.md`, `telemetry.md`), explicit `## Examples`, and hiding internal functions. *(Validated in Phase 12)*
+- [x] **SEAM-01**: End-to-end Accrue seam contract test. *(Validated in Phase 7)*
+- [x] **SEAM-02**: Canonical Accrue seam guide (`guides/accrue-seam.md`). *(Validated in Phase 7)*
+- [x] **REL-01**: `idempotency_key:` opt on current `create/*` POSTs. *(Validated in Phase 8)*
+- [x] **REL-02**: `Paddle.Client.new!/1` default retry policy. *(Validated in Phase 8)*
+- [x] **REL-03**: Transport errors normalize to `%Paddle.Error{}`. *(Validated in Phase 8)*
+- [x] **PAGE-01**: Per-resource auto-pagination helpers. *(Validated in Phase 9)*
+- [x] **SUB-04**: Transaction-driven recurring start via `Paddle.Transactions.create/3`. *(Validated in Phase 10)*
+- [x] **SUB-05**: `Paddle.Subscriptions.pause/3` and `pause_immediately/3`. *(Validated in Phase 10)*
+- [x] **SUB-06**: `Paddle.Subscriptions.resume/3`. *(Validated in Phase 10)*
+- [x] **TYPES-01**: Add `@spec` annotations mechanically enforced. *(Validated in Phase 11)*
+- [x] **TYPES-02**: Wire `:dialyxir` with CI gate. *(Validated in Phase 11)*
+- [x] **DOCS**: Documentation pass with guides. *(Validated in Phase 12)*
+- [x] **PROC-01 / PROC-02**: Pre-commit hook and CI step to prevent SUMMARY drift. *(Validated in Phase 13)*
 
 ### Active
-Remaining v1.2 Production Surface requirements are tracked in `.planning/REQUIREMENTS.md`; next up is Phase 13.
+Waiting for new milestone planning via `/gsd:new-milestone`.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
 - **Phoenix/Ecto coupling**: No framework or database integration code in the core library.
-- **Payment Method Portals**: Deferred for v0.1.
-- **Invoice Generation**: Deferred for v0.1.
-- **Refunds**: Deferred for v0.1.
-- **Connect / Marketplaces**: Deferred for v0.1.
+- **Payment Method Portals**: Deferred for v0.x.
+- **Invoice Generation**: Deferred for v0.x.
+- **Refunds**: Deferred for v0.x.
+- **Connect / Marketplaces**: Deferred for v0.x.
 
 ## Key Decisions
 
@@ -92,7 +98,7 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 - **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
 - **Deferred surface:** subscription `update` and payment-method update flows remain deferred. Phase 10 expands the seam additively with transaction-driven recurring start guidance/tests plus `pause`, `pause_immediately`, and `resume`; it does not add `Paddle.Subscriptions.create/2`.
 
-Outstanding Accrue requests are tracked in `.planning/BACKLOG.md` (entries `B-01` through `B-04`).
+Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`.
 
 ## Evolution
 
@@ -112,4 +118,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 — Phase 12 (Documentation Pass) validated. v1.0 = Phases 1-5; v1.1 = Phases 6-7; v1.2 = Phases 8-13.*
+*Last updated: 2026-06-09 — v1.2 (Production Surface) shipped. Next up: new milestone planning.*
