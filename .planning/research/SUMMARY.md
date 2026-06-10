@@ -1,115 +1,131 @@
 # Project Research Summary
 
-**Project:** oarlock (Customer Portal Sessions and Adjustments)
-**Domain:** Elixir SDK / API Client (Paddle Billing v1)
+**Project:** oarlock
+**Domain:** Elixir SDK for Paddle Billing (Catalog & Events)
 **Researched:** 2026-06-09
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The project entails integrating two new entities into the `oarlock` Elixir SDK for Paddle Billing v1: **Customer Portal Sessions** and **Adjustments**. Both domains rely entirely on standard JSON over HTTP REST APIs and map perfectly into the project's existing explicit client-passing architecture. The recommended approach continues utilizing the zero-dependency `req` HTTP client without requiring any new external libraries like `Ecto` or Phoenix, preserving the SDK's purity.
+This research informs the addition of the Catalog (Products/Prices) and Events API surface to the `oarlock` Elixir SDK for Paddle Billing. The goal is to provide a comprehensive, read-only functional interface for the v1.4 milestone, enabling developers to sync products, render pricing tables, and reconcile historical webhooks without coupling the library to specific frameworks like Phoenix or Ecto.
 
-To integrate these features correctly, developers must strictly adhere to the established nested resource context patterns and define top-level structs (`Paddle.PortalSession`, `Paddle.Adjustment`). The core capabilities include synchronous on-demand portal session creation (to avoid cached token expiration) and complete adjustment lifecycle operations (creation, retrieval, and pagination).
+The recommended approach continues the established architectural patterns of the SDK: using `Req` for HTTP transport, maintaining explicit `%Paddle.Client{}` state, relying on built-in Elixir streams for auto-pagination, and strictly mapping JSON responses to strongly-typed structs with `:raw_data` escape hatches. No new dependencies are required to fulfill these features. The REST Events API will seamlessly reuse the existing `%Paddle.Event{}` struct and parsers originally built for webhooks, providing polymorphic payloads regardless of whether events are pushed or pulled.
 
-The most critical risks involve state and timing mismatches. Specifically, developers might mistakenly cache the short-lived portal session URLs or assume refunds are finalized synchronously rather than handling asynchronous `pending_approval` webhooks. We mitigate these by explicitly avoiding URL caching in our design guidelines, relying solely on on-demand generation, and strictly enforcing the immutability of Adjustments while ensuring the `status` field is prominently typed and exposed.
+Key risks involve improper handling of cursor-based pagination for the high-volume Events API, which can lead to desynced state or infinite loops, and developers treating historical event payloads as the "source of truth." These are mitigated by blindly following Paddle's provided next-page URLs and documenting clear guidance to fetch canonical state using other endpoints.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies are required; the current core stack is fully capable. 
+No new dependencies are required for the v1.4 Catalog & Events milestone. The existing core stack is 100% sufficient and perfectly aligns with the pure functional mandates.
 
 **Core technologies:**
-- **Elixir (~> 1.19):** Core language — existing project requirement.
-- **`req` (~> 0.5.17):** HTTP Client — zero-dependency client with built-in JSON parsing and retries, sufficient for Paddle API interactions.
-- **`dialyxir`:** Static typing — ensures new structs maintain strong typing guarantees.
+- **Req (`~> 0.5.17`)**: HTTP Transport & JSON Parsing — Perfectly handles standard REST endpoints for Products, Prices, and Events natively without adding complex HTTP clients.
+- **Elixir (`~> 1.19`)**: Language & Types — Leverages built-in `Stream` for auto-pagination and strict typing.
+- **Telemetry (`~> 1.4`)**: Observability — Existing integration via `Req` will emit events when Catalog queries or Event history fetches complete.
 
 ### Expected Features
 
+The scope is tightly focused on read-only endpoints and robust developer experience.
+
 **Must have (table stakes):**
-- **Portal Session Creation:** POST to `/customers/{id}/portal-sessions`. Returns `urls` object.
-- **Adjustment Creation:** POST to `/adjustments` to handle "refunds" and "credits". Must support full and partial (with item tracking).
-- **Adjustment Retrieval & Pagination:** GET `/adjustments/{id}` and `/adjustments` to check refund approval states.
-- **Adjustment Webhooks:** Parsing `adjustment.created` and `adjustment.updated` events.
+- `Paddle.Products.get/2` & `list/2` — Returns `%Paddle.Product{}` structs.
+- `Paddle.Prices.get/2` & `list/2` — Returns `%Paddle.Price{}` structs.
+- `Paddle.Events.get/2` & `list/2` — Necessary for webhook reconciliation and audit trails.
+- Auto-Pagination — Critical for iterating through catalogs and events using existing `stream/*` helpers.
+- Explicit Structs with `:raw_data` — Preserves forward compatibility.
 
 **Should have (competitive):**
-- **Credit Note PDF Retrieval:** `GET /adjustments/{id}/credit-note` for automated tax/receipt workflows.
-- **Client-Side Validation:** Guarding `action` based on transaction status before hitting the API.
+- Event Payload Polymorphism — `Paddle.Events.list/2` yields strongly-typed embedded structs (e.g., `%Paddle.Transaction{}`) identical to webhook payloads.
+- Filter/Query Type Safety — Explicit types for query parameters to aid reconciliation.
 
 **Defer (v2+):**
-- Deep client-side validation (rely on Paddle's API errors for v1).
-- Credit Note Retrieval (useful but not essential for initial launch).
+- Catalog Write Surface (Create/Update) — Not required for Phase 1.4. Focus strictly on read-only.
+- Ecto Schema Syncing — Bloats the SDK, violates architectural constraints.
+- Built-in Event Replay/Worker Queue — Host applications should handle ingestion and replay natively.
 
 ### Architecture Approach
 
-The architecture will introduce new pure data structures and contextual operation modules parallel to existing resources, avoiding any UI/DB coupling.
+The addition of Catalog and Events seamlessly extends the existing functional and typed architecture. We continue with the explicit `%Paddle.Client{}` parameter, strict allowlists for query parameters, and per-resource auto-pagination.
 
 **Major components:**
-1. **`Paddle.PortalSession` & `Paddle.Adjustment`:** Structs defining responses and lifecycle metadata. Both require `raw_data: map() | nil` for forward compatibility.
-2. **`Paddle.Customers.PortalSessions`:** HTTP context for generating portal sessions (`create/3`).
-3. **`Paddle.Adjustments`:** HTTP context operations (`create/2`, `get/2`, `all/2`) supporting standard CRUD pagination.
+1. **`Paddle.Products` / `Paddle.Prices`** — Read-only API surface wrapping `Paddle.Http` calls, returning explicit structs.
+2. **`Paddle.Events`** — Read-only API surface for retrieving event history. Reuses existing `Paddle.Event` struct and logic from `Paddle.Webhooks`.
+3. **`Paddle.Internal.Pagination`** — Existing logic used to expose an idiomatic Elixir stream interface.
 
 ### Critical Pitfalls
 
-1. **Caching Portal Session URLs** — Never store portal URLs. The SDK must generate them synchronously on-demand and clients must immediately redirect to prevent expiration errors.
-2. **Assuming Synchronous Refund Execution** — Refunds often enter `pending_approval`. The SDK must explicitly surface the `status` field and consumers should rely on webhooks.
-3. **Wrong ID for Partial Refunds** — Passing `price_id` instead of `item_id`. Explicitly document and type the `items` array to require transaction line item IDs.
+1. **Pagination Cursor Mishandling for Events** — The SDK must blindly follow the exact `meta.pagination.next` URL provided in the response rather than attempting to construct the next request manually.
+2. **Custom vs. Standard Catalog Item Blindness** — Custom items created during checkout won't appear in the Catalog. Attempting to fetch them via `Paddle.Prices.get/2` returns a 404. Must be clearly documented.
+3. **Event State "Source of Truth" Blindness** — Events are immutable triggers, not absolute truth. Overwriting current state with an old event payload regresses state. Document clearly to fetch canonical state.
+4. **Exhausting API Limits via "All Events"** — The events stream is incredibly noisy. Encourage `event_type` filtering to avoid hitting the 240 req/min rate limit.
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 1: Customer Portal Sessions
-**Rationale:** Portal sessions are a standalone feature nested under Customers. It's an isolated, low-complexity entry point.
-**Delivers:** `Paddle.PortalSession` struct and `Paddle.Customers.PortalSessions.create/3` operation.
-**Addresses:** Portal Session Creation feature and nested resource context patterns.
-**Avoids:** Caching Portal URLs (by explicitly documenting synchronous usage and deep-linking).
+### Phase 1: Products API
+**Rationale:** The foundational entity of the Catalog. Has no dependencies and establishes the read-only catalog pattern.
+**Delivers:** `Paddle.Product` struct and `Paddle.Products` read-only module (`get`, `list`, `stream`).
+**Addresses:** Basic catalog retrieval.
+**Avoids:** Custom vs Standard item blindness (via explicit documentation).
 
-### Phase 2: Adjustments (Refunds & Credits)
-**Rationale:** Adjustments are top-level but complex, involving partial items and status tracking.
-**Delivers:** `Paddle.Adjustment` struct, `Paddle.Adjustments` operations (`create/2`, `get/2`, `all/2`), and `adjustment.*` webhook handlers.
-**Addresses:** Adjustment Creation, Retrieval, Webhooks features.
-**Avoids:** Assuming Synchronous Refund Execution and Wrong ID for Partial Refunds (by explicitly surfacing `status` and typing `item_id`).
+### Phase 2: Prices API
+**Rationale:** Prices depend on Products conceptually and are the second half of the catalog needed for checkouts.
+**Delivers:** `Paddle.Price` struct and `Paddle.Prices` read-only module (`get`, `list`, `stream`).
+**Addresses:** Retrieval of pricing details and localized pricing.
+**Uses:** Standard `Req` HTTP transport and explicit structs.
 
-### Phase 3: Seam Validation and Documentation
-**Rationale:** Ensures the core library continues perfectly serving the primary consumer application (Accrue) and meets testing guarantees.
-**Delivers:** Updates to `guides/accrue-seam.md`, `seam_test.exs`, and `@moduledoc` coverage.
-**Uses:** Standard project testing and HTTP mocking setups.
-**Implements:** The final integration contract between the SDK and consumer app.
+### Phase 3: Events API
+**Rationale:** Reuses the existing webhook parser infrastructure but applies it to the REST API. Complex but isolated.
+**Delivers:** `Paddle.Events` read-only API module (`get`, `list`, `stream`).
+**Addresses:** Webhook reconciliation and audit trails with polymorphic payloads.
+**Avoids:** Pagination Cursor Mishandling (by leveraging existing auto-pagination stream implementation) and API Limit exhaustion (by allowing `event_type` filters).
+
+### Phase 4: Notification Settings API (Optional / Deferrable)
+**Rationale:** While researched, creating/updating notification settings is rarely done via API (usually via Dashboard). Can be implemented if full CRUD for settings is strictly desired in this milestone, otherwise defer.
+**Delivers:** `Paddle.NotificationSetting` struct and full CRUD module.
 
 ### Phase Ordering Rationale
 
-- **Independence:** Portals (Phase 1) and Adjustments (Phase 2) are mostly independent, but Portals are smaller and simpler, allowing for quick initial velocity.
-- **Verification Last:** Phase 3 groups seam validation to ensure all newly introduced structs (Portals and Adjustments) correctly mock out responses required by the primary Accrue application.
+- **Products before Prices:** Follows Paddle's logical hierarchy.
+- **Events last:** Events are standalone and rely heavily on reusing the `Paddle.Event` struct from previous webhook phases. Placing them last ensures catalog primitives are established in case events reference them.
+- **Consistent patterns:** All phases rely heavily on the existing `Paddle.Internal.Pagination` module, making implementation primarily focused on schema definition and query allowlisting.
 
 ### Research Flags
 
+Phases likely needing deeper research during planning:
+- **Phase 3 (Events API):** May require verifying exactly how the REST response payload maps to the existing `Paddle.Event` decoder to ensure 100% compatibility without breaking existing webhook logic.
+
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Portal Sessions):** Standard HTTP POST returning nested JSON; idiomatic to existing code.
-- **Phase 2 (Adjustments):** Existing pagination and POST patterns (`Paddle.Internal.Pagination`) are already well-established.
-- **Phase 3 (Validation):** Existing seam guide handles this explicitly.
+- **Phase 1 & 2:** Standard REST GET operations. Highly predictable and well-documented by Paddle. Follows exact patterns established in earlier `oarlock` entities.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Pure REST API; existing `req` and Elixir stack are perfectly suited. |
-| Features | HIGH | Table stakes are clearly defined in official Paddle API docs. |
-| Architecture | HIGH | Codebase already has strict, well-established patterns for new API resources. |
-| Pitfalls | HIGH | Known pain points (like magic link expiration and async refunds) are documented in Paddle integration guides. |
+| Stack | HIGH | Constrained by existing, well-tested project boundaries. No new dependencies. |
+| Features | HIGH | Read-only API goals are explicitly defined by Paddle API specs. |
+| Architecture | HIGH | Extending existing mature patterns within the SDK. |
+| Pitfalls | HIGH | Identified from documented limitations in Paddle APIs and community issues. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Webhook Verification:** We must ensure `adjustment.updated` webhooks provide the exact same payload structure as the standard API responses so `Http.build_struct/2` works flawlessly. This will be verified during Phase 2 execution.
+- **Payload discrepancies:** Need to validate during Phase 3 planning if Paddle's `/events` REST payload differs in any subtle way from incoming webhook payloads.
+- **Notification Settings Scope:** Decision needed on whether to implement full CRUD for Notification Settings in this milestone or strictly defer it to keep scope tight.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Paddle API Docs: Customer Portal Sessions](https://developer.paddle.com/api-reference/customer-portal-sessions) — Endpoints and payload structures.
-- [Paddle API Docs: Adjustments](https://developer.paddle.com/api-reference/adjustments) — Endpoints, item requirements, and `status` tracking.
-- Internal `oarlock` Codebase — `Paddle.Customers.Addresses`, `Paddle.Internal.Attrs`, and `Paddle.Internal.Pagination`.
+- `.planning/PROJECT.md` — Verified constraint: pure functional library without UI, database, or Phoenix/Ecto coupling.
+- [Paddle API Reference: Products](https://developer.paddle.com/api-reference/products/list-products)
+- [Paddle API Reference: Prices](https://developer.paddle.com/api-reference/prices/list-prices)
+- [Paddle API Reference: Events](https://developer.paddle.com/api-reference/events/list-events)
+
+### Secondary (MEDIUM confidence)
+- hookwatch.dev — Event Ordering, State Synchronization pitfalls for Paddle v2.
 
 ---
 *Research completed: 2026-06-09*

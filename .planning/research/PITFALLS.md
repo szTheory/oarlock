@@ -1,146 +1,54 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** Paddle Billing API v1 (Customer Portal & Adjustments)
+**Domain:** Paddle Billing API (Catalog & Events)
 **Researched:** 2026-06-09
-**Confidence:** HIGH
 
 ## Critical Pitfalls
 
-### Pitfall 1: Caching Portal Session URLs
+Mistakes that cause rewrites or major issues.
 
-**What goes wrong:**
-Developers store the `url` returned by `POST /customers/{customer_id}/portal-sessions` in their database and serve it multiple times. Users see "Expired" or "Invalid" errors.
+### Pitfall 1: Pagination Cursor Mishandling for Events
+**What goes wrong:** Skipping events or getting stuck in an infinite polling loop when reconciling webhook history.
+**Why it happens:** Paddle's Events API is purely cursor-based. Developers often try to manually extract the `after` cursor and rebuild the query string, dropping important filters, or they try to use standard offset pagination.
+**Consequences:** Skipped events lead to desynced databases where customers are billed but not provisioned, or canceled but still have access.
+**Prevention:** The SDK's `all/*` and `stream/*` pagination helpers must blindly follow the exact `meta.pagination.next` URL provided in the response rather than attempting to construct the next request manually.
+**Detection:** Missing data reports in downstream consumers, or API 400s from malformed cursor queries.
 
-**Why it happens:**
-Treating the portal URL like a static asset or standard web link rather than a single-use, short-lived authentication token (magic link).
+### Pitfall 2: Custom vs. Standard Catalog Item Blindness
+**What goes wrong:** Fetching a transaction's items and attempting to look up their details via `Paddle.Prices.get/2`, resulting in an unexpected `404 Not Found`.
+**Why it happens:** Paddle Billing allows for "Custom" prices/products created on the fly during checkout, alongside "Standard" catalog items. Custom items do not exist in the canonical Catalog and will not be returned by the `/products` or `/prices` endpoints.
+**Consequences:** Hard crashes in SDK consumers attempting to hydrate or reconcile all items using the Catalog API.
+**Prevention:** The SDK must clearly document this distinction in the `@moduledoc` for `Paddle.Products` and `Paddle.Prices`. The SDK should not attempt to automatically "hydrate" transaction line items using catalog lookups behind the scenes.
+**Detection:** Unhandled `404` errors in consumer logs when processing transactions.
 
-**How to avoid:**
-Never store portal URLs. The SDK should be designed to invoke the `create/3` function synchronously on-demand when the user clicks a "Manage Billing" button, and the application must immediately redirect.
+## Moderate Pitfalls
 
-**Warning signs:**
-Database migrations adding `portal_url` fields to the `users` table; caching layers wrapped around the portal session API call.
+### Pitfall 1: Event State "Source of Truth" Blindness
+**What goes wrong:** A consumer polls the `Paddle.Events` API for missed webhooks and directly saves the `data` payload of the event to their database, inadvertently regressing a user's state.
+**Why it happens:** Events are immutable historical records. If an app processes a `subscription.updated` event from 4 hours ago, but the user canceled 10 minutes ago, saving the event's payload overwrites the cancellation.
+**Prevention:** Add explicit warnings in the `Paddle.Events` module documentation that events are *triggers*, not truth. Advise consumers to use the event to know *what* changed, but to call `Paddle.Subscriptions.get/2` or `Paddle.Transactions.get/2` to fetch the current canonical state.
 
-**Phase to address:**
-PORTAL-01 (Customer Portal Sessions)
+### Pitfall 2: Exhausting API Limits via "All Events"
+**What goes wrong:** Polling the Events API without filters, triggering Paddle's 240 requests/minute rate limit.
+**Why it happens:** The events stream is incredibly noisy. Fetching it blindly for reconciliation generates massive payloads and requires rapid pagination.
+**Prevention:** The `Paddle.Events.list/2` function should encourage the use of `event_type` filtering (e.g., only fetching `subscription.*` events) through examples in its `@doc` block.
 
----
+## Minor Pitfalls
 
-### Pitfall 2: Assuming Synchronous Refund Execution
+### Pitfall 1: Mixing Billing Intervals
+**What goes wrong:** Attempting to combine different Prices in a single checkout/transaction fails with an API error.
+**Why it happens:** Paddle Billing strictly prohibits mixing intervals (e.g., a monthly subscription and an annual add-on) in the same transaction.
+**Prevention:** Note this limitation in the Catalog documentation to guide users on how to properly structure their Products and Prices.
 
-**What goes wrong:**
-The application assumes a refund is finalized immediately when the API returns a `201 Created` or `200 OK`. The user is told "Refund Complete" but the refund is actually rejected later.
+## Phase-Specific Warnings
 
-**Why it happens:**
-Paddle adjustments (especially refunds on live accounts) often default to a `pending_approval` status, requiring manual review by Paddle's risk team. 
-
-**How to avoid:**
-The SDK must explicitly surface the `status` field (e.g., `pending_approval`, `approved`, `rejected`). Applications must rely on webhook events (`adjustment.updated`) to confirm final state rather than the synchronous API response.
-
-**Warning signs:**
-SDK consumers checking `{:ok, _}` and assuming success without inspecting the `%Paddle.Adjustment{status: ...}` field; missing webhook handlers for adjustment states.
-
-**Phase to address:**
-ADJ-01 (Adjustments)
-
----
-
-### Pitfall 3: Wrong ID for Partial Refunds
-
-**What goes wrong:**
-When creating a partial adjustment, developers pass the catalog `price_id` instead of the specific transaction `item_id`. The API rejects the request.
-
-**Why it happens:**
-Confusion between catalog entities (`pri_...`) and transaction line items (`txnitm_...`). The API requires the exact line item ID generated when the transaction occurred.
-
-**How to avoid:**
-In the SDK's `Paddle.Adjustments.create/2` parameters, explicitly document and/or type the `items` array to require transaction line item IDs instead of generic price IDs.
-
-**Warning signs:**
-Passing standard product/price IDs into the adjustment payload instead of parsing the `details.line_items` from the parent transaction.
-
-**Phase to address:**
-ADJ-01 (Adjustments)
-
-## Technical Debt Patterns
-
-Shortcuts that seem reasonable but create long-term problems.
-
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Skipping `subscription_ids` in Portal Sessions | Less code, faster implementation | Users land on a generic overview instead of directly managing the subscription they want, causing confusion. | Only acceptable if the user has exactly one subscription or you want a generic billing dashboard. |
-| Using string amounts directly from UI | Passes through payload easily | Currency mismatch bugs (e.g., passing `"50.00"` instead of `"5000"` for cents). | Never. The SDK should guide users toward lowest-denominator formats. |
-
-## Integration Gotchas
-
-Common mistakes when connecting to external services.
-
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Customer Portal | Iframing the portal URL | Paddle blocks iframes for security (clickjacking). Use a full window redirect or `target="_blank"`. |
-| Adjustments | Trying to update/delete an adjustment | Adjustments are immutable financial records. The SDK should deliberately omit `update` and `delete` functions for `Paddle.Adjustments`. |
-| Customer Portal | Assuming internal User ID == Paddle Customer ID | Maintain a strict mapping between your internal ID and the Paddle `ctm_` ID, handling email changes carefully. |
-
-## Performance Traps
-
-Patterns that work at small scale but fail as usage grows.
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Generating portals on login | Slow login times, rate limiting | Generate portal sessions lazily (only when the user clicks "Manage Billing"). | When active users exceed API rate limits (e.g., large user spikes). |
-
-## Security Mistakes
-
-Domain-specific security issues beyond general web security.
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Exposing environment-mismatched IDs | Portal generation fails or shows wrong data | Ensure `PADDLE_API_KEY` and the requested `customer_id` strictly belong to the same environment (Live vs Sandbox). |
-
-## UX Pitfalls
-
-Common user experience mistakes in this domain.
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Generic Portal Redirects | User wants to cancel "Sub A" but has to click through multiple screens | Pass `subscription_ids: [sub_id]` to generate deep links (`urls.subscriptions[].cancel_subscription`) and redirect directly there. |
-| Not handling `pending_approval` | User believes refund is done, contacts support when funds don't appear | Show UI state as "Refund Pending Review" until the webhook fires confirming approval. |
-
-## "Looks Done But Isn't" Checklist
-
-Things that appear complete but are missing critical pieces.
-
-- [ ] **Portal Sessions:** Often missing deep-linking — verify `subscription_ids` are passed if applicable.
-- [ ] **Adjustments:** Often missing webhook handling — verify `adjustment.updated` is integrated for state changes.
-- [ ] **Adjustments (Partial):** Often missing correct IDs — verify `txnitm_` IDs are used, not `pri_`.
-- [ ] **Adjustments:** Often missing immutable design — verify no `update` or `delete` functions are exposed in the SDK.
-
-## Recovery Strategies
-
-When pitfalls occur despite prevention, how to recover.
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Cached Portal URLs | LOW | Delete cached URLs, update application logic to generate synchronously, and force-refresh the UI. |
-| Refund state mismatch | MEDIUM | Run a sync script via `GET /adjustments` to update local database states for any refunds stuck in "Pending". |
-
-## Pitfall-to-Phase Mapping
-
-How roadmap phases should address these pitfalls.
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Caching Portal URLs | PORTAL-01 | Ensure guides explicitly forbid caching and code examples show on-demand generation. |
-| Generic Portal Redirects | PORTAL-01 | Include `@doc` examples showing how to use `subscription_ids` for deep-linking. |
-| Synchronous Refund Assumptions | ADJ-01 | The struct `%Paddle.Adjustment{}` must expose `status` typed appropriately (`pending_approval`, `approved`, etc). |
-| Partial Refund ID errors | ADJ-01 | Add clear typed specs for `items` requiring `txnitm_` formats and highlight in docs. |
-| Modifying Adjustments | ADJ-01 | Review the `Paddle.Adjustments` module to ensure ONLY `create` and `get/list` are implemented. |
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Events Retrieval (`Paddle.Events`) | Breaking cursor pagination. | Ensure `PAGE-01` helpers (auto-pagination) natively follow the `meta.pagination.next` full URL instead of manually rebuilding query parameters. |
+| Catalog Listing (`Paddle.Products`) | Assuming Custom items appear in lists. | Document the Standard vs. Custom distinction clearly in the `@moduledoc`. |
+| Events Reconciliation | Using old event payloads as truth. | Warn in `Paddle.Events` documentation to fetch canonical state using `Paddle.Subscriptions.get/2` rather than applying event data directly. |
 
 ## Sources
 
-- [Paddle Docs: Customer Portal Sessions](https://developer.paddle.com/api-reference/customer-portal-sessions)
-- [Paddle Docs: Adjustments](https://developer.paddle.com/api-reference/adjustments)
-- Community discussions on Paddle V1 integration gotchas
-
----
-*Pitfalls research for: Paddle Billing API v1 Customer Portal & Adjustments*
-*Researched: 2026-06-09*
+- **HIGH Confidence:** Paddle Official Documentation (Cursor pagination, Standard vs Custom items, Billing intervals limit).
+- **HIGH Confidence:** hookwatch.dev (Event Ordering, State Synchronization pitfalls for Paddle v2).

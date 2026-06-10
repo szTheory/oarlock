@@ -1,65 +1,80 @@
 # Stack Research
 
-**Domain:** Customer Portal Sessions and Adjustments (Elixir SDK)
-**Researched:** 2026-06-09
+**Domain:** Elixir SDK for Paddle Billing (Catalog & Events)
+**Researched:** 2026-06-09 (Current Milestone)
 **Confidence:** HIGH
 
 ## Recommended Stack
 
-No new stack additions are required. The new Customer Portal Sessions and Adjustments features utilize standard JSON over HTTP REST endpoints and fit perfectly into the project's existing architecture.
+No new dependencies are required for the v1.4 Catalog & Events milestone. The existing core stack is 100% sufficient for the required features.
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Elixir | ~> 1.19 | Core language | Existing project requirement. |
-| `req` | ~> 0.5.17 | HTTP Client | Zero-dependency HTTP client with built-in JSON parsing, retries, and telemetry. Fully sufficient for interacting with the new Paddle API endpoints. |
+| **Req** | `~> 0.5.17` | HTTP Transport & JSON Parsing | Built-in JSON decoding (`jason`), retry mechanisms, and telemetry. Perfectly handles standard REST endpoints for Products, Prices, and Events. |
+| **Elixir** | `~> 1.19` | Language & Types | Built-in `Stream` for auto-pagination. Standard `String.t()` for raw dates (to avoid timezone coupling). |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| *None* | N/A | No new libraries needed | The new features rely entirely on existing standard JSON REST endpoints (`POST /adjustments`, `POST /customers/{id}/portal-sessions`). The current HTTP and struct validation stack is fully capable of handling these payloads. |
+| **Telemetry** | `~> 1.4` | Observability | Already integrated via `Req`. Use to emit events when Catalog queries or Event history fetches complete. |
 
-## Development Tools
+### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `dialyxir` | Static typing | Ensures the new structs (`%Paddle.Adjustment{}`, `%Paddle.Customer.PortalSession{}`) have valid typespecs, maintaining the strong typing guarantees of the SDK. |
+| **Dialyxir** | Static typing | Ensures the new struct definitions for `Paddle.Products` and `Paddle.Prices` are perfectly typed. |
+| **ExDoc** | Documentation | Used to expose the new read-only surface and Accrue seam guides. |
 
 ## Installation
 
+No changes to `mix.exs` needed.
+
 ```bash
-# Core
-# No new dependencies needed, utilize existing mix.exs dependencies:
+# Existing dependencies remain unchanged
 # {:req, "~> 0.5.17"}
+# {:telemetry, "~> 1.4"}
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Plain Elixir Structs | `Ecto.Changeset` / Data validation libraries | Using `Ecto` could provide robust validation for adjustment reasons and partial item amounts. However, `oarlock` specifically avoids `ecto` coupling to remain pure and framework-agnostic. We will continue using explicitly mapped typed structs (e.g. `%Paddle.Adjustment{}`). |
+| **Standard Req GET** | Server-Sent Events / WebSockets | Only if Paddle offered an event streaming API, but Paddle Billing v1 Events (`/events`) is a standard paginated JSON REST endpoint. |
+| **Pure Structs** | Ecto Schemas | Only if we were building a full framework-coupled application. Since this is a pure SDK consumed by Accrue, Ecto must be avoided. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| Phoenix Framework | The SDK should remain a pure HTTP client. Coupling UI or frontend session redirection into the core library limits portability. | Native Elixir modules returning `{:ok, struct}` containing the URL strings (e.g. `urls.general.overview`) for the consuming client application to handle and redirect appropriately. |
-| Ecto / Database state | The SDK should not attempt to manage state, track local adjustment totals, or sync refund status to a database. | Stateless API calls. The consumer app (like Accrue) will handle local persistence and business logic on top of the raw data. |
+| **Cachex / Nebulex** | The SDK must remain a pure transport layer. Caching catalog data (which rarely changes) is the responsibility of the consumer application (e.g., Accrue). Adding caching to the SDK introduces hidden state and memory overhead. | Let consumers implement their own caching on top of `Paddle.Products.list/2`. |
+| **Ecto** | Violates the explicit constraint: "No Phoenix or Ecto coupling." The SDK must not manage database persistence. | Pure Elixir structs (`%Paddle.Product{}`, `%Paddle.Price{}`) with a `:raw_data` escape hatch. |
+| **NimbleCSV** | Paddle's catalog does not rely on CSV exports. The v1 API uses standard JSON objects for Products and Prices. | Built-in Jason decoding provided by `Req`. |
+
+## Stack Patterns by Variant
+
+**If adding query parameters (e.g., `include=product` on Prices):**
+- Use `Req`'s `params:` keyword list in the request options.
+- Because `Req` safely encodes URLs and integrates natively with the existing `Paddle.Client`.
+
+**If handling pagination for Events:**
+- Use the existing `Paddle.Page.next_cursor/1` and `stream/*` helpers.
+- Because Paddle's `/events` endpoint uses the exact same cursor-based pagination as Customers and Transactions.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| `req` | Built-in JSON parser | Ensure `req` is correctly returning the deeply nested JSON map structures for `urls` in Customer Portal sessions. |
+| `oarlock` | Paddle API v1 | Must strictly adhere to the v1 Catalog model (Products and Prices). Do not introduce legacy "Paddle Classic" concepts. |
 
 ## Sources
 
-- `ctx7 docs "/websites/developer_paddle"` — Verified `POST /customers/{customer_id}/portal-sessions` requires only standard JSON requests and returns a structured URL object. (Confidence: HIGH)
-- `ctx7 docs "/websites/developer_paddle"` — Verified `POST /adjustments` and its associated list/get endpoints are standard JSON HTTP interfaces (handling `action: "refund" | "credit"` and an `items` array). (Confidence: HIGH)
-- `.planning/PROJECT.md` — Verified constraint: "No framework or database integration code in the core library." (Confidence: HIGH)
+- `.planning/PROJECT.md` — Verified constraint: pure functional library without UI, database, or Phoenix/Ecto coupling.
+- [Paddle API Docs (Products/Prices)](https://developer.paddle.com/api-reference/products/list-products) — Verified that Catalog API is pure REST/JSON and requires no special handling.
+- [Paddle API Docs (Events)](https://developer.paddle.com/api-reference/events/list-events) — Verified that Events API is standard cursor-paginated REST, not SSE or WebSockets.
 
 ---
-*Stack research for: Customer Portal Sessions and Adjustments*
+*Stack research for: Catalog & Events (v1.4)*
 *Researched: 2026-06-09*
