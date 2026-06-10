@@ -10,8 +10,27 @@ defmodule Paddle.NotificationSettings do
   alias Paddle.Internal.Pagination
 
   @type notification_setting_id :: String.t()
+  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
 
   @list_allowlist ~w(after id order_by per_page)
+  @create_allowlist ~w(description destination type subscribed_events api_version include_sensitive_fields active)
+  @update_allowlist ~w(description destination active subscribed_events include_sensitive_fields)
+
+  @doc """
+  Creates a new notification setting.
+  """
+  @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
+          {:ok, Paddle.NotificationSetting.t()}
+          | {:error, Paddle.Error.t() | :invalid_attrs | :missing_api_version}
+  def create(%Client{} = client, attrs, opts \\ []) do
+    with {:ok, attrs} <- Attrs.normalize(attrs),
+         :ok <- validate_api_version(attrs),
+         body <- Attrs.allowlist(attrs, @create_allowlist),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :post, "/notification-settings", Keyword.merge([json: body], opts)) do
+      {:ok, Http.build_struct(NotificationSetting, data)}
+    end
+  end
 
   @doc """
   Retrieves a notification setting by ID.
@@ -62,6 +81,42 @@ defmodule Paddle.NotificationSettings do
       fn -> list(client, params) end,
       fn next_path -> next_page(client, next_path) end
     )
+  end
+
+  @doc """
+  Updates an existing notification setting.
+  """
+  @spec update(Paddle.Client.t(), notification_setting_id(), map() | keyword()) ::
+          {:ok, Paddle.NotificationSetting.t()}
+          | {:error, Paddle.Error.t() | :invalid_notification_setting_id | :invalid_attrs}
+  def update(%Client{} = client, id, attrs) do
+    with :ok <- validate_id(id),
+         {:ok, attrs} <- Attrs.normalize(attrs),
+         body <- Attrs.allowlist(attrs, @update_allowlist),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :patch, path(id), json: body) do
+      {:ok, Http.build_struct(NotificationSetting, data)}
+    end
+  end
+
+  @doc """
+  Deletes an existing notification setting.
+  """
+  @spec delete(Paddle.Client.t(), notification_setting_id()) ::
+          :ok | {:error, Paddle.Error.t() | :invalid_notification_setting_id}
+  def delete(%Client{} = client, id) do
+    with :ok <- validate_id(id),
+         {:ok, _} <- Http.request(client, :delete, path(id)) do
+      :ok
+    end
+  end
+
+  defp validate_api_version(attrs) do
+    if Map.has_key?(attrs, "api_version") do
+      :ok
+    else
+      {:error, :missing_api_version}
+    end
   end
 
   defp validate_id(id) when is_binary(id) do

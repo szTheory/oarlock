@@ -5,6 +5,118 @@ defmodule Paddle.NotificationSettingsTest do
   alias Paddle.NotificationSetting
   alias Paddle.NotificationSettings
 
+  describe "create/3" do
+    test "returns {:error, :missing_api_version} if api_version is omitted" do
+      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
+
+      attrs = %{description: "Test Webhook", destination: "https://example.com/hooks"}
+      assert {:error, :missing_api_version} = NotificationSettings.create(client, attrs)
+    end
+
+    test "sends POST request with filtered JSON payload and returns %NotificationSetting{}" do
+      response_data = setting_payload()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :post
+          assert request.url.path == "/notification-settings"
+          
+          # Notice api_version, type, destination, etc., and dropped extra_field
+          assert Jason.decode!(IO.iodata_to_binary(request.body)) ==
+                   %{
+                     "description" => "Test",
+                     "destination" => "https://example.com/hooks",
+                     "type" => "url",
+                     "api_version" => 1,
+                     "active" => true
+                   }
+
+          {request, Req.Response.new(status: 201, body: %{"data" => response_data})}
+        end)
+
+      attrs = %{
+        description: "Test",
+        destination: "https://example.com/hooks",
+        type: "url",
+        api_version: 1,
+        active: true,
+        extra_field: "should be dropped"
+      }
+
+      assert {:ok, %NotificationSetting{id: "ntfset_01", raw_data: ^response_data}} =
+               NotificationSettings.create(client, attrs)
+    end
+
+    test "non-2xx API error maps to %Error{}" do
+      client =
+        client_with_adapter(fn request ->
+          error_body = %{
+            "error" => %{
+              "type" => "request_error",
+              "code" => "bad_request",
+              "detail" => "Invalid URL"
+            }
+          }
+
+          {request, Req.Response.new(status: 400, body: error_body)}
+        end)
+
+      attrs = %{api_version: 1, destination: "not-a-url"}
+
+      assert {:error, %Paddle.Error{code: "bad_request"}} =
+               NotificationSettings.create(client, attrs)
+    end
+  end
+
+  describe "update/3" do
+    test "sends PATCH request to /notification-settings/:id with filtered JSON payload" do
+      response_data = %{setting_payload() | "active" => false}
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :patch
+          assert request.url.path == "/notification-settings/ntfset_01"
+          
+          assert Jason.decode!(IO.iodata_to_binary(request.body)) == %{"active" => false}
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      attrs = %{
+        active: false,
+        extra_field: "should be dropped",
+        api_version: 1 # allowed in create but not update, should be dropped
+      }
+
+      assert {:ok, %NotificationSetting{id: "ntfset_01", active: false}} =
+               NotificationSettings.update(client, "ntfset_01", attrs)
+    end
+
+    test "returns error for blank id" do
+      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
+      assert {:error, :invalid_notification_setting_id} = NotificationSettings.update(client, "", %{})
+    end
+  end
+
+  describe "delete/2" do
+    test "sends DELETE request to /notification-settings/:id and returns :ok" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :delete
+          assert request.url.path == "/notification-settings/ntfset_01"
+
+          {request, Req.Response.new(status: 200, body: %{})}
+        end)
+
+      assert :ok = NotificationSettings.delete(client, "ntfset_01")
+    end
+
+    test "returns error for blank id" do
+      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{})})
+      assert {:error, :invalid_notification_setting_id} = NotificationSettings.delete(client, "")
+    end
+  end
+
   describe "get/2" do
     test "requests the notification setting path with explicit client passing and returns a typed struct" do
       response_data = setting_payload()
