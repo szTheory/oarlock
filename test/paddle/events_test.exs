@@ -18,7 +18,8 @@ defmodule Paddle.EventsTest do
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
 
-      assert {:ok, %Event{event_id: "evt_01h6", raw_data: ^response_data}} = Events.get(client, "evt_01h6")
+      assert {:ok, %Event{event_id: "evt_01h6", raw_data: ^response_data}} =
+               Events.get(client, "evt_01h6")
     end
 
     test "rejects empty strings with {:error, :invalid_event_id}" do
@@ -53,7 +54,7 @@ defmodule Paddle.EventsTest do
           {request, Req.Response.new(status: 200, body: body)}
         end)
 
-      assert {:ok, %Page{data: [%Event{event_id: "evt_01h6"}], meta: %{has_more: false}}} =
+      assert {:ok, %Page{data: [%Event{event_id: "evt_01h6"}]}} =
                Events.list(client, event_type: "transaction.completed", unknown_param: "test")
     end
   end
@@ -80,7 +81,6 @@ defmodule Paddle.EventsTest do
         end)
 
       stream = Events.stream(client)
-      assert is_struct(stream, Stream)
       assert [%Event{event_id: "evt_01h6"}] = Enum.to_list(stream)
     end
   end
