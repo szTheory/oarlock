@@ -40,7 +40,9 @@
   1. User can create, read, update, and delete notification settings via the API.
   2. User can list notification settings using standard pagination helpers.
   3. User receives typed `%Paddle.NotificationSetting{}` structs for all operations.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 19-01-PLAN.md — Base struct and read operations
+- [ ] 19-02-PLAN.md — Mutation operations (create, update, delete)
 
 ## Progress
 
@@ -48,4 +50,4 @@
 |-------|----------------|--------|-----------|
 | 17. Catalog API | 2/2 | Completed | 2026-06-10 |
 | 18. Events API | 1/1 | Complete    | 2026-06-10 |
-| 19. Notification Settings API | 0/0 | Not started | - |
+| 19. Notification Settings API | 0/2 | Not started | - |
