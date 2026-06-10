@@ -1,53 +1,12 @@
 # Roadmap
 
-## Phases
+## Active Milestone
 
-- [ ] **Phase 17: Catalog API** - Implement read-only endpoints for Products and Prices with auto-pagination.
-- [x] **Phase 18: Events API** - Implement read-only endpoints for Event history using existing webhook structs. (completed 2026-06-10)
-- [x] **Phase 19: Notification Settings API** - Implement full CRUD operations for Notification Settings. (completed 2026-06-10)
+_No active milestone. Run `/gsd:new-milestone` to start the next one._
 
-## Phase Details
+## Shipped Milestones
 
-### Phase 17: Catalog API
-**Goal**: Developers can retrieve standard products and prices from the Paddle catalog.
-**Depends on**: None
-**Requirements**: CAT-01, CAT-02, CAT-03, CAT-04, CAT-05
-**Success Criteria** (what must be TRUE):
-  1. User can list products and prices using auto-paginated stream/list helpers.
-  2. User can fetch a single product or price by ID and receive a typed struct.
-  3. User is explicitly warned in documentation that custom items created during checkout cannot be fetched via this API.
-**Plans**: 2 plans
-- [ ] 17-01-PLAN.md — Implement Paddle.Products API
-- [ ] 17-02-PLAN.md — Implement Paddle.Prices API
-
-### Phase 18: Events API
-**Goal**: Developers can retrieve and reconcile historical events using the API.
-**Depends on**: Phase 17
-**Requirements**: EVT-01, EVT-02, EVT-03, EVT-04
-**Success Criteria** (what must be TRUE):
-  1. User can list event history using auto-paginated stream helpers.
-  2. User can fetch a specific event by ID.
-  3. User receives the same `%Paddle.Event{}` struct for REST events as they do for incoming webhooks.
-  4. User is guided by documentation to treat events as triggers and fetch canonical state using other endpoints.
-**Plans**: 1 plan
-- [x] 18-01-PLAN.md — Implement Paddle.Events API
-
-### Phase 19: Notification Settings API
-**Goal**: Developers can manage webhook destinations and notification settings programmatically.
-**Depends on**: Phase 18
-**Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05
-**Success Criteria** (what must be TRUE):
-  1. User can create, read, update, and delete notification settings via the API.
-  2. User can list notification settings using standard pagination helpers.
-  3. User receives typed `%Paddle.NotificationSetting{}` structs for all operations.
-**Plans**: 2 plans
-- [x] 19-01-PLAN.md — Base struct and read operations
-- [x] 19-02-PLAN.md — Mutation operations (create, update, delete)
-
-## Progress
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 17. Catalog API | 2/2 | Completed | 2026-06-10 |
-| 18. Events API | 1/1 | Complete    | 2026-06-10 |
-| 19. Notification Settings API | 2/2 | Complete   | 2026-06-10 |
+- [x] [**v1.4 Catalog & Events**](milestones/v1.4-ROADMAP.md) - Completed 2026-06-10
+- [x] [**v1.3 Process Guard**](milestones/v1.3-ROADMAP.md)
+- [x] [**v1.2 Production Surface**](milestones/v1.2-ROADMAP.md)
+- [x] [**v1.1 Accrue Seam Hardening**](milestones/v1.1-ROADMAP.md)

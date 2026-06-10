@@ -14,14 +14,27 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 
 ## Current State
 
-**Shipped:** v1.2 Production Surface on 2026-06-09 — see `.planning/milestones/v1.2-ROADMAP.md`.
+**Shipped:** v1.4 Catalog & Events on 2026-06-10 — see `.planning/milestones/v1.4-ROADMAP.md`.
 
-oarlock now exposes a fully typed, documented, and resilient consumer surface:
+oarlock now exposes a fully typed, documented, and resilient consumer surface including core entities, events, and notification settings:
+- Catalog read surface (`Paddle.Products` and `Paddle.Prices` list/get) with auto-pagination.
+- Event history retrieval (`Paddle.Events` list/get) fully integrated with the existing webhook structs.
+- Notification Settings (`Paddle.NotificationSettings` management) with full CRUD support.
+- Reliability primitives: idempotency keys, automatic retries, and transport error normalization.
+- Subscriptions surface: `pause`, `resume`, and validated recurring-start flows.
+- Process guard preventing SUMMARY drift.
+
+<details>
+<summary>v1.2 Production Surface (Shipped 2026-06-09)</summary>
+
+oarlock exposed a fully typed, documented, and resilient consumer surface:
 - Reliability primitives: idempotency keys, automatic retries, and transport error normalization.
 - Pagination ergonomics: per-resource `stream/*` + `all/*` helpers.
 - Subscriptions surface: `pause`, `resume`, and validated recurring-start flows.
 - Full type safety and complete `@moduledoc` / `@doc` coverage with guides.
 - Process guard preventing SUMMARY drift.
+
+</details>
 
 <details>
 <summary>v1.1 Accrue Seam Hardening (Shipped 2026-04-29)</summary>
@@ -34,14 +47,9 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 </details>
 
-## Current Milestone: v1.4 Catalog & Events
+## Next Milestone Goals
 
-**Goal:** Complete the read-only foundational entities so consumers can query catalog data and reconcile missed webhooks via the Events API.
-
-**Target features:**
-- Catalog read surface (`Paddle.Products` and `Paddle.Prices` list/get)
-- Event history retrieval (`Paddle.Events` list/get)
-- Notification Settings (`Paddle.NotificationSettings` management)
+_No active milestone. Run `/gsd:new-milestone` to start the next one._
 
 ## Requirements
 
