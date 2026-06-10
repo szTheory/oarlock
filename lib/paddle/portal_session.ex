@@ -35,7 +35,7 @@ defimpl Inspect, for: Paddle.PortalSession do
   def inspect(session, opts) do
     # We construct a representation similar to what @derive {Inspect, except: ...} does
     # but explicitly adding urls: "[REDACTED]"
-    
+
     fields =
       session
       |> Map.from_struct()

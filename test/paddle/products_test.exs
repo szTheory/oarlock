@@ -18,7 +18,8 @@ defmodule Paddle.ProductsTest do
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
 
-      assert {:ok, %Product{id: "pro_01", raw_data: ^response_data}} = Products.get(client, "pro_01")
+      assert {:ok, %Product{id: "pro_01", raw_data: ^response_data}} =
+               Products.get(client, "pro_01")
     end
 
     test "rejects empty strings with {:error, :invalid_product_id}" do
@@ -39,7 +40,8 @@ defmodule Paddle.ProductsTest do
           # include should be dropped
           assert request.options[:params] == %{"status" => "active"}
 
-          {request, Req.Response.new(status: 200, body: %{"data" => [product_payload()], "meta" => %{}})}
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => [product_payload()], "meta" => %{}})}
         end)
 
       assert {:ok, %Page{data: [%Product{id: "pro_01"}]}} =
@@ -49,7 +51,11 @@ defmodule Paddle.ProductsTest do
     test "builds a Page struct with nested Product structs" do
       client =
         client_with_adapter(fn request ->
-          {request, Req.Response.new(status: 200, body: %{"data" => [product_payload()], "meta" => %{"pagination" => %{}}})}
+          {request,
+           Req.Response.new(
+             status: 200,
+             body: %{"data" => [product_payload()], "meta" => %{"pagination" => %{}}}
+           )}
         end)
 
       assert {:ok, %Page{data: [%Product{id: "pro_01"}], meta: %{"pagination" => %{}}}} =

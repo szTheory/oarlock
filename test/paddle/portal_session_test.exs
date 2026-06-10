@@ -16,8 +16,10 @@ defmodule Paddle.PortalSessionTest do
           "subscriptions" => [
             %{
               "id" => "sub_01hvg...",
-              "cancel_subscription" => "https://buy.paddle.com/portal/session/cancel-subscription?...",
-              "update_subscription_payment_method" => "https://buy.paddle.com/portal/session/update-subscription-payment-method?..."
+              "cancel_subscription" =>
+                "https://buy.paddle.com/portal/session/cancel-subscription?...",
+              "update_subscription_payment_method" =>
+                "https://buy.paddle.com/portal/session/update-subscription-payment-method?..."
             }
           ]
         },
@@ -29,7 +31,7 @@ defmodule Paddle.PortalSessionTest do
       assert session.customer_id == "ctm_01hv8..."
       assert session.urls["general"]["overview"] =~ "overview"
     end
-    
+
     test "excludes urls from Inspect" do
       session = %PortalSession{
         id: "cptrsess_01hv8...",
@@ -42,9 +44,9 @@ defmodule Paddle.PortalSessionTest do
         created_at: "2024-04-12T10:49:57.652758Z",
         custom_data: nil
       }
-      
+
       inspected = inspect(session)
-      
+
       assert inspected =~ "cptrsess_01hv8"
       assert inspected =~ "ctm_01hv8"
       refute inspected =~ "secret=true"

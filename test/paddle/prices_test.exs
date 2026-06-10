@@ -44,7 +44,8 @@ defmodule Paddle.PricesTest do
           # include should be dropped
           assert request.options[:params] == %{"status" => "active", "per_page" => 10}
 
-          {request, Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
         end)
 
       assert {:ok, %Page{data: [%Price{id: "pri_01"}], meta: ^meta}} =
@@ -62,7 +63,8 @@ defmodule Paddle.PricesTest do
 
       client =
         client_with_adapter(fn request ->
-          {request, Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
         end)
 
       assert {:ok, page} = Prices.list(client)
