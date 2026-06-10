@@ -3,6 +3,21 @@ defmodule Paddle.Internal.Pagination do
 
   alias Paddle.Error
   alias Paddle.Page
+  alias Paddle.Http
+
+  def build_page(module, data, meta) do
+    %Page{
+      data: Enum.map(data, &Http.build_struct(module, &1)),
+      meta: meta
+    }
+  end
+
+  def next_page(client, module, path) do
+    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
+           Http.request(client, :get, path) do
+      {:ok, build_page(module, data, meta)}
+    end
+  end
 
   def stream(first_page_fun, next_page_fun)
       when is_function(first_page_fun, 0) and is_function(next_page_fun, 1) do
