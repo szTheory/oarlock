@@ -57,6 +57,6 @@ Phase 19: Notification Settings API [....................] 0%
 
 ## Session Continuity
 
-- Phase 17 is fully implemented and verified.
-- Proceed with Phase 18 planning.
-- Resume file: .planning/phases/18-events-api/18-CONTEXT.md
+- Phase 19 context gathered.
+- Proceed with Phase 19 planning.
+- Resume file: .planning/phases/19-notification-settings-api/19-CONTEXT.md
