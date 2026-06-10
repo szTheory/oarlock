@@ -18,9 +18,9 @@
 ### Notification Settings
 - [ ] **NOTIF-01**: User can list notification settings (`Paddle.NotificationSettings.list/2`, `stream/2`, `all/2`).
 - [ ] **NOTIF-02**: User can fetch a single notification setting by ID (`Paddle.NotificationSettings.get/2`).
-- [ ] **NOTIF-03**: User can create a notification setting (`Paddle.NotificationSettings.create/2`).
-- [ ] **NOTIF-04**: User can update a notification setting (`Paddle.NotificationSettings.update/3`).
-- [ ] **NOTIF-05**: User can delete a notification setting (`Paddle.NotificationSettings.delete/2`).
+- [x] **NOTIF-03**: User can create a notification setting (`Paddle.NotificationSettings.create/2`).
+- [x] **NOTIF-04**: User can update a notification setting (`Paddle.NotificationSettings.update/3`).
+- [x] **NOTIF-05**: User can delete a notification setting (`Paddle.NotificationSettings.delete/2`).
 
 ## Future Requirements (Deferred)
 - Create/Update/Delete operations for Products and Prices (most users manage catalog via Paddle Dashboard).
@@ -47,6 +47,6 @@
 | EVT-04 | Phase 18 | Complete |
 | NOTIF-01 | Phase 19 | Pending |
 | NOTIF-02 | Phase 19 | Pending |
-| NOTIF-03 | Phase 19 | Pending |
-| NOTIF-04 | Phase 19 | Pending |
-| NOTIF-05 | Phase 19 | Pending |
+| NOTIF-03 | Phase 19 | Complete |
+| NOTIF-04 | Phase 19 | Complete |
+| NOTIF-05 | Phase 19 | Complete |

@@ -120,20 +120,6 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 *Last updated: 2026-06-10*
- reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
-
----
-*Last updated: 2026-06-09 — v1.3 milestone started.*
 ?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state

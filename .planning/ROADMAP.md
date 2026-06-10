@@ -4,7 +4,7 @@
 
 - [ ] **Phase 17: Catalog API** - Implement read-only endpoints for Products and Prices with auto-pagination.
 - [x] **Phase 18: Events API** - Implement read-only endpoints for Event history using existing webhook structs. (completed 2026-06-10)
-- [ ] **Phase 19: Notification Settings API** - Implement full CRUD operations for Notification Settings.
+- [x] **Phase 19: Notification Settings API** - Implement full CRUD operations for Notification Settings. (completed 2026-06-10)
 
 ## Phase Details
 
@@ -41,8 +41,8 @@
   2. User can list notification settings using standard pagination helpers.
   3. User receives typed `%Paddle.NotificationSetting{}` structs for all operations.
 **Plans**: 2 plans
-- [ ] 19-01-PLAN.md — Base struct and read operations
-- [ ] 19-02-PLAN.md — Mutation operations (create, update, delete)
+- [x] 19-01-PLAN.md — Base struct and read operations
+- [x] 19-02-PLAN.md — Mutation operations (create, update, delete)
 
 ## Progress
 
@@ -50,4 +50,4 @@
 |-------|----------------|--------|-----------|
 | 17. Catalog API | 2/2 | Completed | 2026-06-10 |
 | 18. Events API | 1/1 | Complete    | 2026-06-10 |
-| 19. Notification Settings API | 0/2 | Not started | - |
+| 19. Notification Settings API | 2/2 | Complete   | 2026-06-10 |
