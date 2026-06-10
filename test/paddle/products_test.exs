@@ -37,7 +37,7 @@ defmodule Paddle.ProductsTest do
           assert request.method == :get
           assert request.url.path == "/products"
           # include should be dropped
-          assert request.options[:params] == [status: "active"]
+          assert request.options[:params] == %{"status" => "active"}
 
           {request, Req.Response.new(status: 200, body: %{"data" => [product_payload()], "meta" => %{}})}
         end)
@@ -46,7 +46,7 @@ defmodule Paddle.ProductsTest do
                Products.list(client, status: "active", include: "prices", unknown: "dropped")
     end
 
-    test "delegates response to Paddle.Internal.Pagination.build_page/3" do
+    test "builds a Page struct with nested Product structs" do
       client =
         client_with_adapter(fn request ->
           {request, Req.Response.new(status: 200, body: %{"data" => [product_payload()], "meta" => %{"pagination" => %{}}})}
