@@ -53,7 +53,7 @@ Phase 19: Notification Settings API [....................] 0%
 
 ### Todos
 
-- Run `/gsd:plan-phase 18` to plan the Events API.
+- Run `/gsd:execute-phase 18` to execute the Events API plans.
 
 ## Session Continuity
 
