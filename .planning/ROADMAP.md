@@ -3,7 +3,7 @@
 ## Phases
 
 - [ ] **Phase 17: Catalog API** - Implement read-only endpoints for Products and Prices with auto-pagination.
-- [ ] **Phase 18: Events API** - Implement read-only endpoints for Event history using existing webhook structs.
+- [x] **Phase 18: Events API** - Implement read-only endpoints for Event history using existing webhook structs. (completed 2026-06-10)
 - [ ] **Phase 19: Notification Settings API** - Implement full CRUD operations for Notification Settings.
 
 ## Phase Details
@@ -30,7 +30,7 @@
   3. User receives the same `%Paddle.Event{}` struct for REST events as they do for incoming webhooks.
   4. User is guided by documentation to treat events as triggers and fetch canonical state using other endpoints.
 **Plans**: 1 plan
-- [ ] 18-01-PLAN.md — Implement Paddle.Events API
+- [x] 18-01-PLAN.md — Implement Paddle.Events API
 
 ### Phase 19: Notification Settings API
 **Goal**: Developers can manage webhook destinations and notification settings programmatically.
@@ -47,5 +47,5 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 17. Catalog API | 2/2 | Completed | 2026-06-10 |
-| 18. Events API | 0/1 | Not started | - |
+| 18. Events API | 1/1 | Complete    | 2026-06-10 |
 | 19. Notification Settings API | 0/0 | Not started | - |

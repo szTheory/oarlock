@@ -10,10 +10,10 @@
 - [ ] **CAT-05**: User is warned in documentation about attempting to fetch "Custom" prices/products via the Catalog.
 
 ### Events
-- [ ] **EVT-01**: User can list event history with auto-pagination (`Paddle.Events.list/2`, `Paddle.Events.stream/2`, `Paddle.Events.all/2`).
-- [ ] **EVT-02**: User can fetch a single event by ID (`Paddle.Events.get/2`).
-- [ ] **EVT-03**: Events fetched via the API are parsed into the same `%Paddle.Event{}` struct used by webhook verification.
-- [ ] **EVT-04**: User is guided in documentation to use events as triggers for canonical fetches rather than state.
+- [x] **EVT-01**: User can list event history with auto-pagination (`Paddle.Events.list/2`, `Paddle.Events.stream/2`, `Paddle.Events.all/2`).
+- [x] **EVT-02**: User can fetch a single event by ID (`Paddle.Events.get/2`).
+- [x] **EVT-03**: Events fetched via the API are parsed into the same `%Paddle.Event{}` struct used by webhook verification.
+- [x] **EVT-04**: User is guided in documentation to use events as triggers for canonical fetches rather than state.
 
 ### Notification Settings
 - [ ] **NOTIF-01**: User can list notification settings (`Paddle.NotificationSettings.list/2`, `stream/2`, `all/2`).
@@ -41,10 +41,10 @@
 | CAT-03 | Phase 17 | Pending |
 | CAT-04 | Phase 17 | Pending |
 | CAT-05 | Phase 17 | Pending |
-| EVT-01 | Phase 18 | Pending |
-| EVT-02 | Phase 18 | Pending |
-| EVT-03 | Phase 18 | Pending |
-| EVT-04 | Phase 18 | Pending |
+| EVT-01 | Phase 18 | Complete |
+| EVT-02 | Phase 18 | Complete |
+| EVT-03 | Phase 18 | Complete |
+| EVT-04 | Phase 18 | Complete |
 | NOTIF-01 | Phase 19 | Pending |
 | NOTIF-02 | Phase 19 | Pending |
 | NOTIF-03 | Phase 19 | Pending |
