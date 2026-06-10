@@ -16,7 +16,9 @@
   1. User can list products and prices using auto-paginated stream/list helpers.
   2. User can fetch a single product or price by ID and receive a typed struct.
   3. User is explicitly warned in documentation that custom items created during checkout cannot be fetched via this API.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 17-01-PLAN.md — Implement Paddle.Products API
+- [ ] 17-02-PLAN.md — Implement Paddle.Prices API
 
 ### Phase 18: Events API
 **Goal**: Developers can retrieve and reconcile historical events using the API.
@@ -43,6 +45,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 17. Catalog API | 0/0 | Not started | - |
+| 17. Catalog API | 2/2 | Completed | 2026-06-10 |
 | 18. Events API | 0/0 | Not started | - |
 | 19. Notification Settings API | 0/0 | Not started | - |
