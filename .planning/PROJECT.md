@@ -34,14 +34,14 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 </details>
 
-## Next Milestone Goals
+## Current Milestone: v1.4 Catalog & Events
 
-*Pending definition via `/gsd:new-milestone`.*
+**Goal:** Complete the read-only foundational entities so consumers can query catalog data and reconcile missed webhooks via the Events API.
 
-Potential targets include:
-1. Support operations: refunds/credits via `Paddle.Adjustments`.
-2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
-3. Catalog read surface: products/prices read/list before any broad CRUD.
+**Target features:**
+- Catalog read surface (`Paddle.Products` and `Paddle.Prices` list/get)
+- Event history retrieval (`Paddle.Events` list/get)
+- Notification Settings (`Paddle.NotificationSettings` management)
 
 ## Requirements
 
