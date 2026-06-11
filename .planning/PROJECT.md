@@ -47,9 +47,16 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 </details>
 
-## Next Milestone Goals
+## Current Milestone: v1.5 Demo App & DX Hardening
 
-_No active milestone. Run `/gsd:new-milestone` to start the next one._
+**Goal:** Build a realistic Demo App with a polished Admin UI, e2e tests, and robust Docker DX to serve as adoption evidence and stress-test the `oarlock` SDK.
+
+**Target features:**
+- Isolated Phoenix demo app (`/demo`) using a path dependency
+- Dockerized Traefik environment for conflict-free local DX
+- Admin Dashboard using Tailwind CSS and Petal Components
+- Paddle SaaS Checkout Flow and Customer Portal Session handling
+- Playwright + `phoenix_test` E2E testing simulating webhooks
 
 ## Requirements
 
@@ -81,6 +88,12 @@ _No active milestone. Run `/gsd:new-milestone` to start the next one._
 - [x] **ADJ-01**: Adjustments (`Paddle.Adjustments` for refunds and credits). *(Validated in Phase 15)*
 
 ### Active
+
+- [ ] Demo App Foundation (Docker, Traefik, Phoenix setup)
+- [ ] UI Scaffolding & Mock Auth
+- [ ] Core SaaS Checkout & Webhooks
+- [ ] Customer Portal & Lifecycle Management
+- [ ] Shift-Left E2E Testing Pipeline
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.

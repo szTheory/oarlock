@@ -1,104 +1,66 @@
-# Architecture Patterns: Catalog & Events
+# Architecture Patterns: Demo App Integration
 
-**Domain:** SaaS Billing / API SDK
-**Researched:** 2026-06-09
+**Domain:** Demo Application (SaaS + Apps) for Paddle Elixir SDK (`oarlock`)
+**Researched:** 2026-06-10
 
 ## Recommended Architecture
 
-The addition of Catalog (Products/Prices) and Events seamlessly extends the existing functional and typed architecture of `paddle_sdk` (`oarlock`). We continue with the explicit `%Paddle.Client{}` parameter, reliance on `Req` for the HTTP transport, strict allowlists for query parameters, and per-resource auto-pagination. 
+The Demo App will be an isolated Phoenix application living alongside the library, designed to demonstrate the "Merchant of Record" (MoR) integration pattern using `oarlock` as a path dependency.
 
-### Component Boundaries
+### Integration Point: Path Dependency
+
+**Recommendation:** Build the demo app as a standard Phoenix project in a `/demo` (or `/demo_app`) subdirectory using a path dependency to the local SDK (`{:oarlock, path: "../"}`).
+
+**Why not an Umbrella App?**
+- **Library Purity:** Umbrellas bleed configuration and dependencies. The root `oarlock` library must remain a pure, framework-agnostic package.
+- **Consumer Accuracy:** A path dependency exactly mirrors the Developer Experience (DX) of an end-user integrating `oarlock` into a standalone Phoenix project.
+- **Hex Publishing:** Standard Mix library structures are significantly easier to publish to Hex without accidental inclusion of demo application code.
+
+**Tradeoffs:**
+- Requires separate Mix commands in CI (one for root `oarlock` tests, one for `/demo` tests).
+
+### Boundary with Accrue: Embracing MoR
+
+Accrue abstracts Payment Service Providers (PSPs) like Stripe/Braintree behind a generic processor interface. The Demo App must explicitly avoid this abstraction and lean entirely into Paddle's Merchant of Record (MoR) model.
+
+**How to highlight Paddle's MoR model:**
+- **No Tax or Compliance Logic:** The demo app must not calculate taxes, handle location-based pricing, or manage invoice generation. It relies 100% on Paddle for this.
+- **Hosted Checkout over Custom Forms:** Use Paddle's Hosted Checkout (`Paddle.Transactions.create/2` returning a checkout URL) rather than building custom PCI-compliant credit card forms.
+- **Webhook-Driven Source of Truth:** The demo app's local database (e.g., standard Postgres via Ecto) should be entirely event-driven. Subscriptions and transaction completions should only be updated in the local DB upon successful verification and parsing of Paddle Webhooks (using `Paddle.Webhooks.verify_signature/4`).
+- **Explicit Client Passing:** Instantiate and pass `%Paddle.Client{}` explicitly through context functions, demonstrating multi-tenant safety and avoiding global application configuration.
+
+### CI/CD Architecture: Shift-Left E2E
+
+**Recommendation:** A robust GitHub Actions pipeline running the demo app in Docker, with Playwright for browser-based E2E tests.
+
+**Architecture Details:**
+1. **Dockerized Environment:** The demo app will include a `Dockerfile` and `docker-compose.yml` to spin up the Phoenix server and Postgres database cleanly.
+2. **Playwright E2E:** Use Playwright (Node.js or Elixir bindings) to drive real browser interactions (e.g., clicking "Subscribe", navigating the Admin UI).
+3. **Sandbox vs. Local Webhooks:**
+   - E2E tests should hit a real Paddle Sandbox environment using dedicated CI API keys to prove 100% SDK compatibility.
+   - For webhook verification in CI without exposing a public tunnel (like ngrok), the test suite will programmatically construct signed webhook payloads (mimicking Paddle) and POST them directly to the running demo app's webhook endpoint to trigger asynchronous lifecycle changes (like `subscription.created`).
+4. **Pipeline Matrix:** Modify the existing `.github/workflows/ci.yml` to include a separate job for the Demo App:
+   - Sets up Elixir/Erlang.
+   - Starts Docker services.
+   - Runs Demo App unit/integration tests.
+   - Runs Playwright E2E tests against the running demo app container.
+
+## Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| `Paddle.Product` | Struct defining the Product schema. Maintains forward-compatibility via `:raw_data`. | None |
-| `Paddle.Products` | Read-only API surface (`get`, `list`, `all`, `stream`). | `Paddle.Http`, `Paddle.Internal.Pagination` |
-| `Paddle.Price` | Struct defining the Price schema. Maintains forward-compatibility via `:raw_data`. | None |
-| `Paddle.Prices` | Read-only API surface (`get`, `list`, `all`, `stream`). | `Paddle.Http`, `Paddle.Internal.Pagination` |
-| `Paddle.Events` | Read-only API surface for retrieving event history (`get`, `list`, `all`, `stream`). Reuses existing `Paddle.Event` struct. | `Paddle.Http`, `Paddle.Internal.Pagination`, `Paddle.Event` |
-| `Paddle.NotificationSetting` | Struct defining webhook destination configs, including `endpoint_secret_key` and `subscribed_events`. | None |
-| `Paddle.NotificationSettings` | Full CRUD surface (`create`, `get`, `update`, `delete`, `list`, `all`, `stream`). | `Paddle.Http`, `Paddle.Internal.Pagination` |
-
-### Data Flow
-
-1. **Read Path:** A consumer passes a `%Paddle.Client{}` struct and an entity ID (or query params) to `Paddle.Products.get/2` or `list/2`. The module normalizes params (using `Paddle.Internal.Attrs`), drops un-allowlisted keys, and calls `Paddle.Http.request/4`. The JSON response is parsed into the respective Struct via `Paddle.Http.build_struct/2`.
-2. **Pagination Flow:** Endpoints that return lists are wrapped using `Paddle.Internal.Pagination.all/2` and `stream/2` helpers, exposing an idiomatic Elixir stream interface.
-3. **Event Unification:** Webhooks and the REST API use identical event payload formats. `Paddle.Events.get/2` will return the exact same `%Paddle.Event{}` shape that `Paddle.Webhooks.parse_event/1` generates.
-
-## Patterns to Follow
-
-### Pattern 1: Typed Read-Only Modules
-**What:** Implementing read-only APIs for `Products`, `Prices`, and `Events` without providing `create`, `update`, or `delete` methods, per the current milestone requirements.
-**When:** For foundational catalog items managed via the Paddle Dashboard instead of an app.
-**Example:**
-```elixir
-# lib/paddle/products.ex
-defmodule Paddle.Products do
-  alias Paddle.Client
-  alias Paddle.Http
-  alias Paddle.Product
-  alias Paddle.Internal.Pagination
-
-  @list_allowlist ~w(id status tax_category include order_by after per_page)
-
-  @spec get(Paddle.Client.t(), String.t()) :: {:ok, Paddle.Product.t()} | {:error, Paddle.Error.t() | :invalid_product_id}
-  def get(%Client{} = client, product_id) do
-    # validation, http call, struct building
-  end
-
-  @spec list(Paddle.Client.t(), keyword()) :: {:ok, Paddle.Page.t()} | {:error, Paddle.Error.t()}
-  def list(%Client{} = client, params \\ []) do
-    # allowlist check, http call, map to Page
-  end
-
-  @spec stream(Paddle.Client.t(), keyword()) :: Enumerable.t()
-  def stream(%Client{} = client, params \\ []) do
-    Pagination.stream(fn -> list(client, params) end, &next_page(client, &1))
-  end
-end
-```
-
-### Pattern 2: Struct Reuse for Events
-**What:** `Paddle.Event` was initially built for the `Webhooks` webhook parser. The exact same struct is used for REST API responses in `Paddle.Events`.
-**When:** To maintain data model consistency between push (Webhooks) and pull (API stream) integrations.
-**Example:**
-```elixir
-case Paddle.Events.get(client, "evt_123") do
-  {:ok, %Paddle.Event{} = event} -> 
-    # Can process this identically to an event coming through the webhook router
-    process_event(event)
-end
-```
+| **Root (`/`)** | Pure Elixir SDK (`oarlock`). Parses webhooks, handles HTTP transport, normalizes errors. | Paddle Billing API |
+| **Demo App (`/demo`)** | Phoenix web app. Manages user sessions, Admin UI, SaaS logic, local Postgres state. | Local Postgres, `oarlock` path dep |
+| **Playwright CI** | E2E test runner driving the browser. Simulates user behavior and dispatches signed webhooks. | Demo App HTTP ports |
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Eager Struct Hydration for nested objects
-**What:** Trying to hydrate nested Price objects when calling `Paddle.Products.list(client, include: "prices")`.
-**Why bad:** The API might return relational includes. Adding nested complex relationships within `Paddle.Http.build_struct` makes the core SDK brittle and complex to maintain.
-**Instead:** Rely on `:raw_data` for nested relationships, or instruct consumers to fetch the relationships via `Paddle.Prices.list(client, product_id: product_id)`. Follow the current standard of simple `build_struct` behavior with fallback.
+### Anti-Pattern 1: Ecto/Phoenix coupling in the root SDK
+**What:** Writing `oarlock` helpers that expect `Plug.Conn` or Ecto schemas.
+**Why bad:** Violates the pure-library constraint of `oarlock` and pollutes the Hex package.
+**Instead:** All UI and database mapping must exist strictly within the `/demo` project.
 
-### Anti-Pattern 2: Skipping Allowlists
-**What:** Passing through query options dynamically in `list/2`.
-**Why bad:** Allows bad or unsupported inputs to hit the Paddle API, generating opaque 400 errors instead of quick local validation failures.
-**Instead:** Maintain explicit `@list_allowlist`, `@create_allowlist`, and `@update_allowlist` attributes in each new module.
-
-## Suggested Build Order
-
-To properly handle dependencies and isolate functional areas:
-
-1. **`Paddle.Product` / `Paddle.Products`**: Implement read-only REST APIs and pagination. Add tests for `get`, `list`, `stream`.
-2. **`Paddle.Price` / `Paddle.Prices`**: Implement read-only REST APIs. Add tests. Ensure `product_id` query param filtering works.
-3. **`Paddle.Events`**: Add the new API module. Re-use existing `Paddle.Event` struct. Ensure `list/2` supports filtering by `event_type` and `id` which is critical for Accrue to reconcile missed webhooks.
-4. **`Paddle.NotificationSetting` / `Paddle.NotificationSettings`**: Provide the full CRUD layer. Handle complex types for nested elements like `subscribed_events`.
-
-## Scalability Considerations
-
-| Concern | At 100 users | At 10K users | At 1M users |
-|---------|--------------|--------------|-------------|
-| Missed Webhooks | Ignore or handle manually. | Webhooks occasionally drop. Run cron job hitting `Paddle.Events.stream/2` to verify and ingest missing `subscription.created` events. | Same approach. Paginating the `/events` endpoint sequentially becomes the source of truth, minimizing webhook reliance. |
-
-## Sources
-- [Paddle API Reference: Products](https://developer.paddle.com/api-reference/products/list-products) (HIGH Confidence)
-- [Paddle API Reference: Prices](https://developer.paddle.com/api-reference/prices/list-prices) (HIGH Confidence)
-- [Paddle API Reference: Events](https://developer.paddle.com/api-reference/events/list-events) (HIGH Confidence)
-- [Paddle API Reference: Notification Settings](https://developer.paddle.com/api-reference/notification-settings/list-notification-settings) (HIGH Confidence)
+### Anti-Pattern 2: Duplicating MoR Business Logic
+**What:** Building a custom billing portal or tax calculator in the Demo App.
+**Why bad:** Recreates Accrue's complexity and ignores Paddle's primary value proposition.
+**Instead:** Use Paddle's native Customer Portal (`Paddle.Customers.PortalSessions`) and trust Paddle's API for all financial calculations.

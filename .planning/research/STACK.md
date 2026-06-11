@@ -1,80 +1,58 @@
-# Stack Research
+# Technology Stack
 
-**Domain:** Elixir SDK for Paddle Billing (Catalog & Events)
-**Researched:** 2026-06-09 (Current Milestone)
-**Confidence:** HIGH
+**Project:** oarlock Demo App
+**Researched:** 2024
 
 ## Recommended Stack
 
-No new dependencies are required for the v1.4 Catalog & Events milestone. The existing core stack is 100% sufficient for the required features.
+### Core Framework
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Phoenix & LiveView | 1.7+ | Web Framework & Realtime UI | Standard for modern Elixir web apps. Unmatched productivity for admin interfaces. |
+| Elixir Path Dependency | N/A | App Architecture | Placing the demo in a `/demo` folder with `{:oarlock, path: "../"}` accurately simulates third-party usage without the shared configuration bleed of an Umbrella app. |
 
-### Core Technologies
+### UI / CSS Architecture
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Tailwind CSS | 3.4+ | CSS Architecture | Default in Phoenix 1.7. Scales infinitely better than BEM, has utility classes that map perfectly to isolated Phoenix Components. |
+| Petal Components | 2.x | UI Library | Idiomatic HEEx components built on Tailwind. Dramatically speeds up building an Admin UI (tables, modals, forms) without writing it from scratch. |
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **Req** | `~> 0.5.17` | HTTP Transport & JSON Parsing | Built-in JSON decoding (`jason`), retry mechanisms, and telemetry. Perfectly handles standard REST endpoints for Products, Prices, and Events. |
-| **Elixir** | `~> 1.19` | Language & Types | Built-in `Stream` for auto-pagination. Standard `String.t()` for raw dates (to avoid timezone coupling). |
+### E2E Testing
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Playwright | latest | Browser Automation | Highly deterministic, auto-waiting, and features Trace Viewer for debugging. Eliminates the flakiness often seen in WebDriver-based testing. |
+| phoenix_test | latest | Testing Interface | Provides a unified API. Tests can run as blazing fast `LiveViewTest`s or be promoted to Playwright seamlessly without changing test syntax. |
 
-### Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **Telemetry** | `~> 1.4` | Observability | Already integrated via `Req`. Use to emit events when Catalog queries or Event history fetches complete. |
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **Dialyxir** | Static typing | Ensures the new struct definitions for `Paddle.Products` and `Paddle.Prices` are perfectly typed. |
-| **ExDoc** | Documentation | Used to expose the new read-only surface and Accrue seam guides. |
-
-## Installation
-
-No changes to `mix.exs` needed.
-
-```bash
-# Existing dependencies remain unchanged
-# {:req, "~> 0.5.17"}
-# {:telemetry, "~> 1.4"}
-```
+### Infrastructure (Local DX)
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Docker + Traefik | v3 | Container & Proxy | Traefik acts as a reverse proxy routing `http://demo.docker.localhost` to the app. Avoids port 4000 collisions if running multiple Elixir apps. |
+| PostgreSQL | 16+ | Database | Standard Ecto store. |
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| **Standard Req GET** | Server-Sent Events / WebSockets | Only if Paddle offered an event streaming API, but Paddle Billing v1 Events (`/events`) is a standard paginated JSON REST endpoint. |
-| **Pure Structs** | Ecto Schemas | Only if we were building a full framework-coupled application. Since this is a pure SDK consumed by Accrue, Ecto must be avoided. |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Architecture | Subfolder (Path Dep) | Umbrella App | Umbrellas share global configuration (`config.exs`) which makes the demo app unrepresentative of a real, isolated user implementation. |
+| CSS Architecture | Tailwind | BEM / SASS | Requires mapping CSS classes manually; slower development cycle. Tailwind is officially embraced by Phoenix generators. |
+| UI Component Lib | Petal Components | CoreComponents only | `core_components.ex` is great but lacks advanced Admin UI widgets (dropdowns, cards, data tables) that Petal provides out of the box. |
+| E2E Testing | Playwright | Wallaby | Wallaby relies on Selenium/ChromeDriver which is notoriously flaky with complex JS (LiveView DOM patching). Playwright communicates directly with the browser engine. |
+| Docker DX | Traefik | Dynamic Host Ports | Randomly mapping ports (e.g. `8080:4000`) is confusing and requires manual lookup. Traefik provides predictable local DNS. |
 
-## What NOT to Use
+## Installation
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **Cachex / Nebulex** | The SDK must remain a pure transport layer. Caching catalog data (which rarely changes) is the responsibility of the consumer application (e.g., Accrue). Adding caching to the SDK introduces hidden state and memory overhead. | Let consumers implement their own caching on top of `Paddle.Products.list/2`. |
-| **Ecto** | Violates the explicit constraint: "No Phoenix or Ecto coupling." The SDK must not manage database persistence. | Pure Elixir structs (`%Paddle.Product{}`, `%Paddle.Price{}`) with a `:raw_data` escape hatch. |
-| **NimbleCSV** | Paddle's catalog does not rely on CSV exports. The v1 API uses standard JSON objects for Products and Prices. | Built-in Jason decoding provided by `Req`. |
+```bash
+# Core setup inside /demo
+mix phx.new demo --no-ecto # or with ecto if demo has local DB
+cd demo
 
-## Stack Patterns by Variant
-
-**If adding query parameters (e.g., `include=product` on Prices):**
-- Use `Req`'s `params:` keyword list in the request options.
-- Because `Req` safely encodes URLs and integrates natively with the existing `Paddle.Client`.
-
-**If handling pagination for Events:**
-- Use the existing `Paddle.Page.next_cursor/1` and `stream/*` helpers.
-- Because Paddle's `/events` endpoint uses the exact same cursor-based pagination as Customers and Transactions.
-
-## Version Compatibility
-
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| `oarlock` | Paddle API v1 | Must strictly adhere to the v1 Catalog model (Products and Prices). Do not introduce legacy "Paddle Classic" concepts. |
+# Adding Petal
+mix deps.add petal_components
+mix deps.add phoenix_test_playwright --only test
+```
 
 ## Sources
 
-- `.planning/PROJECT.md` — Verified constraint: pure functional library without UI, database, or Phoenix/Ecto coupling.
-- [Paddle API Docs (Products/Prices)](https://developer.paddle.com/api-reference/products/list-products) — Verified that Catalog API is pure REST/JSON and requires no special handling.
-- [Paddle API Docs (Events)](https://developer.paddle.com/api-reference/events/list-events) — Verified that Events API is standard cursor-paginated REST, not SSE or WebSockets.
-
----
-*Stack research for: Catalog & Events (v1.4)*
-*Researched: 2026-06-09*
+- Phoenix Framework Docs (Tailwind default in 1.7)
+- Elixir Forum (Consensus: Path Dependencies > Umbrella Apps for SDK Demos)
+- `phoenix_test` Documentation (Unified Playwright/LiveView approach)

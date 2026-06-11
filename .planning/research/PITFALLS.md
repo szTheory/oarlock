@@ -1,54 +1,46 @@
 # Domain Pitfalls
 
-**Domain:** Paddle Billing API (Catalog & Events)
-**Researched:** 2026-06-09
+**Domain:** Elixir SDK Demo Application (SaaS + Admin UI)
+**Researched:** 2024
 
 ## Critical Pitfalls
 
 Mistakes that cause rewrites or major issues.
 
-### Pitfall 1: Pagination Cursor Mishandling for Events
-**What goes wrong:** Skipping events or getting stuck in an infinite polling loop when reconciling webhook history.
-**Why it happens:** Paddle's Events API is purely cursor-based. Developers often try to manually extract the `after` cursor and rebuild the query string, dropping important filters, or they try to use standard offset pagination.
-**Consequences:** Skipped events lead to desynced databases where customers are billed but not provisioned, or canceled but still have access.
-**Prevention:** The SDK's `all/*` and `stream/*` pagination helpers must blindly follow the exact `meta.pagination.next` URL provided in the response rather than attempting to construct the next request manually.
-**Detection:** Missing data reports in downstream consumers, or API 400s from malformed cursor queries.
+### Pitfall 1: E2E Database Sandboxing
+**What goes wrong:** Playwright browser requests and the ExUnit test process operate in different database transactions, causing the browser to see an empty database while the test runner sees the seeded data.
+**Why it happens:** Ecto SQL Sandbox isolates tests to individual DB transactions. The external Node.js/Playwright process isn't natively aware of this Elixir process ID.
+**Consequences:** E2E tests fail mysteriously claiming data doesn't exist.
+**Prevention:** Use `phoenix_test` which manages the user-agent header passing or explicit metadata passing to link the Ecto Sandbox to the web request. Ensure `Phoenix.Ecto.SQL.Sandbox` is configured in `endpoint.ex` for the `:test` environment.
+**Detection:** Flaky test suites where data assertions fail only in the browser context.
 
-### Pitfall 2: Custom vs. Standard Catalog Item Blindness
-**What goes wrong:** Fetching a transaction's items and attempting to look up their details via `Paddle.Prices.get/2`, resulting in an unexpected `404 Not Found`.
-**Why it happens:** Paddle Billing allows for "Custom" prices/products created on the fly during checkout, alongside "Standard" catalog items. Custom items do not exist in the canonical Catalog and will not be returned by the `/products` or `/prices` endpoints.
-**Consequences:** Hard crashes in SDK consumers attempting to hydrate or reconcile all items using the Catalog API.
-**Prevention:** The SDK must clearly document this distinction in the `@moduledoc` for `Paddle.Products` and `Paddle.Prices`. The SDK should not attempt to automatically "hydrate" transaction line items using catalog lookups behind the scenes.
-**Detection:** Unhandled `404` errors in consumer logs when processing transactions.
+### Pitfall 2: Local Port Collisions
+**What goes wrong:** Running `mix phx.server` or `docker compose up` fails because port 4000 or 5432 is already bound by another project.
+**Why it happens:** Elixir developers typically have multiple Phoenix apps running on standard ports.
+**Consequences:** Developers evaluating the SDK cannot boot the demo app.
+**Prevention:** Use Traefik as a reverse proxy in Docker, routing hostnames (e.g., `demo.docker.localhost`) rather than exposing raw ports, or use dynamic port binding.
+**Detection:** `EADDRINUSE` errors on boot.
 
 ## Moderate Pitfalls
 
-### Pitfall 1: Event State "Source of Truth" Blindness
-**What goes wrong:** A consumer polls the `Paddle.Events` API for missed webhooks and directly saves the `data` payload of the event to their database, inadvertently regressing a user's state.
-**Why it happens:** Events are immutable historical records. If an app processes a `subscription.updated` event from 4 hours ago, but the user canceled 10 minutes ago, saving the event's payload overwrites the cancellation.
-**Prevention:** Add explicit warnings in the `Paddle.Events` module documentation that events are *triggers*, not truth. Advise consumers to use the event to know *what* changed, but to call `Paddle.Subscriptions.get/2` or `Paddle.Transactions.get/2` to fetch the current canonical state.
-
-### Pitfall 2: Exhausting API Limits via "All Events"
-**What goes wrong:** Polling the Events API without filters, triggering Paddle's 240 requests/minute rate limit.
-**Why it happens:** The events stream is incredibly noisy. Fetching it blindly for reconciliation generates massive payloads and requires rapid pagination.
-**Prevention:** The `Paddle.Events.list/2` function should encourage the use of `event_type` filtering (e.g., only fetching `subscription.*` events) through examples in its `@doc` block.
+### Pitfall 1: Umbrella App Tight Coupling
+**What goes wrong:** The demo app inadvertently relies on configuration or dependencies that exist globally in the Umbrella, but won't exist when a real user installs the SDK.
+**Prevention:** Avoid an Umbrella app. Place the demo in a `/demo` folder and rely on the SDK as a path dependency (`{:oarlock, path: "../"}`).
 
 ## Minor Pitfalls
 
-### Pitfall 1: Mixing Billing Intervals
-**What goes wrong:** Attempting to combine different Prices in a single checkout/transaction fails with an API error.
-**Why it happens:** Paddle Billing strictly prohibits mixing intervals (e.g., a monthly subscription and an annual add-on) in the same transaction.
-**Prevention:** Note this limitation in the Catalog documentation to guide users on how to properly structure their Products and Prices.
+### Pitfall 1: BEM or Custom CSS Technical Debt
+**What goes wrong:** Spending hours building responsive tables and modals for an Admin UI instead of focusing on SDK features.
+**Prevention:** Adopt Tailwind CSS and an established component library like Petal Components.
 
 ## Phase-Specific Warnings
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Events Retrieval (`Paddle.Events`) | Breaking cursor pagination. | Ensure `PAGE-01` helpers (auto-pagination) natively follow the `meta.pagination.next` full URL instead of manually rebuilding query parameters. |
-| Catalog Listing (`Paddle.Products`) | Assuming Custom items appear in lists. | Document the Standard vs. Custom distinction clearly in the `@moduledoc`. |
-| Events Reconciliation | Using old event payloads as truth. | Warn in `Paddle.Events` documentation to fetch canonical state using `Paddle.Subscriptions.get/2` rather than applying event data directly. |
+| Docker DX | Caching issues with Elixir deps compilation. | Use multi-stage Dockerfiles caching `mix.lock` and running `mix deps.get` prior to copying app source. |
+| Webhook Handling | Signature verification fails locally because ngrok alters headers or local host doesn't match. | Carefully pass raw body and headers to the `oarlock` verification functions in a custom Plug. |
 
 ## Sources
 
-- **HIGH Confidence:** Paddle Official Documentation (Cursor pagination, Standard vs Custom items, Billing intervals limit).
-- **HIGH Confidence:** hookwatch.dev (Event Ordering, State Synchronization pitfalls for Paddle v2).
+- Phoenix Framework issues (Ecto Sandbox integration).
+- Elixir developer community forum threads on Umbrella app caveats.
