@@ -30,7 +30,10 @@ defmodule Paddle.NotificationSettingTest do
         "api_version" => 1,
         "include_sensitive_fields" => true,
         "subscribed_events" => [
-          %{"name" => "transaction.completed", "description" => "When a transaction is completed."}
+          %{
+            "name" => "transaction.completed",
+            "description" => "When a transaction is completed."
+          }
         ],
         "endpoint_secret_key" => "pdl_sec_xxx",
         "ignored_key" => "kept in raw only"
@@ -45,7 +48,10 @@ defmodule Paddle.NotificationSettingTest do
                api_version: 1,
                include_sensitive_fields: true,
                subscribed_events: [
-                 %{"name" => "transaction.completed", "description" => "When a transaction is completed."}
+                 %{
+                   "name" => "transaction.completed",
+                   "description" => "When a transaction is completed."
+                 }
                ],
                endpoint_secret_key: "pdl_sec_xxx",
                raw_data: ^data

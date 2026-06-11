@@ -20,7 +20,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/notification-settings"
-          
+
           # Notice api_version, type, destination, etc., and dropped extra_field
           assert Jason.decode!(IO.iodata_to_binary(request.body)) ==
                    %{
@@ -76,7 +76,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/notification-settings/ntfset_01"
-          
+
           assert Jason.decode!(IO.iodata_to_binary(request.body)) == %{"active" => false}
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
@@ -85,7 +85,8 @@ defmodule Paddle.NotificationSettingsTest do
       attrs = %{
         active: false,
         extra_field: "should be dropped",
-        api_version: 1 # allowed in create but not update, should be dropped
+        # allowed in create but not update, should be dropped
+        api_version: 1
       }
 
       assert {:ok, %NotificationSetting{id: "ntfset_01", active: false}} =
@@ -94,7 +95,9 @@ defmodule Paddle.NotificationSettingsTest do
 
     test "returns error for blank id" do
       client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
-      assert {:error, :invalid_notification_setting_id} = NotificationSettings.update(client, "", %{})
+
+      assert {:error, :invalid_notification_setting_id} =
+               NotificationSettings.update(client, "", %{})
     end
   end
 

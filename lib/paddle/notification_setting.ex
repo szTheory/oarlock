@@ -3,7 +3,7 @@ defmodule Paddle.NotificationSetting do
   Represents a Paddle Notification Setting.
 
   Notification settings control where and how webhooks are delivered.
-  
+
   **Note:** The `endpoint_secret_key` field is only returned immediately upon 
   creation of a new notification setting and will be `nil` in all subsequent 
   retrieval requests (such as `get/2`, `list/2`, etc). You must store this 

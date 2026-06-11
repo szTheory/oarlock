@@ -27,7 +27,12 @@ defmodule Paddle.NotificationSettings do
          :ok <- validate_api_version(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/notification-settings", Keyword.merge([json: body], opts)) do
+           Http.request(
+             client,
+             :post,
+             "/notification-settings",
+             Keyword.merge([json: body], opts)
+           ) do
       {:ok, Http.build_struct(NotificationSetting, data)}
     end
   end
