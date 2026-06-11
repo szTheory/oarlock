@@ -46,6 +46,8 @@ defmodule Paddle.Subscriptions do
   @list_allowlist ~w(id customer_id address_id price_id status
                      scheduled_change_action collection_mode
                      next_billed_at order_by after per_page)
+  
+  @update_allowlist ~w(customer_id address_id business_id currency_code next_billed_at discount collection_mode billing_details scheduled_change custom_data proration_billing_mode items)
 
   @doc """
   Retrieves a subscription by ID.
@@ -74,6 +76,38 @@ defmodule Paddle.Subscriptions do
     with :ok <- validate_subscription_id(subscription_id),
          {:ok, %{"data" => data}} when is_map(data) <-
            Http.request(client, :get, subscription_path(subscription_id)) do
+      {:ok, build_subscription(data)}
+    end
+  end
+
+  @doc """
+  Updates a subscription.
+
+  ## Examples
+
+  ```elixir
+  # Immediate upgrade
+  case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "prorated_immediately") do
+    {:ok, %Paddle.Subscription{} = subscription} -> subscription
+  end
+  
+  # Scheduled downgrade
+  case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "next_billing_period") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      # subscription.scheduled_change will be populated
+      subscription
+  end
+  ```
+  """
+  @spec update(Paddle.Client.t(), subscription_id(), map() | keyword()) ::
+          {:ok, Paddle.Subscription.t()}
+          | {:error, Paddle.Error.t() | :invalid_subscription_id | :invalid_params}
+  def update(%Client{} = client, subscription_id, params) do
+    with :ok <- validate_subscription_id(subscription_id),
+         {:ok, params_map} <- normalize_params(params),
+         body <- Attrs.allowlist(params_map, @update_allowlist),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :patch, subscription_path(subscription_id), json: body) do
       {:ok, build_subscription(data)}
     end
   end
