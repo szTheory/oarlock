@@ -25,11 +25,22 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/demo"
 import topbar from "../vendor/topbar"
 
+const Hooks = {}
+
+Hooks.PaddleCheckout = {
+  mounted() {
+    this.handleEvent("open_checkout", ({ url }) => {
+      // Open the Paddle checkout overlay using the backend-generated URL
+      Paddle.Checkout.open({ settings: { displayMode: "overlay" }, transactionId: url.split("=")[1] || url })
+    })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...Hooks},
 })
 
 // Show progress bar on live navigation and form submits

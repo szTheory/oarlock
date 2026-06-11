@@ -18,6 +18,10 @@ defmodule DemoWeb.Router do
     plug :redirect_if_user_is_authenticated
   end
 
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
   def require_authenticated_user(conn, opts), do: DemoWeb.MockAuth.require_authenticated_user(conn, opts)
   def redirect_if_user_is_authenticated(conn, opts), do: DemoWeb.MockAuth.redirect_if_user_is_authenticated(conn, opts)
 
@@ -36,6 +40,12 @@ defmodule DemoWeb.Router do
       live "/login", LoginLive, :new
       get "/", PageController, :home
     end
+  end
+
+  scope "/webhooks", DemoWeb do
+    # API pipeline to skip CSRF for webhooks
+    pipe_through :api
+    post "/paddle", WebhookController, :paddle
   end
 
   # Admin routes
