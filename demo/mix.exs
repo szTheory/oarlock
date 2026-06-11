@@ -65,7 +65,8 @@ defmodule Demo.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:paddle, path: "../"},
-      {:petal_components, "~> 2.4"}
+      {:petal_components, "~> 2.4"},
+      {:phoenix_test, ">= 0.4.0", only: :test, runtime: false}
     ]
   end
 

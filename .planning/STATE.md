@@ -64,10 +64,9 @@ Milestone Audit [....................] 0%
 
 ### Todos
 
-- Begin planning Phase 24: Shift-Left E2E Testing Pipeline.
+- Perform the Milestone v1.5 Audit and finalize the release.
 
 ## Session Continuity
 
-- Completed Phase 23 (Customer Portal & Lifecycle Management). The Demo App elegantly redirects to Paddle's Customer Portal and correctly handles subsequent lifecycle webhooks (like `subscription.canceled`).
-- Ready to proceed to `/gsd:plan-phase 24`.
-gsd:plan-phase 23`.
+- Completed Phase 24 (Shift-Left E2E Testing Pipeline). The UI flows and cryptographically simulated webhooks are now rigorously tested via `phoenix_test`. Milestone v1.5 is functionally complete.
+- Ready to proceed to `/gsd:milestone-audit`.
