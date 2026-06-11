@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Demo App & DX Hardening
+milestone: v2.0
+milestone_name: Offline Mode & Advanced Billing
 status: planning
-last_updated: "2026-06-11T00:20:00.000Z"
+last_updated: "2026-06-11T12:00:00.000Z"
 last_activity: 2026-06-11
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -18,32 +18,27 @@ progress:
 ## Project Reference
 
 **Core Value**: A production-quality, idiomatic Elixir SDK for Paddle Billing (`paddle_sdk`) serving as a pure, standalone foundation for Accrue's "second processor" strategy.
-**Current Focus**: Delivering v1.5 (Demo App & DX Hardening) - building a realistic Demo App with a polished Admin UI, e2e tests, and robust Docker DX to serve as adoption evidence and stress-test the `oarlock` SDK.
+**Current Focus**: Delivering v2.0 (Offline Mode & Advanced Billing) - establishing an isolated testing mode without hitting the real Paddle sandbox and building complex upgrade/downgrade logic.
 
 ## Current Position
 
-Phase: Complete
+Phase: Pre-Planning
 Plan: —
-Status: Milestone v1.5 Complete
-Last activity: Performed Milestone v1.5 Audit
+Status: Scoping Requirements
+Last activity: Archived Milestone v1.5
 
 ### Progress
 
-Phase 20: Local DX & Repository Foundation [####################] 100%
-Phase 21: UI Scaffolding & Mock Auth [####################] 100%
-Phase 22: Core SaaS Checkout & Webhooks [####################] 100%
-Phase 23: Customer Portal & Lifecycle Management [####################] 100%
-Phase 24: Shift-Left E2E Testing Pipeline [####################] 100%
-Milestone Audit [####################] 100%
+Phase 25: TBD [....................] 0%
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 
-- Requirement Coverage: 15/15 mapped (100%)
-- Success Criteria: 14 defined
-- Current Milestone: v1.5
+- Requirement Coverage: 0/2 mapped (0%)
+- Success Criteria: 0 defined
+- Current Milestone: v2.0
 
 ## Accumulated Context
 
@@ -54,8 +49,7 @@ Milestone Audit [####################] 100%
 - Rely on built-in Elixir `Stream` for auto-pagination.
 - Strictly map JSON responses to explicit typed structs with `:raw_data` escape hatches.
 - Reuse existing `%Paddle.Event{}` for the Events REST API.
-- Followed strict CRUD pattern without domain-specific verbs (e.g., no enable/disable helpers) for notification settings.
-- Explicitly validated for api_version on create but didn't mandate it on update for notification settings.
+- Followed strict CRUD pattern without domain-specific verbs (e.g., notification settings).
 - **Milestone v1.5:** The demo app is isolated in `/demo` as a path dependency; explicitly avoided Umbrella Apps for SDK demo structure.
 
 ### Known Technical Debt / Blockers
@@ -64,10 +58,9 @@ Milestone Audit [####################] 100%
 
 ### Todos
 
-- Tag the release `v1.5` and archive the milestone files.
-- Draft the requirements for the next milestone (v2.0).
+- Draft the requirements for the next milestone (v2.0) and generate a new Roadmap.
 
 ## Session Continuity
 
-- Completed the v1.5 Milestone Audit. All 15 requirements have been successfully verified, and the milestone is recorded in `MILESTONES.md`.
-- Ready to archive or start the next milestone.
+- Archived v1.5. Created clean slates for `.planning/ROADMAP.md` and `.planning/REQUIREMENTS.md` targeting v2.0.
+- Ready to begin `.planning/ROADMAP.md` creation for v2.0.
