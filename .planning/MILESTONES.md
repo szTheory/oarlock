@@ -4,6 +4,35 @@ Chronological record of shipped milestones. Newest first.
 
 ---
 
+## v1.5 Demo App & DX Hardening — 2026-06-11
+
+**Status:** ✅ Shipped
+**Phases:** 20-24 (5 plans)
+**Test suite at tag:** Passes locally (E2E simulation integrated)
+
+### Delivered
+
+1. **Local DX & Repository Foundation** - Standalone `/demo` Phoenix 1.7+ project created using Docker Compose and Traefik for an isolated evaluation environment free of port collisions.
+2. **UI Scaffolding & Mock Auth** - Integrated Petal Components and a frictionless mock authentication flow protecting the `/admin` boundary.
+3. **Core SaaS Checkout & Webhooks** - Built backend-driven Paddle SaaS checkout. Implemented `DemoWeb.WebhookController` using a unified persistent inbox pattern, effectively securing the event ingress via `Paddle.Webhooks.verify_signature/4`.
+4. **Customer Portal & Lifecycle Management** - Engineered a robust LiveView `open_portal` event invoking the newly authored `Paddle.PortalSessions.create/2`. Gracefully extended the webhook listener to ingest `subscription.canceled` and `subscription.paused` payloads identically to creation events.
+5. **Shift-Left E2E Testing Pipeline** - Converted Playwright UI mandates into a deterministic Elixir-native workflow using `phoenix_test`. Constructed `DemoWeb.WebhookSimulator` to inject mathematically valid HMAC-SHA256 test payloads dynamically through the actual endpoint to confidently test the local DB persistence and real-time PubSub UI.
+
+### Key Decisions
+
+- Selected `phoenix_test` to verify browser logic deterministically inside ExUnit instead of provisioning an external headless framework.
+- Persisted webhooks prior to evaluation (`webhook_events` schema) in accordance with the industry-standard event inbox strategy.
+- Adopted the "Second Processor" standard by exclusively wrapping frontend components around server-side SDK execution instead of allowing purely frontend initialization.
+
+### Archive
+
+- Roadmap: `.planning/ROADMAP.md`
+- Requirements: `.planning/REQUIREMENTS.md`
+- Audit: `.planning/v1.5-MILESTONE-AUDIT.md`
+- Tag: `v1.5`
+
+---
+
 ## v1.3 Support & Self-Serve Surface — 2026-06-09
 
 **Status:** ✅ Shipped
