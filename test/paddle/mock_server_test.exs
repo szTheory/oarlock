@@ -50,6 +50,18 @@ defmodule Paddle.MockServerTest do
     assert session.urls["general"]["url"] == "https://sandbox-my.paddle.com/mock-portal-session"
   end
 
+  test "PATCH /subscriptions/:id returns a mocked subscription updated payload for immediate proration", %{client: client} do
+    assert {:ok, %Paddle.Subscription{} = sub} = Paddle.Subscriptions.update(client, "sub_mock456", %{proration_billing_mode: "prorated_immediately"})
+    assert sub.id == "sub_mock456"
+    assert sub.scheduled_change == nil
+  end
+
+  test "PATCH /subscriptions/:id returns a mocked scheduled change payload for next billing period", %{client: client} do
+    assert {:ok, %Paddle.Subscription{} = sub} = Paddle.Subscriptions.update(client, "sub_mock456", %{proration_billing_mode: "next_billing_period"})
+    assert sub.id == "sub_mock456"
+    assert %Paddle.Subscription.ScheduledChange{action: "pause", effective_at: "2026-12-01T12:00:00Z"} = sub.scheduled_change
+  end
+
   test "Fallback route returns 404 for unknown endpoints", %{client: client} do
     # Triggering an unknown path natively via Req to test the fallback router
     response = Req.get!("#{client.base_url}/unknown-endpoint")

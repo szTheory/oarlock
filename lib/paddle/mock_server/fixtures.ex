@@ -94,4 +94,47 @@ defmodule Paddle.MockServer.Fixtures do
       "created_at" => "2026-01-01T12:00:00.000000Z"
     }
   end
+
+  def subscription_updated(id \\ "sub_mock123") do
+    %{
+      "id" => id,
+      "status" => "active",
+      "customer_id" => "ctm_mock123",
+      "address_id" => "add_mock123",
+      "business_id" => nil,
+      "currency_code" => "USD",
+      "collection_mode" => "automatic",
+      "custom_data" => %{},
+      "items" => [],
+      "scheduled_change" => nil,
+      "management_urls" => %{
+        "update_payment_method" => "https://buyer-portal.paddle.com/subscriptions/#{id}/update-payment-method",
+        "cancel" => "https://buyer-portal.paddle.com/subscriptions/#{id}/cancel"
+      },
+      "current_billing_period" => %{
+        "starts_at" => "2026-01-01T12:00:00.000000Z",
+        "ends_at" => "2026-02-01T12:00:00.000000Z"
+      },
+      "billing_cycle" => %{"frequency" => 1, "interval" => "month"},
+      "billing_details" => nil,
+      "discount" => nil,
+      "next_billed_at" => "2026-02-01T12:00:00.000000Z",
+      "started_at" => "2026-01-01T12:00:00.000000Z",
+      "first_billed_at" => "2026-01-01T12:00:00.000000Z",
+      "paused_at" => nil,
+      "canceled_at" => nil,
+      "created_at" => "2026-01-01T12:00:00.000000Z",
+      "updated_at" => "2026-01-15T12:00:00.000000Z",
+      "import_meta" => nil
+    }
+  end
+
+  def subscription_scheduled_change(id \\ "sub_mock123") do
+    base = subscription_updated(id)
+    Map.put(base, "scheduled_change", %{
+      "action" => "pause",
+      "effective_at" => "2026-12-01T12:00:00Z",
+      "resume_at" => nil
+    })
+  end
 end

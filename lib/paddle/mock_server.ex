@@ -58,6 +58,21 @@ defmodule Paddle.MockServer do
     send_json(conn, 201, Fixtures.portal_session(id))
   end
 
+  # --- Subscriptions ---
+
+  patch "/subscriptions/:id" do
+    mode = conn.body_params["proration_billing_mode"]
+
+    fixture =
+      if mode == "next_billing_period" do
+        Fixtures.subscription_scheduled_change(id)
+      else
+        Fixtures.subscription_updated(id)
+      end
+
+    send_json(conn, 200, fixture)
+  end
+
   # --- Transactions ---
 
   post "/transactions" do
