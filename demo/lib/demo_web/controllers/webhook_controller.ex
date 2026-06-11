@@ -47,7 +47,13 @@ defmodule DemoWeb.WebhookController do
 
   defp process_event(event_record) do
     case Paddle.Webhooks.parse_event(Jason.encode!(event_record.raw_data)) do
-      {:ok, %Paddle.Event{event_type: event_type} = event} when event_type in ["subscription.created", "subscription.updated"] ->
+      {:ok, %Paddle.Event{event_type: event_type} = event} when event_type in [
+        "subscription.created", 
+        "subscription.updated", 
+        "subscription.canceled", 
+        "subscription.past_due", 
+        "subscription.paused"
+      ] ->
         handle_subscription_change(event)
         Billing.update_webhook_event(event_record, %{status: "processed", processed_at: DateTime.utc_now()})
 

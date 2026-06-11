@@ -64,9 +64,10 @@ Milestone Audit [....................] 0%
 
 ### Todos
 
-- Begin planning Phase 23: Customer Portal & Lifecycle Management.
+- Begin planning Phase 24: Shift-Left E2E Testing Pipeline.
 
 ## Session Continuity
 
-- Completed Phase 22 (Core SaaS Checkout & Webhooks). The backend-driven checkout initiates properly and cryptographically verified webhooks reliably upsert the local subscription state via a persistent inbox.
-- Ready to proceed to `/gsd:plan-phase 23`.
+- Completed Phase 23 (Customer Portal & Lifecycle Management). The Demo App elegantly redirects to Paddle's Customer Portal and correctly handles subsequent lifecycle webhooks (like `subscription.canceled`).
+- Ready to proceed to `/gsd:plan-phase 24`.
+gsd:plan-phase 23`.

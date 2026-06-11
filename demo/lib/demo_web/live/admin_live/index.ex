@@ -20,10 +20,6 @@ defmodule DemoWeb.AdminLive.Index do
             <.icon name="hero-shopping-cart" class="w-5 h-5 text-gray-400" />
             Checkout Active
           </div>
-          <div class="px-3 py-2 text-sm font-medium text-gray-500 opacity-50 flex items-center gap-3 cursor-not-allowed">
-            <.icon name="hero-user" class="w-5 h-5 text-gray-400" />
-            Portal (Soon)
-          </div>
         </nav>
       </aside>
 
@@ -58,18 +54,25 @@ defmodule DemoWeb.AdminLive.Index do
 
               <.card>
                 <div class="flex flex-col items-center justify-center py-8 text-center px-4">
-                  <%= if @subscription do %>
+                  <%= if @subscription && @subscription.status != "canceled" do %>
                     <.icon name="hero-star-solid" class="w-16 h-16 text-yellow-500 mb-4" />
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Subscription Active</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4">
                       Status: <span class="capitalize font-semibold text-primary-500"><%= @subscription.status %></span><br/>
                       Renews: <%= Calendar.strftime(@subscription.current_period_end, "%B %d, %Y") %>
                     </p>
+                    <.button phx-click="open_portal" color="white" variant="outline" disabled={@portal_loading}>
+                      <%= if @portal_loading, do: "Loading...", else: "Manage Subscription" %>
+                    </.button>
                   <% else %>
                     <.icon name="hero-shopping-bag-solid" class="w-16 h-16 text-blue-500 mb-4" />
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">No Active Subscription</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4">
-                      Purchase a plan to unlock premium features.
+                      <%= if @subscription && @subscription.status == "canceled" do %>
+                        Your subscription has been canceled. Resubscribe below.
+                      <% else %>
+                        Purchase a plan to unlock premium features.
+                      <% end %>
                     </p>
                     <.button phx-click="subscribe_now" color="primary" disabled={@checkout_loading}>
                       <%= if @checkout_loading, do: "Loading...", else: "Subscribe Now" %>
@@ -94,6 +97,7 @@ defmodule DemoWeb.AdminLive.Index do
       socket
       |> assign(:layout, false)
       |> assign(:checkout_loading, false)
+      |> assign(:portal_loading, false)
       |> load_subscription()
 
     {:ok, socket, layout: false}
@@ -101,6 +105,26 @@ defmodule DemoWeb.AdminLive.Index do
 
   def handle_info(:subscription_updated, socket) do
     {:noreply, load_subscription(socket)}
+  end
+
+  def handle_event("open_portal", _, socket) do
+    socket = assign(socket, :portal_loading, true)
+    client = Paddle.Client.new!(bearer_token: System.get_env("PADDLE_API_KEY") || "pdl_sandbox_test_token")
+
+    case Paddle.PortalSessions.create(client, %{"customer_id" => socket.assigns.subscription.paddle_customer_id}) do
+      {:ok, %Paddle.PortalSession{} = session} ->
+        # Redirect the user to the portal
+        {:noreply, redirect(socket, external: session.urls["general"]["url"])}
+
+      {:error, error} ->
+        Logger.error("Portal generation failed: #{inspect(error)}")
+        socket = 
+          socket
+          |> assign(:portal_loading, false)
+          |> put_flash(:error, "Failed to load customer portal.")
+        
+        {:noreply, socket}
+    end
   end
 
   def handle_event("subscribe_now", _, socket) do
