@@ -2,7 +2,10 @@ defmodule Paddle.Transaction.Checkout do
   @moduledoc """
   Represents Checkout details for a Paddle Transaction.
 
-  Contains the hosted checkout URL where a customer can pay for the transaction.
+  This is a data struct mapping the nested `checkout` object from the API response.
+
+  Contains fields:
+  - `url`: The hosted checkout URL where a customer can pay for the transaction.
 
   ## Related Paddle docs
   - [Hosted checkout concept](https://developer.paddle.com/concepts/transactions/checkout)
