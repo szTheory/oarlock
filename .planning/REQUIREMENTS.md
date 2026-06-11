@@ -7,14 +7,14 @@
 
 ### Offline Mode & Advanced Billing
 - [ ] **ADV-01**: Fully standalone Offline Mode mock server (likely requiring a `MockPaddle` behavior or isolated port mapping).
-- [ ] **ADV-02**: Complex upgrade/downgrade E2E testing flows via Paddle.
+- [x] **ADV-02**: Complex upgrade/downgrade E2E testing flows via Paddle.
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ADV-01 | Phase 25 | Pending |
-| ADV-02 | Phase 26 | Pending |
+| ADV-02 | Phase 26 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 2 total

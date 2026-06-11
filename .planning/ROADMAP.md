@@ -7,7 +7,7 @@
 ## Phases
 
 - [ ] **Phase 25: Offline Mode Foundation** - Standalone mock server for offline development and testing
-- [ ] **Phase 26: Advanced Subscription Flows E2E** - Complex upgrade and downgrade testing scenarios
+- [x] **Phase 26: Advanced Subscription Flows E2E** - Complex upgrade and downgrade testing scenarios (completed 2026-06-11)
 
 ## Phase Details
 
@@ -31,11 +31,11 @@
   3. Test flows successfully assert against Paddle state (Sandbox or Mock) without manual intervention.
 **Plans**: 2 plans
 - [x] 26-01-PLAN.md — Core update/3 and MockServer capabilities
-- [ ] 26-02-PLAN.md — Advanced E2E Flow tests
+- [x] 26-02-PLAN.md — Advanced E2E Flow tests
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 25. Offline Mode Foundation | 1/1 | Completed | 2026-06-11 |
-| 26. Advanced Subscription Flows E2E | 1/2 | In Progress|  |
+| 26. Advanced Subscription Flows E2E | 2/2 | Complete   | 2026-06-11 |
