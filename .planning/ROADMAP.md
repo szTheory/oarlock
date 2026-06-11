@@ -6,11 +6,11 @@
 
 ## Phases
 
-- [ ] **Phase 20: Local DX & Repository Foundation** - Scaffolds isolated demo app and Docker environment
-- [ ] **Phase 21: UI Scaffolding & Mock Auth** - Implements mock authentication and Petal admin dashboard
-- [ ] **Phase 22: Core SaaS Checkout & Webhooks** - Integrates Paddle Checkout and validated webhook persistence
-- [ ] **Phase 23: Customer Portal & Lifecycle Management** - Adds self-service portal and lifecycle webhook handling
-- [ ] **Phase 24: Shift-Left E2E Testing Pipeline** - Instruments Playwright CI pipeline with webhook simulations
+- [x] **Phase 20: Local DX & Repository Foundation** - Scaffolds isolated demo app and Docker environment
+- [x] **Phase 21: UI Scaffolding & Mock Auth** - Implements mock authentication and Petal admin dashboard
+- [x] **Phase 22: Core SaaS Checkout & Webhooks** - Integrates Paddle Checkout and validated webhook persistence
+- [x] **Phase 23: Customer Portal & Lifecycle Management** - Adds self-service portal and lifecycle webhook handling
+- [x] **Phase 24: Shift-Left E2E Testing Pipeline** - Instruments Playwright CI pipeline with webhook simulations
 
 ## Phase Details
 
