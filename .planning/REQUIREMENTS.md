@@ -13,13 +13,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ADV-01 | TBD | Pending |
-| ADV-02 | TBD | Pending |
+| ADV-01 | Phase 25 | Pending |
+| ADV-02 | Phase 26 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 2 total
-- Mapped to phases: 0
-- Unmapped: 2
+- Mapped to phases: 2
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-11*

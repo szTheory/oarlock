@@ -24,24 +24,27 @@ defmodule Paddle.Client do
 
   @type t :: %__MODULE__{
           api_key: String.t(),
-          environment: :sandbox | :live,
+          environment: :sandbox | :live | :custom,
+          base_url: String.t(),
           req: struct()
         }
 
-  @enforce_keys [:api_key, :environment]
-  defstruct [:api_key, :environment, :req]
+  @enforce_keys [:api_key, :environment, :base_url]
+  defstruct [:api_key, :environment, :base_url, :req]
 
   @doc """
   Creates a new client instance.
 
   Requires the `:api_key` option. The `:environment` defaults to `:sandbox`.
+  You can override the base API URL using the `:base_url` option (useful for mock servers).
 
   ## Examples
 
   ```elixir
   client = Paddle.Client.new!(
     api_key: "sk_test_123",
-    environment: :sandbox
+    base_url: "http://localhost:4001",
+    environment: :custom
   )
   ```
 
@@ -53,10 +56,12 @@ defmodule Paddle.Client do
     api_key = Keyword.fetch!(opts, :api_key)
     environment = Keyword.get(opts, :environment, :sandbox)
 
-    base_url =
+    default_url =
       if environment == :live,
         do: "https://api.paddle.com",
         else: "https://sandbox-api.paddle.com"
+        
+    base_url = Keyword.get(opts, :base_url, default_url)
 
     req =
       Req.new(
@@ -68,6 +73,6 @@ defmodule Paddle.Client do
       )
       |> Paddle.Http.Telemetry.attach()
 
-    %__MODULE__{api_key: api_key, environment: environment, req: req}
+    %__MODULE__{api_key: api_key, environment: environment, base_url: base_url, req: req}
   end
 end

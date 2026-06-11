@@ -109,7 +109,8 @@ defmodule DemoWeb.AdminLive.Index do
 
   def handle_event("open_portal", _, socket) do
     socket = assign(socket, :portal_loading, true)
-    client = Paddle.Client.new!(bearer_token: System.get_env("PADDLE_API_KEY") || "pdl_sandbox_test_token")
+    base_url_opt = if url = Application.get_env(:demo, :paddle_base_url), do: [base_url: url], else: []
+    client = Paddle.Client.new!([api_key: System.get_env("PADDLE_API_KEY") || "pdl_sandbox_test_token"] ++ base_url_opt)
 
     case Paddle.PortalSessions.create(client, %{"customer_id" => socket.assigns.subscription.paddle_customer_id}) do
       {:ok, %Paddle.PortalSession{} = session} ->
@@ -131,7 +132,8 @@ defmodule DemoWeb.AdminLive.Index do
     socket = assign(socket, :checkout_loading, true)
     
     # We must instantiate a client context
-    client = Paddle.Client.new!(bearer_token: System.get_env("PADDLE_API_KEY") || "pdl_sandbox_test_token")
+    base_url_opt = if url = Application.get_env(:demo, :paddle_base_url), do: [base_url: url], else: []
+    client = Paddle.Client.new!([api_key: System.get_env("PADDLE_API_KEY") || "pdl_sandbox_test_token"] ++ base_url_opt)
 
     # The seeded mock price ID (ensure this exists in sandbox or mock)
     # Using a generic sandbox price format for now

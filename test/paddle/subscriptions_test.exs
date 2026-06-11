@@ -835,6 +835,7 @@ defmodule Paddle.SubscriptionsTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
     }
   end
@@ -849,6 +850,7 @@ defmodule Paddle.SubscriptionsTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req:
         Req.new(
           base_url: "https://sandbox-api.paddle.com",
