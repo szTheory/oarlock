@@ -2,8 +2,12 @@ defmodule Paddle.Subscription.ScheduledChange do
   @moduledoc """
   Represents a scheduled change for a Paddle Subscription.
 
-  Contains details about actions scheduled to take effect on a subscription
-  at a future date (e.g., pause, cancel, or resume).
+  This is a data struct mapping the nested `scheduled_change` object from the API response.
+
+  Contains fields:
+  - `action`: The type of change scheduled (e.g., `cancel`, `pause`, `resume`).
+  - `effective_at`: The ISO 8601 timestamp when the change will occur.
+  - `resume_at`: The ISO 8601 timestamp when a paused subscription will automatically resume (if applicable).
 
   ## Related Paddle docs
   - [Pause a subscription](https://developer.paddle.com/concepts/subscriptions/pause-subscription)

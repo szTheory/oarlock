@@ -2,8 +2,11 @@ defmodule Paddle.Subscription.ManagementUrls do
   @moduledoc """
   Represents management URLs for a Paddle Subscription.
 
-  Contains URLs that can be provided to customers to manage their subscription,
-  such as updating their payment method or canceling the subscription.
+  This is a data struct mapping the nested `management_urls` object from the API response.
+
+  Contains fields:
+  - `update_payment_method`: A URL to hosted checkout where the customer can update their payment method.
+  - `cancel`: A URL where the customer can cancel their subscription.
 
   ## Related Paddle docs
   - [Subscription API reference](https://developer.paddle.com/api-reference/subscriptions/overview)
