@@ -29,11 +29,13 @@
   1. Automated E2E test suite includes a complete upgrade flow for an active subscription.
   2. Automated E2E test suite includes a complete downgrade flow, verifying prorations and billing cycles.
   3. Test flows successfully assert against Paddle state (Sandbox or Mock) without manual intervention.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 26-01-PLAN.md — Core update/3 and MockServer capabilities
+- [ ] 26-02-PLAN.md — Advanced E2E Flow tests
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 25. Offline Mode Foundation | 1/1 | Completed | 2026-06-11 |
-| 26. Advanced Subscription Flows E2E | 0/0 | Not started | - |
+| 26. Advanced Subscription Flows E2E | 0/2 | Not started | - |
