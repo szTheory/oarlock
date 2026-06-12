@@ -18,13 +18,13 @@ progress:
 ## Project Reference
 
 **Core Value**: A production-quality, idiomatic Elixir SDK for Paddle Billing (`paddle_sdk`) serving as a pure, standalone foundation for Accrue's "second processor" strategy.
-**Current Focus**: Delivering v2.0 (Offline Mode & Advanced Billing) - establishing an isolated testing mode without hitting the real Paddle sandbox and building complex upgrade/downgrade logic.
+**Current Focus**: Planning next milestone
 
 ## Current Position
 
-Phase: 26
+Phase: N/A
 Plan: Not started
-Status: Milestone complete
+Status: Planning next milestone
 Last activity: 2026-06-11
 
 ### Progress
@@ -63,9 +63,11 @@ Phase 26: Advanced Subscription Flows E2E [....................] 0%
 
 ### Todos
 
-- Begin planning Phase 26: Advanced Subscription Flows E2E.
+- Begin planning for the next milestone.
 
 ## Session Continuity
 
 - Completed Phase 25 (Offline Mode Foundation). The SDK now features `Paddle.MockServer` powered by Bandit for frictionless offline development.
-- Ready to proceed to `/gsd:plan-phase 26`.
+- Completed Phase 12 (documentation-pass). All plans executed and verified.
+- Completed Phase 26 (Advanced Subscription Flows E2E). E2E testing fully verifies upgrade and downgrade scenarios.
+- Milestone v2.0 is complete. Ready to proceed to `/gsd:new-milestone`.

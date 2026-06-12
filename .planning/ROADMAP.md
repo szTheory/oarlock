@@ -1,41 +1,27 @@
 # Project Roadmap
 
-**Milestone:** v2.0 Offline Mode & Advanced Billing
-**Granularity:** Coarse
-**Coverage:** 2/2 v2.0 requirements mapped
+## Milestones
+
+- ✅ **v2.0 Offline Mode & Advanced Billing** — Phases 25-26 (shipped 2026-06-11)
+- ✅ **v1.5 Demo App & DX Hardening** — Phases 20-24 (shipped 2026-06-11)
+- ✅ **v1.4 Catalog & Events** — Phases 17-19 (shipped 2026-06-10)
+- ✅ **v1.3 Support & Self-Serve Surface** — Phases 14-16 (shipped 2026-06-09)
+- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09)
+- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29)
 
 ## Phases
 
-- [ ] **Phase 25: Offline Mode Foundation** - Standalone mock server for offline development and testing
-- [x] **Phase 26: Advanced Subscription Flows E2E** - Complex upgrade and downgrade testing scenarios (completed 2026-06-11)
+<details>
+<summary>✅ v2.0 Offline Mode & Advanced Billing (Phases 25-26) — SHIPPED 2026-06-11</summary>
 
-## Phase Details
+- [x] Phase 25: Offline Mode Foundation (1/1 plans) — completed 2026-06-11
+- [x] Phase 26: Advanced Subscription Flows E2E (2/2 plans) — completed 2026-06-11
 
-### Phase 25: Offline Mode Foundation
-**Goal**: Developers can use a standalone mock server for offline Paddle development and testing
-**Depends on**: Nothing
-**Requirements**: ADV-01
-**Success Criteria** (what must be TRUE):
-  1. Developers can run a standalone offline mode mock server locally.
-  2. The mock server responds to core Paddle SDK API requests with valid simulated payloads.
-  3. SDK clients can be configured to point to the offline server seamlessly via configuration.
-**Plans**: TBD
-
-### Phase 26: Advanced Subscription Flows E2E
-**Goal**: Complex upgrade and downgrade subscription scenarios are fully verified via E2E testing
-**Depends on**: Phase 25
-**Requirements**: ADV-02
-**Success Criteria** (what must be TRUE):
-  1. Automated E2E test suite includes a complete upgrade flow for an active subscription.
-  2. Automated E2E test suite includes a complete downgrade flow, verifying prorations and billing cycles.
-  3. Test flows successfully assert against Paddle state (Sandbox or Mock) without manual intervention.
-**Plans**: 2 plans
-- [x] 26-01-PLAN.md — Core update/3 and MockServer capabilities
-- [x] 26-02-PLAN.md — Advanced E2E Flow tests
+</details>
 
 ## Progress
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 25. Offline Mode Foundation | 1/1 | Completed | 2026-06-11 |
-| 26. Advanced Subscription Flows E2E | 2/2 | Complete    | 2026-06-11 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
+| 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |

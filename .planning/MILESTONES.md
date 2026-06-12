@@ -4,6 +4,31 @@ Chronological record of shipped milestones. Newest first.
 
 ---
 
+## v2.0 Offline Mode & Advanced Billing — 2026-06-11
+
+**Status:** ✅ Shipped
+**Phases:** 25-26 (3 plans)
+**Test suite at tag:** Passes locally
+
+### Delivered
+
+1. **Offline Mode Foundation** - Introduced `Paddle.MockServer` powered by Bandit for fully standalone offline Paddle development and testing. SDK clients can seamlessly point to the offline server via configuration.
+2. **Advanced Subscription Flows E2E** - Delivered comprehensive E2E testing flows for complex upgrade and downgrade subscription scenarios, fully verifying prorations and billing cycles against Paddle state without manual intervention.
+
+### Key Decisions
+
+- Selected Bandit for the `Paddle.MockServer` foundation.
+- Accepted incomplete verification (missing VERIFICATION.md) for Phase 25 as technical debt to proceed with shipping.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v2.0-ROADMAP.md`
+- Requirements: `.planning/milestones/v2.0-REQUIREMENTS.md`
+- Audit: `.planning/v2.0-MILESTONE-AUDIT.md`
+- Tag: `v2.0`
+
+---
+
 ## v1.5 Demo App & DX Hardening — 2026-06-11
 
 **Status:** ✅ Shipped

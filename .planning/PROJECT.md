@@ -14,15 +14,29 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 
 ## Current State
 
-**Shipped:** v1.4 Catalog & Events on 2026-06-10 — see `.planning/milestones/v1.4-ROADMAP.md`.
+**Shipped:** v2.0 Offline Mode & Advanced Billing on 2026-06-11 — see `.planning/milestones/v2.0-ROADMAP.md`.
 
-oarlock now exposes a fully typed, documented, and resilient consumer surface including core entities, events, and notification settings:
+oarlock now exposes a fully typed, documented, and resilient consumer surface including core entities, events, notification settings, and a fully standalone Offline Mode mock server:
+- `Paddle.MockServer` powered by Bandit for frictionless offline development.
+- Complex upgrade and downgrade subscription scenarios verified via E2E testing.
+
+<details>
+<summary>v1.5 Demo App & DX Hardening (Shipped 2026-06-11)</summary>
+
+oarlock introduced a realistic Demo App with a polished Admin UI, e2e tests, and robust Docker DX serving as adoption evidence.
+</details>
+
+<details>
+<summary>v1.4 Catalog & Events (Shipped 2026-06-10)</summary>
+
+oarlock exposed a fully typed, documented, and resilient consumer surface including core entities, events, and notification settings:
 - Catalog read surface (`Paddle.Products` and `Paddle.Prices` list/get) with auto-pagination.
 - Event history retrieval (`Paddle.Events` list/get) fully integrated with the existing webhook structs.
 - Notification Settings (`Paddle.NotificationSettings` management) with full CRUD support.
 - Reliability primitives: idempotency keys, automatic retries, and transport error normalization.
 - Subscriptions surface: `pause`, `resume`, and validated recurring-start flows.
 - Process guard preventing SUMMARY drift.
+</details>
 
 <details>
 <summary>v1.2 Production Surface (Shipped 2026-06-09)</summary>
@@ -47,16 +61,9 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 </details>
 
-## Current Milestone: v1.5 Demo App & DX Hardening
+## Next Milestone Goals
 
-**Goal:** Build a realistic Demo App with a polished Admin UI, e2e tests, and robust Docker DX to serve as adoption evidence and stress-test the `oarlock` SDK.
-
-**Target features:**
-- Isolated Phoenix demo app (`/demo`) using a path dependency
-- Dockerized Traefik environment for conflict-free local DX
-- Admin Dashboard using Tailwind CSS and Petal Components
-- Paddle SaaS Checkout Flow and Customer Portal Session handling
-- Playwright + `phoenix_test` E2E testing simulating webhooks
+- To be defined via `/gsd:new-milestone`.
 
 ## Requirements
 
@@ -86,14 +93,12 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 - [x] **PROC-01 / PROC-02**: Pre-commit hook and CI step to prevent SUMMARY drift. *(Validated in Phase 13)*
 - [x] **PORTAL-01**: Customer Portal Sessions (`Paddle.Customers.PortalSessions.create/3`). *(Validated in Phase 14)*
 - [x] **ADJ-01**: Adjustments (`Paddle.Adjustments` for refunds and credits). *(Validated in Phase 15)*
+- [x] **ADV-01**: Fully standalone Offline Mode mock server. *(Validated in Phase 25)*
+- [x] **ADV-02**: Complex upgrade/downgrade E2E testing flows via Paddle. *(Validated in Phase 26)*
 
 ### Active
 
-- [ ] Demo App Foundation (Docker, Traefik, Phoenix setup)
-- [ ] UI Scaffolding & Mock Auth
-- [ ] Core SaaS Checkout & Webhooks
-- [ ] Customer Portal & Lifecycle Management
-- [ ] Shift-Left E2E Testing Pipeline
+(To be populated via `/gsd:new-milestone`)
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -110,6 +115,7 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 | **HTTP Client** | `req` provides modern Elixir standard, built-in JSON, and telemetry out-of-the-box. | `req` selected over Tesla/Finch. |
 | **Response Payloads** | Typed Structs (e.g., `%Paddle.Customer{}`) with a `raw_data` field improve DX while preserving forward-compatibility. | Structs selected over raw Maps. |
 | **Client Instantiation** | Explicit `client` passing supports multi-tenant apps and avoids global application config conflicts. | Explicit structs selected. |
+| **Mock Server** | Standalone Offline Mode using Bandit for frictionless development. | Provided isolated testing environments without sandbox state leak. |
 
 ## Integration Consumers
 
@@ -122,33 +128,5 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 
 Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`.
 
-## Evolution
-
-This document evolves at phase transitions and milestone boundaries.
-
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
-
 ---
 *Last updated: 2026-06-11*
-?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
-
----
-*Last updated: 2026-06-09 — v1.3 milestone started.*
-d?
-4. Update Context with current state
-
----
-*Last updated: 2026-06-09 — v1.3 milestone started.*
