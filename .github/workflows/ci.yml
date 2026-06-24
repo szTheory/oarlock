@@ -55,6 +55,9 @@ jobs:
       - name: Compile (warnings as errors)
         run: mix compile --warnings-as-errors
 
+      - name: Test CI monitor
+        run: node --test scripts/ci_monitor.test.cjs
+
       - name: Run tests
         env:
           MIX_ENV: test
@@ -227,3 +230,48 @@ jobs:
 
       - name: Prove fresh consumer without optional fixture deps
         run: bin/package_smoke.sh
+
+  ci-contract:
+    name: CI contract
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - dialyzer
+      - demo-postgres
+      - package-smoke
+      - optional-deps
+    if: ${{ always() }}
+    steps:
+      - name: Assert required CI jobs passed
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+          GITHUB_SHA_VALUE: ${{ github.sha }}
+          GITHUB_WORKFLOW_VALUE: ${{ github.workflow }}
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT_VALUE: ${{ github.run_attempt }}
+        run: |
+          node <<'NODE'
+          const needs = JSON.parse(process.env.NEEDS_JSON);
+          const required = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps"];
+          const jobs = required.map((id) => ({
+            id,
+            result: needs[id] && needs[id].result,
+          }));
+          const failed = jobs.filter((job) => job.result !== "success");
+          const proof = {
+            sha: process.env.GITHUB_SHA_VALUE,
+            workflow: process.env.GITHUB_WORKFLOW_VALUE,
+            run_id: process.env.GITHUB_RUN_ID_VALUE,
+            run_attempt: process.env.GITHUB_RUN_ATTEMPT_VALUE,
+            required_jobs: jobs,
+            verified: failed.length === 0,
+          };
+
+          require("node:fs").writeFileSync("ci-contract-proof.json", JSON.stringify(proof, null, 2));
+          console.log(JSON.stringify(proof, null, 2));
+
+          if (failed.length > 0) {
+            console.error("Required CI jobs failed or were skipped: " + failed.map((job) => `${job.id}=${job.result}`).join(", "));
+            process.exit(1);
+          }
+          NODE

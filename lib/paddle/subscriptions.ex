@@ -46,7 +46,7 @@ defmodule Paddle.Subscriptions do
   @list_allowlist ~w(id customer_id address_id price_id status
                      scheduled_change_action collection_mode
                      next_billed_at order_by after per_page)
-  
+
   @update_allowlist ~w(customer_id address_id business_id currency_code next_billed_at discount collection_mode billing_details scheduled_change custom_data proration_billing_mode items)
 
   @doc """
@@ -90,7 +90,7 @@ defmodule Paddle.Subscriptions do
   case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "prorated_immediately") do
     {:ok, %Paddle.Subscription{} = subscription} -> subscription
   end
-  
+
   # Scheduled downgrade
   case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "next_billing_period") do
     {:ok, %Paddle.Subscription{} = subscription} ->

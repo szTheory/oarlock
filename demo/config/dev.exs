@@ -4,7 +4,7 @@ import Config
 config :demo, Demo.Repo,
   username: "postgres",
   password: "postgres",
-  hostname: "db",
+  hostname: System.get_env("DB_HOST") || "localhost",
   database: "demo_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,

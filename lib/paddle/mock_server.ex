@@ -30,6 +30,7 @@ defmodule Paddle.MockServer do
   Starts the Bandit server wrapping this Plug router.
   Accepts a `:port` option (defaults to 4001).
   """
+  @spec start_link(keyword()) :: {:ok, pid()} | {:error, term()}
   def start_link(opts \\ []) do
     with :ok <- ensure_optional_deps() do
       port = Keyword.get(opts, :port, 4001)

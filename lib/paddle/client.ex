@@ -60,7 +60,7 @@ defmodule Paddle.Client do
       if environment == :live,
         do: "https://api.paddle.com",
         else: "https://sandbox-api.paddle.com"
-        
+
     base_url = Keyword.get(opts, :base_url, default_url)
 
     req =

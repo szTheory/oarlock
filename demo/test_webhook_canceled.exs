@@ -1,4 +1,5 @@
 secret = "pdl_ntf_test_fallback_secret"
+
 payload = """
 {
   "event_id": "evt_126",
@@ -24,5 +25,12 @@ ts = System.system_time(:second)
 h1 = :crypto.mac(:hmac, :sha256, secret, "#{ts}:#{payload}") |> Base.encode16(case: :lower)
 signature = "ts=#{ts};h1=#{h1}"
 
-Req.post!("http://localhost:8000/webhooks/paddle", body: payload, headers: [{"paddle-signature", signature}, {"content-type", "application/json"}, {"host", "demo.docker.localhost"}])
+Req.post!("http://localhost:8000/webhooks/paddle",
+  body: payload,
+  headers: [
+    {"paddle-signature", signature},
+    {"content-type", "application/json"},
+    {"host", "demo.docker.localhost"}
+  ]
+)
 |> IO.inspect()

@@ -4,6 +4,7 @@ defmodule Paddle.MockServer.Fixtures do
   These fixtures are dynamic and can inject specific IDs into the response.
   """
 
+  @spec customer(String.t()) :: map()
   def customer(id \\ "ctm_mock123") do
     %{
       "id" => id,
@@ -17,6 +18,7 @@ defmodule Paddle.MockServer.Fixtures do
     }
   end
 
+  @spec transaction(String.t()) :: map()
   def transaction(id \\ "txn_mock123") do
     %{
       "id" => id,
@@ -82,6 +84,7 @@ defmodule Paddle.MockServer.Fixtures do
     }
   end
 
+  @spec portal_session(String.t()) :: map()
   def portal_session(customer_id \\ "ctm_mock123") do
     %{
       "id" => "pts_mock123",
@@ -95,6 +98,7 @@ defmodule Paddle.MockServer.Fixtures do
     }
   end
 
+  @spec subscription_updated(String.t()) :: map()
   def subscription_updated(id \\ "sub_mock123") do
     %{
       "id" => id,
@@ -108,7 +112,8 @@ defmodule Paddle.MockServer.Fixtures do
       "items" => [],
       "scheduled_change" => nil,
       "management_urls" => %{
-        "update_payment_method" => "https://buyer-portal.paddle.com/subscriptions/#{id}/update-payment-method",
+        "update_payment_method" =>
+          "https://buyer-portal.paddle.com/subscriptions/#{id}/update-payment-method",
         "cancel" => "https://buyer-portal.paddle.com/subscriptions/#{id}/cancel"
       },
       "current_billing_period" => %{
@@ -129,8 +134,10 @@ defmodule Paddle.MockServer.Fixtures do
     }
   end
 
+  @spec subscription_scheduled_change(String.t()) :: map()
   def subscription_scheduled_change(id \\ "sub_mock123") do
     base = subscription_updated(id)
+
     Map.put(base, "scheduled_change", %{
       "action" => "pause",
       "effective_at" => "2026-12-01T12:00:00Z",

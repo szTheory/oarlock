@@ -22,8 +22,11 @@ defmodule DemoWeb.Router do
     plug :accepts, ["json"]
   end
 
-  def require_authenticated_user(conn, opts), do: DemoWeb.MockAuth.require_authenticated_user(conn, opts)
-  def redirect_if_user_is_authenticated(conn, opts), do: DemoWeb.MockAuth.redirect_if_user_is_authenticated(conn, opts)
+  def require_authenticated_user(conn, opts),
+    do: DemoWeb.MockAuth.require_authenticated_user(conn, opts)
+
+  def redirect_if_user_is_authenticated(conn, opts),
+    do: DemoWeb.MockAuth.redirect_if_user_is_authenticated(conn, opts)
 
   # Auth endpoints
   scope "/auth", DemoWeb do

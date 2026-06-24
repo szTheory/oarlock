@@ -24,6 +24,7 @@ defmodule DemoWeb.WebhookController do
 
         # Persist raw payload to inbox
         raw_json = Jason.decode!(raw_body)
+
         case Billing.create_webhook_event(%{
                paddle_event_id: raw_json["event_id"],
                raw_data: raw_json,
@@ -47,23 +48,36 @@ defmodule DemoWeb.WebhookController do
 
   defp process_event(event_record) do
     case Paddle.Webhooks.parse_event(Jason.encode!(event_record.raw_data)) do
-      {:ok, %Paddle.Event{event_type: event_type} = event} when event_type in [
-        "subscription.created", 
-        "subscription.updated", 
-        "subscription.canceled", 
-        "subscription.past_due", 
-        "subscription.paused"
-      ] ->
+      {:ok, %Paddle.Event{event_type: event_type} = event}
+      when event_type in [
+             "subscription.created",
+             "subscription.updated",
+             "subscription.canceled",
+             "subscription.past_due",
+             "subscription.paused"
+           ] ->
         handle_subscription_change(event)
-        Billing.update_webhook_event(event_record, %{status: "processed", processed_at: DateTime.utc_now()})
+
+        Billing.update_webhook_event(event_record, %{
+          status: "processed",
+          processed_at: DateTime.utc_now()
+        })
 
       {:ok, %Paddle.Event{event_type: event_type}} ->
         Logger.info("Ignoring unhandled event type: #{event_type}")
-        Billing.update_webhook_event(event_record, %{status: "processed", processed_at: DateTime.utc_now()})
+
+        Billing.update_webhook_event(event_record, %{
+          status: "processed",
+          processed_at: DateTime.utc_now()
+        })
 
       {:error, error} ->
         Logger.error("Failed to parse Paddle event: #{inspect(error)}")
-        Billing.update_webhook_event(event_record, %{status: "failed", error_message: inspect(error)})
+
+        Billing.update_webhook_event(event_record, %{
+          status: "failed",
+          error_message: inspect(error)
+        })
     end
   end
 
@@ -71,7 +85,7 @@ defmodule DemoWeb.WebhookController do
     # sub_data might be a struct or a map depending on SDK implementation.
     # We'll normalize it to a map for safe extraction.
     sub = if is_struct(sub_data), do: sub_data |> Map.from_struct(), else: sub_data
-    
+
     mock_user_id = Map.get(sub["custom_data"] || %{}, "mock_user_id")
 
     if mock_user_id do
@@ -90,9 +104,15 @@ defmodule DemoWeb.WebhookController do
       end
 
       # Broadcast to LiveView
-      Phoenix.PubSub.broadcast(Demo.PubSub, "subscriptions:#{mock_user_id}", :subscription_updated)
+      Phoenix.PubSub.broadcast(
+        Demo.PubSub,
+        "subscriptions:#{mock_user_id}",
+        :subscription_updated
+      )
     else
-      Logger.warning("Received subscription webhook without a mock_user_id in custom_data. Ignoring.")
+      Logger.warning(
+        "Received subscription webhook without a mock_user_id in custom_data. Ignoring."
+      )
     end
   end
 end

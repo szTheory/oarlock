@@ -15,8 +15,20 @@ defmodule Demo.Billing.Subscription do
   @doc false
   def changeset(subscription, attrs) do
     subscription
-    |> cast(attrs, [:mock_user_id, :paddle_customer_id, :paddle_subscription_id, :status, :current_period_end])
-    |> validate_required([:mock_user_id, :paddle_customer_id, :paddle_subscription_id, :status, :current_period_end])
+    |> cast(attrs, [
+      :mock_user_id,
+      :paddle_customer_id,
+      :paddle_subscription_id,
+      :status,
+      :current_period_end
+    ])
+    |> validate_required([
+      :mock_user_id,
+      :paddle_customer_id,
+      :paddle_subscription_id,
+      :status,
+      :current_period_end
+    ])
     |> unique_constraint(:mock_user_id)
   end
 end

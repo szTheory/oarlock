@@ -181,10 +181,14 @@ defmodule Paddle.SubscriptionsTest do
           assert request.method == :patch
           assert request.url.path == "/subscriptions/sub%2Fwith%3Freserved"
 
-          {request, Req.Response.new(status: 200, body: %{"data" => subscription_payload_canceled()})}
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => subscription_payload_canceled()})}
         end)
 
-      assert {:ok, %Subscription{}} = Subscriptions.update(client, "sub/with?reserved", %{proration_billing_mode: "prorated_immediately"})
+      assert {:ok, %Subscription{}} =
+               Subscriptions.update(client, "sub/with?reserved", %{
+                 proration_billing_mode: "prorated_immediately"
+               })
     end
   end
 

@@ -7,7 +7,8 @@ defmodule Demo.BillingFixtures do
   @doc """
   Generate a unique webhook_event paddle_event_id.
   """
-  def unique_webhook_event_paddle_event_id, do: "some paddle_event_id#{System.unique_integer([:positive])}"
+  def unique_webhook_event_paddle_event_id,
+    do: "some paddle_event_id#{System.unique_integer([:positive])}"
 
   @doc """
   Generate a webhook_event.
@@ -30,7 +31,8 @@ defmodule Demo.BillingFixtures do
   @doc """
   Generate a unique subscription mock_user_id.
   """
-  def unique_subscription_mock_user_id, do: "some mock_user_id#{System.unique_integer([:positive])}"
+  def unique_subscription_mock_user_id,
+    do: "some mock_user_id#{System.unique_integer([:positive])}"
 
   @doc """
   Generate a subscription.

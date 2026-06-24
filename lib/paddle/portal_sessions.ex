@@ -28,7 +28,9 @@ defmodule Paddle.PortalSessions do
          body <- Attrs.allowlist(attrs, ["customer_id", "subscription_ids"]),
          customer_id <- Map.get(body, "customer_id"),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/customers/#{customer_id}/portal-sessions", json: Map.delete(body, "customer_id")) do
+           Http.request(client, :post, "/customers/#{customer_id}/portal-sessions",
+             json: Map.delete(body, "customer_id")
+           ) do
       {:ok, Http.build_struct(PortalSession, data)}
     end
   end

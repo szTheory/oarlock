@@ -10,7 +10,7 @@ defmodule DemoWeb.WebhookSimulator do
   """
   def post_webhook(conn, path, event_type, payload_data) do
     secret = System.get_env("PADDLE_WEBHOOK_SECRET") || "pdl_ntf_test_fallback_secret"
-    
+
     # Construct the base wrapper for Paddle events
     payload_wrapper = %{
       "event_id" => "evt_#{System.unique_integer()}",
@@ -30,7 +30,7 @@ defmodule DemoWeb.WebhookSimulator do
     # We must set the raw_body assign to simulate how our CacheBodyReader plug
     # operates in a real environment, as `Phoenix.ConnTest` bypasses standard parsing
     # when posting a map, but we want to post the exact raw string to verify parsing.
-    
+
     conn
     |> assign(:raw_body, raw_body)
     |> put_req_header("paddle-signature", signature)
