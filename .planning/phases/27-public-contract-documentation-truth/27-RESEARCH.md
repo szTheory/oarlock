@@ -378,17 +378,17 @@ Source: existing README and Getting Started examples follow this shape. [VERIFIE
 | A2 | Frameworks usually parse JSON before handlers unless configured otherwise. | Common Pitfalls | Low; official Paddle and Plug docs still justify raw-body guidance even if framework defaults vary. |
 | A3 | "Integration test" ambiguity is a common source of proof overclaiming. | Common Pitfalls | Low; locked decisions already require explicit proof ladder language. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **What should happen to `Paddle.PortalSessions`?**
+1. **RESOLVED: What should happen to `Paddle.PortalSessions`?**
    - What we know: It is exported and documented as `create/2`; tests call it in the MockServer test; the seam guide lists `Paddle.Customers.PortalSessions`. [VERIFIED: lib/paddle/portal_sessions.ex + test/paddle/mock_server_test.exs + guides/accrue-seam.md]
-   - What's unclear: Whether maintainers consider it supported, legacy compatibility, or accidental public surface. [ASSUMED]
-   - Recommendation: Planner should add an explicit checkpoint before final docs: classify it and make README/seam/generated docs/tests agree. [VERIFIED: research conclusion]
+   - Resolution: Plan 27-01 classifies `Paddle.PortalSessions.create/2` as a legacy compatibility surface because it ships and is documented, while keeping `Paddle.Customers.PortalSessions.create/2`, `create/3`, and `create/4` as the preferred Accrue/new-integration seam. [VERIFIED: 27-01-PLAN.md]
+   - Follow-through: README, seam guide, generated docs, tests, and changelog must agree on that compatibility wording before Phase 27 completes. [VERIFIED: 27-01-PLAN.md + 27-03-PLAN.md]
 
-2. **Should docs-truth checking live in a Mix task, ExUnit test, or script?**
+2. **RESOLVED: Should docs-truth checking live in a Mix task, ExUnit test, or script?**
    - What we know: `Mix.Tasks.Typecheck.Specs`, `check_docs.exs`, `check_examples.exs`, and `test/paddle/seam_test.exs` already demonstrate local patterns. [VERIFIED: codebase grep]
-   - What's unclear: Which mechanism the maintainer prefers for long-term drift prevention. [ASSUMED]
-   - Recommendation: Use the lightest durable option, likely an ExUnit test if it fits existing seam tests, or a small Mix task if command-line reporting is more useful. [VERIFIED: 27-CONTEXT.md]
+   - Resolution: Plan 27-01 uses the lightest durable option: extend `test/paddle/seam_test.exs` with an explicit live public inventory guard and proof-boundary wording assertions. No broad docs generator, new Mix task, or new dependency is planned. [VERIFIED: 27-01-PLAN.md]
+   - Follow-through: Use `mix test test/paddle/seam_test.exs --warnings-as-errors` as the fast seam feedback path, with `mix docs --warnings-as-errors` and the full suite reserved for docs and final sign-off gates. [VERIFIED: 27-VALIDATION.md + 27-03-PLAN.md]
 
 ## Environment Availability
 

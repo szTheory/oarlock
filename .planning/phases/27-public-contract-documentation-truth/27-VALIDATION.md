@@ -21,7 +21,7 @@ created: 2026-06-24
 | **Config file** | `test/test_helper.exs`; docs config in `mix.exs` |
 | **Quick run command** | `mix test test/paddle/seam_test.exs --warnings-as-errors` |
 | **Full suite command** | `mix test --warnings-as-errors && mix docs --warnings-as-errors` |
-| **Estimated runtime** | ~30-60 seconds |
+| **Estimated runtime** | Fast checks ~10-30 seconds; final full-suite sign-off ~30-60 seconds |
 
 ---
 
@@ -29,9 +29,9 @@ created: 2026-06-24
 
 - **After every task commit:** Run `mix docs --warnings-as-errors` for docs-only edits.
 - **After every seam/inventory/test edit:** Run `mix test test/paddle/seam_test.exs --warnings-as-errors`.
-- **After every plan wave:** Run `mix test --warnings-as-errors && mix docs --warnings-as-errors`.
+- **After every plan wave:** Run the relevant fast check first (`mix docs --warnings-as-errors` and/or `mix test test/paddle/seam_test.exs --warnings-as-errors`), then run `mix test --warnings-as-errors && mix docs --warnings-as-errors` as wave/final sign-off.
 - **Before `/gsd:verify-work`:** Full suite must be green, with a manual read-through of README, Getting Started, seam contract, demo README, and changelog against DOCS-01..04.
-- **Max feedback latency:** 60 seconds.
+- **Max feedback latency:** Keep per-edit feedback under 30 seconds where possible; the 30-60 second full-suite command is final sign-off, not the primary edit loop.
 
 ---
 
@@ -73,7 +73,7 @@ created: 2026-06-24
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
 - [ ] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
+- [ ] Per-edit feedback latency < 30s where possible; full-suite sign-off may run 30-60s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
