@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Adopter Truth & Release Readiness
-current_phase: 28
-current_phase_name: CI, Demo, and Package Proof
-status: executing
-stopped_at: Phase 28 human verification needed
-last_updated: "2026-06-24T16:56:40.000Z"
-last_activity: 2026-06-24 -- Phase 28 execution complete; hosted CI verification pending
+current_phase: 29
+current_phase_name: GSD State Reconciliation
+status: ready_to_plan
+stopped_at: Phase 28 complete (2/2) — ready to discuss Phase 29
+last_updated: 2026-06-24T19:20:21.166Z
+last_activity: 2026-06-24 -- Phase 28 complete; hosted CI verification passed
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 3
-  percent: 33
+  completed_plans: 5
+  percent: 67
 ---
 
 # Project State
@@ -25,15 +25,15 @@ progress:
 
 ## Current Position
 
-Phase: 28 (CI, Demo, and Package Proof) — EXECUTING
-Plan: 2 of 2 complete
-Status: Human verification needed
-Last activity: 2026-06-24 -- Phase 28 execution complete; hosted CI verification pending
+Phase: 29
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-24 -- Phase 28 complete; hosted CI verification passed
 
 ### Progress
 
 Phase 27: Public Contract & Documentation Truth [####################] 100%
-Phase 28: CI, Demo, and Package Proof [....................] 0%
+Phase 28: CI, Demo, and Package Proof [####################] 100%
 Phase 29: GSD State Reconciliation [....................] 0%
 
 ## Performance Metrics
@@ -65,14 +65,12 @@ Phase 29: GSD State Reconciliation [....................] 0%
 ### Known Technical Debt / Blockers
 
 - Root `.planning/REQUIREMENTS.md` was missing before v2.1 planning and has been restored for the selected milestone.
-- Demo proof is not yet fully wired into CI.
 - `Paddle.MockServer` is a useful offline fixture but not a complete Paddle clone; docs and planning should avoid claiming provider-state E2E unless sandbox/live verification is actually run.
 - Accrue still has a consumer-side follow-up to migrate any `%Paddle.Error{}.raw` usage to `raw_data`.
 
 ### Todos
 
 - Create v2.1 roadmap from the restored requirements.
-- Add demo CI and downstream package smoke proof.
 - Reconcile v2.0 audit/validation language for Phase 25 and Phase 26.
 - Close or annotate stale backlog/thread entries that shipped in earlier milestones.
 

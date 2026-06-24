@@ -14,10 +14,10 @@
 
 ### Release Proof
 
-- [ ] **PROOF-01**: CI runs root library checks already expected for release: format, compile warnings-as-errors, tests, public specs, Dialyzer, and SUMMARY drift guard.
-- [ ] **PROOF-02**: CI runs the demo test suite with a PostgreSQL service.
-- [ ] **PROOF-03**: CI includes a downstream consumer/package smoke test that verifies a fresh Mix app can depend on oarlock and compile.
-- [ ] **PROOF-04**: Optional `plug` and `bandit` behavior is verified so consumers understand when `Paddle.MockServer` dependencies are required.
+- [x] **PROOF-01**: CI runs root library checks already expected for release: format, compile warnings-as-errors, tests, public specs, Dialyzer, and SUMMARY drift guard.
+- [x] **PROOF-02**: CI runs the demo test suite with a PostgreSQL service.
+- [x] **PROOF-03**: CI includes a downstream consumer/package smoke test that verifies a fresh Mix app can depend on oarlock and compile.
+- [x] **PROOF-04**: Optional `plug` and `bandit` behavior is verified so consumers understand when `Paddle.MockServer` dependencies are required.
 
 ### GSD Truth
 
@@ -61,10 +61,10 @@
 | DOCS-02 | Phase 27 | Complete |
 | DOCS-03 | Phase 27 | Complete |
 | DOCS-04 | Phase 27 | Complete |
-| PROOF-01 | Phase 28 | Pending |
-| PROOF-02 | Phase 28 | Pending |
-| PROOF-03 | Phase 28 | Pending |
-| PROOF-04 | Phase 28 | Pending |
+| PROOF-01 | Phase 28 | Complete |
+| PROOF-02 | Phase 28 | Complete |
+| PROOF-03 | Phase 28 | Complete |
+| PROOF-04 | Phase 28 | Complete |
 | GSD-01 | Phase 29 | Pending |
 | GSD-02 | Phase 29 | Pending |
 | GSD-03 | Phase 29 | Pending |

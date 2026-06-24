@@ -40,16 +40,16 @@ Plans:
 
 **Goal:** Release readiness is continuously proven for the library, demo, and downstream install path.
 **Requirements:** PROOF-01, PROOF-02, PROOF-03, PROOF-04
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
 
-- [ ] 28-01-PLAN.md — MockServer optional dependency compile boundary and docs.
+- [x] 28-01-PLAN.md — MockServer optional dependency compile boundary and docs.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 28-02-PLAN.md — CI jobs and downstream Hex package smoke proof.
+- [x] 28-02-PLAN.md — CI jobs and downstream Hex package smoke proof.
 
 **Success Criteria:**
 
@@ -75,7 +75,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete    | 2026-06-24 |
-| 28. CI, Demo, and Package Proof | v2.1 | 0/0 | Planned | — |
+| 28. CI, Demo, and Package Proof | v2.1 | 2/2 | Complete    | 2026-06-24 |
 | 29. GSD State Reconciliation | v2.1 | 0/0 | Planned | — |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
 | 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |

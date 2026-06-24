@@ -111,10 +111,12 @@ oarlock exposed a closed, documented consumer surface for Accrue:
   runbook, changelog, and generated docs describe the shipped SDK surface,
   app-owned responsibilities, and MockServer/sandbox/live proof boundary.
   *(Validated in Phase 27)*
+- [x] **PROOF-01..04**: CI runs root library gates, demo PostgreSQL checks,
+  downstream Hex package smoke proof, and positive/negative optional
+  dependency proof for `Paddle.MockServer`. *(Validated in Phase 28)*
 
 ### Active
 
-- [ ] Add demo CI and downstream package smoke proof.
 - [ ] Reconcile GSD backlog, requirements, milestone audit, and stale investigations.
 
 ### Out of Scope
@@ -148,4 +150,4 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`.
 
 ---
-*Last updated: 2026-06-24 after Phase 27 public documentation truth*
+*Last updated: 2026-06-24 after Phase 28 CI, demo, and package proof*
