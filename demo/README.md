@@ -15,7 +15,8 @@ demo app code versus oarlock SDK code.
 - Webhook inbox persistence before business logic runs.
 - Local subscription state updated from signed Paddle-style webhook events.
 - Customer portal handoff through oarlock.
-- Offline development against `Paddle.MockServer`.
+- Offline development against `Paddle.MockServer` with the optional `plug` and
+  `bandit` dependencies available in the demo/test dependency set.
 
 The demo owns users, database tables, PubSub updates, and UI state. oarlock only
 owns the Paddle client seam.
@@ -46,9 +47,10 @@ DB_HOST=db mix setup
 
 ## Offline Paddle Mode
 
-The tests start `Paddle.MockServer` and point the demo client at it. For manual
-experiments, start the mock server in IEx and create a client with `base_url`
-set to that server:
+The tests start `Paddle.MockServer` and point the demo client at it. The demo
+includes the optional `plug` and `bandit` dependencies needed to run those
+MockServer-backed tests. For manual experiments, start the mock server in IEx
+and create a client with `base_url` set to that server:
 
 ```elixir
 {:ok, _pid} = Paddle.MockServer.start_link(port: 4448)

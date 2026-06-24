@@ -22,15 +22,17 @@ customer -> address -> transaction -> checkout -> webhook -> subscription.
 - Create customer portal sessions for signed-in self-serve billing.
 - Create, fetch, list, and page through adjustments for refunds and credits.
 - Read products, prices, historical events, and notification settings.
-- Run local integration flows against `Paddle.MockServer` for offline development.
+- Run local integration flows against `Paddle.MockServer` for offline development
+  when the optional `plug` and `bandit` dependencies are installed.
 
 ## Proof Boundary
 
 Use the same proof ladder throughout an integration:
 
 - Unit and contract tests prove local SDK behavior.
-- `Paddle.MockServer` proves deterministic local SDK/demo wiring. It is not
-  live Paddle provider-state verification.
+- `Paddle.MockServer` proves deterministic local SDK/demo wiring when optional
+  `plug` and `bandit` are available. It is not live Paddle provider-state
+  verification.
 - Paddle sandbox checks prove real provider-state behavior only when you run
   them with real Paddle sandbox credentials.
 - Live mode remains your operator-owned readiness step before charging
@@ -45,7 +47,7 @@ The mental model is simple:
 - oarlock is the seam between them.
 
 That seam is intentionally narrow. It helps you talk to Paddle in idiomatic
-Elixir without pulling Phoenix, Plug, or Ecto into the core library.
+Elixir without pulling Phoenix, Ecto, Plug, or Bandit into the core library.
 
 ## Installation
 
@@ -159,6 +161,11 @@ oarlock is intentionally not:
 - An Ecto schema or database sync layer.
 - A billing UI or customer portal replacement.
 - A complete Paddle endpoint mirror.
+
+`Paddle.MockServer` is the one intentionally optional development/test fixture
+in the package. It needs `plug` and `bandit` to serve local HTTP requests, but
+the core SDK modules, webhook verification, typed resources, and Req-based HTTP
+client do not require Phoenix, Ecto, Plug, or Bandit.
 
 If you need the exact supported public surface, use the
 [Accrue Seam Contract](guides/accrue-seam.md) as the source of truth.
