@@ -21,11 +21,17 @@
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 27-01-PLAN.md — Seam docs-truth guard and canonical contract inventory.
 - [ ] 27-02-PLAN.md — README, Getting Started, and demo runbook adopter truth.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 27-03-PLAN.md — Changelog narrative and final documentation consistency gate.
 
 **Success Criteria:**
+
 1. README, Getting Started, seam contract, demo runbook, and changelog agree with shipped modules and function arities.
 2. Docs distinguish core SDK responsibilities from Phoenix/Ecto/provisioning responsibilities.
 3. MockServer-backed proof is described honestly and not conflated with live Paddle provider-state testing.
@@ -36,6 +42,7 @@ Plans:
 **Requirements:** PROOF-01, PROOF-02, PROOF-03, PROOF-04
 
 **Success Criteria:**
+
 1. CI keeps the existing library gates: format, compile warnings-as-errors, tests, public specs, Dialyzer, and SUMMARY drift guard.
 2. CI runs the demo test suite with a PostgreSQL service.
 3. A downstream consumer/package smoke test verifies oarlock can be depended on and compiled by a fresh Mix app.
@@ -47,6 +54,7 @@ Plans:
 **Requirements:** GSD-01, GSD-02, GSD-03, GSD-04
 
 **Success Criteria:**
+
 1. PROJECT, REQUIREMENTS, ROADMAP, STATE, BACKLOG, milestone audit files, and investigation threads agree on shipped/open scope.
 2. Shipped backlog items are marked as historical, Accrue-only, or superseded.
 3. v2.0 audit/validation language is reconciled with actual evidence.
