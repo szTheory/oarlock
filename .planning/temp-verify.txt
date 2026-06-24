@@ -1,0 +1,661 @@
+# Roadmap
+
+## Milestones
+
+- 🚧 **v1.2 Production Surface** — Phases 8-13 (in progress)
+- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29) — see [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
+- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; foundational SDK surface)
+
+## Phases
+
+<details open>
+<summary>🚧 v1.2 Production Surface (Phases 8-13) — IN PROGRESS</summary>
+
+- [x] Phase 8: Reliability Primitives (4/4 plans) — REL-01, REL-02, REL-03 (completed 2026-05-30)
+- [x] Phase 9: Pagination Ergonomics (1/1 plans) — PAGE-01 (completed 2026-05-30)
+- [x] Phase 10: Subscriptions Surface Completion (3/3 plans) — SUB-04, SUB-05, SUB-06 (completed 2026-05-30)
+- [x] Phase 11: Type-Safety Pass (0/5 plans) — TYPES-01, TYPES-02 (completed 2026-06-04)
+- [ ] Phase 12: Documentation Pass (0/6 plans) — DOCS-01..05
+- [ ] Phase 13: Process Guard (0/? plans) — PROC-01, PROC-02
+
+</details>
+
+<details>
+<summary>✅ v1.1 Accrue Seam Hardening (Phases 6-7) — SHIPPED 2026-04-29</summary>
+
+- [x] Phase 6: Transactions Retrieval (1/1 plans) — TXN-03
+- [x] Phase 7: Accrue Seam Lock (2/2 plans) — SEAM-01, SEAM-02
+
+</details>
+
+<details>
+<summary>✅ v1.0 MVP (Phases 1-5) — pre-archival baseline</summary>
+
+- [x] Phase 1: Core Transport & Client Setup (3/3 plans) — CORE-01..05
+- [x] Phase 2: Webhook Verification (2/2 plans) — WEB-01..03
+- [x] Phase 3: Core Entities (Customers & Addresses) (3/3 plans) — CUST-01, ADDR-01
+- [x] Phase 4: Transactions & Hosted Checkout (2/2 plans) — TXN-01, TXN-02
+- [x] Phase 5: Subscriptions Management (3/3 plans) — SUB-01..03
+
+</details>
+
+## Phase Details
+
+### Phase 8: Reliability Primitives
+
+**Goal**: HTTP layer survives real-world Paddle production conditions — duplicate POST safety, transient failure recovery, and uniform error shape.
+**Depends on**: v1.1 closed (Phase 7).
+**Requirements**: REL-01, REL-02, REL-03
+**Success Criteria** (what must be TRUE):
+
+  1. Every create/start public function that truthfully supports idempotency semantics (Customers, Addresses, Transactions, and the corrected Phase 10 recurring-start path through `Paddle.Transactions.create/3`) accepts an `idempotency_key:` opt; an adapter-backed test asserts the value is forwarded as the `Idempotency-Key` HTTP header.
+  2. An adapter-backed test exercises a 429 response with `Retry-After: 2` and the request succeeds after the client honors the retry; a sibling test asserts no retry on 4xx other than 429 and a max-3-retry ceiling on 5xx.
+  3. A simulated transient network failure (timeout / nxdomain) returns `{:error, %Paddle.Error{network_error?: true, retryable?: true}}` with the existing `:raw_data` field still present (additive change only).
+  4. The full pre-existing test suite (≥111 tests at v1.1 close) continues to pass with zero failures — no v1.1 seam regression.
+
+**Plans**: 4 plans
+
+  - [x] 08-01-PLAN.md — Atomic rename `:raw → :raw_data` in `%Paddle.Error{}` + add explicit `false` defaults for `:network_error?` and `:retryable?` (defexception keyword-syntax migration); co-update `guides/accrue-seam.md:118` and `CHANGELOG.md` in a single commit per D-02. (Wave 1, foundation for REL-03.)
+  - [x] 08-02-PLAN.md — REL-03 transport-error normalization: add `Paddle.Error.from_transport/1` (with `transport_type/1` multiclause covering D-14 taxonomy `network_timeout|network_nxdomain|network_closed|network_unknown`); refactor `Http.request/4` `{:error, %Req.TransportError{}}` arm; four adapter-backed reason-variant tests in `http_test.exs`. (Wave 2, depends on 08-01.)
+  - [x] 08-03-PLAN.md — REL-01 idempotency-key plumbing: `Keyword.pop(:idempotency_key)` + `ArgumentError` validation in `Http.request/4` (Pitfall 3 ordering); add trailing `opts \\ []` to `Customers.create/3`, `Customers.Addresses.create/4`, `Transactions.create/3`; six unit tests + one integration test locking the locked v1.2 opts vocabulary `:idempotency_key + :retry`. (Wave 3, depends on 08-01 + 08-02.)
+  - [x] 08-04-PLAN.md — REL-02 retry policy: add `retry: :transient, max_retries: 3` to `Paddle.Client.new!/1`; five Agent-backed retry tests in `http_test.exs` covering 5xx-then-success, 4xx-no-retry, 429-then-success, per-call `retry: false` opt-out, and max-3 ceiling; CHANGELOG entry. (Wave 4, depends on 08-01..08-03.)
+
+### Phase 9: Pagination Ergonomics
+
+**Goal**: Consumers iterate any list endpoint without hand-rolling cursor loops, while the locked per-resource `list/2` shape stays untouched.
+**Depends on**: Phase 8 (idempotency/retry harness reused for streaming requests).
+**Requirements**: PAGE-01
+**Success Criteria** (what must be TRUE):
+
+  1. `Paddle.stream/3` (or per-resource equivalent) returns an `Enumerable` that, given a fixture of three cursor pages, yields every item from every page in order and terminates cleanly.
+  2. `Paddle.all/3` returns the same items as `Paddle.stream/3 |> Enum.to_list/1` for the same fixture.
+  3. A regression test re-asserts that `Paddle.Subscriptions.list/2` (and at least one other locked `list/2`) still returns `{:ok, %Paddle.Page{}}` — the v1.1 locked shape is unchanged.
+  4. `Paddle.Page.next_cursor/1` remains the documented cursor accessor; auto-pagination is built on top of it, not as a replacement.
+
+**Plans**: 1 plan
+
+  - [x] 09-01-PLAN.md — Per-resource auto-pagination helpers for subscriptions and customer addresses, backed by hidden `Paddle.Internal.Pagination`, adapter-backed stream/all/list-shape/cursor replay tests, and public docs/changelog updates. (Wave 1.)
+
+### Phase 10: Subscriptions Surface Completion
+
+**Goal**: Close Accrue's P0 recurring-start blocker plus P1 pause/resume blockers while preserving the v1.1 locked seam contract from `guides/accrue-seam.md`.
+**Depends on**: Phase 8 (transaction idempotency + retry boundary reused by recurring-start and lifecycle mutations), Phase 9 (current subscription guide/examples remain additive).
+**Requirements**: SUB-04, SUB-05, SUB-06
+**Success Criteria** (what must be TRUE):
+
+  1. `Paddle.Transactions.create/3` remains the truthful recurring-start entrypoint for recurring price items: adapter-backed tests and guides show `idempotency_key:` on the transaction create call, checkout/manual-collection completion, webhook correlation, and canonical `Paddle.Subscriptions.get/2` hydration. No public `Paddle.Subscriptions.create/2` is introduced.
+  2. `Paddle.Subscriptions.pause/3` and `Paddle.Subscriptions.pause_immediately/3` return updated `%Paddle.Subscription{}` values with hydrated `:scheduled_change` / `:management_urls`, validated lifecycle opts, explicit `idempotency_key:` rejection, and retry-only request opts — adapter-backed.
+  3. `Paddle.Subscriptions.resume/3` returns the updated `%Paddle.Subscription{}` with validated `:effective_from` / `:on_resume`, explicit `idempotency_key:` rejection, and adapter-backed provider-error passthrough for resume-only state failures.
+  4. **Locked-seam discipline**: a struct-shape regression test confirms `%Paddle.Subscription{}` adds zero new locked fields and removes/renames zero existing locked fields. Any new data point flows through `:raw_data` (additive/opaque) per `guides/accrue-seam.md`.
+  5. `guides/accrue-seam.md` is updated to list `pause/3`, `pause_immediately/3`, and `resume/3` under `Paddle.Subscriptions`, to document transaction-driven recurring start under the existing transaction seam, and to keep direct subscription creation out of the public contract.
+  6. All v1.1 seam contract tests continue to pass while the public seam expands additively with pause/resume and the corrected recurring-start narrative.**Plans**: 3 plans
+
+**Wave 1**
+
+  - [x] 10-01-PLAN.md — Lock the corrected SUB-04 contract in transactions/seam tests and getting-started docs around transaction-driven recurring start.
+  - [x] 10-02-PLAN.md — Add `Paddle.Subscriptions.pause/3` and `pause_immediately/3` with explicit lifecycle/request opt boundaries and adapter-backed pause coverage.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+  - [x] 10-03-PLAN.md — Add `Paddle.Subscriptions.resume/3`, tighten `%Paddle.Subscription{}` seam regression coverage, and update the public seam guide.
+
+### Phase 11: Type-Safety Pass
+
+**Goal**: oarlock has machine-checked specs end-to-end so an Accrue-side type drift fails CI here, not in production.
+**Depends on**: Phases 8, 9, 10 (specs cover the new public API additions: idempotency_key opt, stream/all helpers, SUB-04..06).
+**Requirements**: TYPES-01, TYPES-02
+**Success Criteria** (what must be TRUE):
+
+  1. `mix dialyzer` exits 0 against an empty `.dialyzer_ignore.exs` on a fresh PLT build.
+  2. Every public function across `lib/paddle/` carries a `@spec` — verified by a mechanical grep test (or equivalent script) that asserts every `def` in non-`@moduledoc false` modules has a preceding `@spec`.
+  3. `mix dialyzer` runs as a required CI step in `.github/workflows/ci.yml`; a deliberately broken-spec branch in CI fails the gate.
+  4. PLT cache is configured (`:dialyxir` `:plt_file` / `:plt_add_apps`) so cold-cache CI completes within a reasonable budget on the project's matrix.
+
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [x] 11-01-PLAN.md — Add public `@type t` contracts and shared helper specs to the core seam-carrier modules.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 11-02-PLAN.md — Add public function specs across customer, address, transaction, subscription, and webhook resource modules.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 11-03-PLAN.md — Create the mechanical `mix typecheck.specs` gate for public-spec coverage.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [x] 11-04-PLAN.md — Wire Dialyxir, the empty ignore baseline, and the first clean local Dialyzer pass.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [x] 11-05-PLAN.md — Add the dedicated CI Dialyzer/spec gate and an explicit broken-spec negative-path validation.
+
+### Phase 12: Documentation Pass
+
+**Goal**: An outside Elixir developer can adopt oarlock from hex.pm using only the published docs — no source-reading required.
+**Depends on**: Phases 8, 9, 10 (new APIs must be documented in this pass), Phase 11 (specs land first so docs reflect typed signatures).
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05
+**Success Criteria** (what must be TRUE):
+
+  1. Every public function in `lib/paddle/` has a `@doc` with at least one `## Examples` block — verified by a mechanical grep test or `mix docs --warnings-as-errors` clean run.
+  2. Every public module has a `@moduledoc`; the five sealed modules (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep `@moduledoc false` exactly as v1.1 SEAM-02 left them — verified by an explicit assertion test.
+  3. `README.md` no longer contains the "TODO: Add description" stub at line 3; the new README has installation, quick-start (client → customer → checkout), and cross-links to `guides/getting-started.md` and `guides/accrue-seam.md`.
+  4. `guides/getting-started.md` exists and is wired into `mix.exs` `:docs` extras; running `mix docs` produces an HTML page for it without warnings.
+  5. `guides/telemetry.md` exists, is wired into `:docs` extras, and documents the `[:paddle, :request, :start | :stop | :exception]` events with measurement and metadata schemas matching `lib/paddle/http/telemetry.ex`.
+
+**Plans**: 6 plans
+
+**Wave 1**
+- [ ] 12-01-PLAN.md — Guides and README (DOCS-03, DOCS-04, DOCS-05)
+- [ ] 12-02-PLAN.md — Core SDK Struct Docs (DOCS-01, DOCS-02)
+- [ ] 12-03-PLAN.md — Billing Struct Docs (DOCS-02)
+- [ ] 12-04-PLAN.md — Core Controllers Docs (DOCS-01, DOCS-02)
+- [ ] 12-05-PLAN.md — Billing Controllers Docs (DOCS-01, DOCS-02)
+
+**Wave 2**
+- [ ] 12-06-PLAN.md — Sealed Module Verification (DOCS-02)
+
+**Current note:** README and `guides/getting-started.md` drafts were started during the release-truth reset before Phase 12. Phase 12 should treat them as draft inputs to audit/finalize, not as untouched work.
+
+### Phase 13: Process Guard
+
+**Goal**: Close the v1.1 SUMMARY/git-state drift recurrence vector (MILESTONES.md:27-30) so the next milestone cannot ship with an uncommitted-implementation audit gap.
+**Depends on**: Phase 12 (docs pass populates `mix.exs` extras; guard hooks should not race with docs config) — practically can land in parallel with Phase 12 if implementation is decoupled.
+**Requirements**: PROC-01, PROC-02
+**Success Criteria** (what must be TRUE):
+
+  1. A pre-commit hook (or `mix gsd.precommit` task wired into the hook) runs locally on `git commit` against an in-progress phase SUMMARY.
+  2. **Synthetic SUMMARY drift case** — a SUMMARY that claims a file is committed when `git status --porcelain` shows it dirty/untracked — blocks the commit with a clear error message naming the offending file(s).
+  3. Truthful SUMMARYs (every claimed-committed file is actually committed) pass through the hook without friction.
+  4. The same drift check runs as a required job in `.github/workflows/ci.yml` so the guard cannot be bypassed by skipping local hooks; a deliberately drifted PR fails CI.
+
+**Plans**: TBD
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status   | Completed  |
+|-------|-----------|----------------|----------|------------|
+| 1. Core Transport & Client Setup | v1.0 | 3/3 | Complete | pre-archival |
+| 2. Webhook Verification | v1.0 | 2/2 | Complete | pre-archival |
+| 3. Core Entities (Customers & Addresses) | v1.0 | 3/3 | Complete | pre-archival |
+| 4. Transactions & Hosted Checkout | v1.0 | 2/2 | Complete | pre-archival |
+| 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
+| 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
+| 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
+| 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
+| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
+| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
+| 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
+| 12. Documentation Pass | v1.2 | 0/6 | Pending | — |
+| 13. Process Guard | v1.2 | 0/? | Pending | — |
+
+---
+
+## Future Work — Accrue Integration
+
+Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for any prioritized entries that survive milestone close.
+
+Per project memory, Accrue-side asks should be triaged into `BACKLOG.md` rather than auto-inserted as phases here.
+
+## Post-v1.2 Direction
+
+Once v1.2 is clean, green, and released, prefer this order:
+
+1. Support operations: refunds/credits via `Paddle.Adjustments`.
+2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
+3. Catalog read surface: products/prices read/list before any broad CRUD.
+
+Do not mirror Paddle endpoints for their own sake. Promote only work tied to a real Phoenix SaaS adopter job.
+# Requirements: Milestone v1.2 Production Surface
+
+**Status:** 🚧 IN PROGRESS — defined 2026-04-29
+**Goal:** Drive oarlock to genuine production-readiness as a hex package while completing the subscription surface Accrue's Phase 97+ Paddle slice will need.
+**Phase numbering:** Phases 8–13 (continues from v1.1).
+
+Approved plan: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
+
+---
+
+## v1.2 Requirements
+
+### Reliability primitives
+
+- [x] **REL-01**: Accept an optional `idempotency_key:` opt on every current `create/*` function (Customers, Addresses, Transactions) and pass it through as the `Idempotency-Key` request header. *(Phase 8 complete. Phase 10's corrected recurring-start seam keeps `Paddle.Transactions.create/3` as the idempotent start surface; pause/resume do not gain `idempotency_key:`.)*
+- [x] **REL-02**: Configure `req` with an automatic retry policy that respects `Retry-After`: max 3 retries with exponential backoff, retry only on 429 + 5xx + transient network errors, no retry on 4xx other than 429. *(Phase 8 complete.)*
+- [x] **REL-03**: Normalize transient network failures (timeout, nxdomain, etc.) into `%Paddle.Error{}` with `:network_error?` and `:retryable?` flags. Existing `:raw_data` field on `%Paddle.Error{}` must remain — additive change only, no v1.1 seam break. *(Phase 8 complete.)*
+
+### Pagination ergonomics
+
+- [x] **PAGE-01**: Provide `Paddle.stream/3` and `Paddle.all/3` (or per-resource equivalents) that auto-paginate over any list endpoint by chaining `Paddle.Page.next_cursor/1`. Existing per-resource `list/2` shape stays locked. *(Phase 9.)*
+
+### Subscriptions surface completion
+
+- [x] **SUB-04**: Transaction-driven recurring start — use `Paddle.Transactions.create/3` for recurring price items, then complete checkout or the manual-collection flow, correlate the resulting subscription via webhooks and/or `Paddle.Transactions.get/2`, and hydrate the canonical `%Paddle.Subscription{}` with `Paddle.Subscriptions.get/2`. Do not add a public `Paddle.Subscriptions.create/2`. *(Phase 10. Closes the P0 Accrue blocker truthfully.)*
+- [x] **SUB-05**: `Paddle.Subscriptions.pause/2` — pause a subscription, returning the updated `%Paddle.Subscription{}`. Reverses the v1.1 PROJECT.md "deferred mutation surface" stance for v1.2. *(Phase 10.)*
+- [x] **SUB-06**: `Paddle.Subscriptions.resume/2` — resume a previously paused subscription. *(Phase 10.)*
+
+### Type-safety pass
+
+- [x] **TYPES-01**: Add `@spec` annotations to every public function across `lib/paddle/` (≥33 functions today, plus the Phase 10 pause/resume additions). *(Phase 11.)*
+- [x] **TYPES-02**: Wire `:dialyxir` in `mix.exs` with a PLT cache configuration; establish a clean `mix dialyzer` baseline (empty `.dialyzer_ignore.exs`); add `mix dialyzer` as a CI gate in `.github/workflows/ci.yml`. *(Phase 11.)*
+
+### Documentation pass
+
+- [ ] **DOCS-01**: Add `@doc` with at least one example to every public function across `lib/paddle/`. *(Phase 12.)*
+- [ ] **DOCS-02**: Add `@moduledoc` to every public module. The five modules sealed by SEAM-02 (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep their `@moduledoc false` — those sealings are locked. *(Phase 12.)*
+- [ ] **DOCS-03**: Replace the README "TODO: Add description" stub at `README.md:3` with an installation + quick-start + cross-links structure that an outside adopter can follow without reading source. *(Phase 12; draft landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
+- [ ] **DOCS-04**: Publish a happy-path `guides/getting-started.md` (client → customer → transaction → webhook), wired into `mix.exs` `:docs` extras. *(Phase 12; draft + docs extra landed during release-truth reset, still needs Phase 12 docs audit before closing.)*
+- [ ] **DOCS-05**: Publish `guides/telemetry.md` documenting the `[:paddle, :request, :start | :stop | :exception]` events emitted from `lib/paddle/http/telemetry.ex`, including measurement and metadata schemas. *(Phase 12.)*
+
+### Process guard
+
+- [ ] **PROC-01**: Add a pre-commit hook (or `mix gsd.precommit` task) that fails the commit if any in-progress phase SUMMARY claims files are committed but `git status --porcelain` shows them dirty/untracked. Closes the v1.1 audit-trail recurrence vector documented in `MILESTONES.md:27-30`. *(Phase 13.)*
+- [ ] **PROC-02**: Add the same SUMMARY/git-state drift check as a CI step in `.github/workflows/ci.yml`, so the guard works even when contributors skip local hooks. *(Phase 13.)*
+
+---
+
+## Future Requirements (deferred from v1.2)
+
+- [ ] **REFUND-01**: `Paddle.Adjustments` for refunds/credits. Accrue's Stripe path uses `create_refund/2`/`retrieve_refund/2`; oarlock has none. Highest-leverage post-v1.2 feature wedge because charging without a correction path is an incomplete support story.
+- [ ] **PORTAL-01**: Smallest provider-native customer self-serve billing surface Paddle supports cleanly (portal/session/payment-management flow), without Phoenix/Ecto/UI coupling in core. Likely after REFUND-01.
+- [ ] **CATALOG-01**: `Paddle.Products`, `Paddle.Prices` read/list support first. Demand-driven; avoid full catalog CRUD unless a real consumer asks.
+- [ ] **NOTIF-01**: Notification Settings endpoint (carried forward from v1.1 deferred list).
+- [ ] **PHX-01**: Phoenix Plug helpers for webhook parsing — explicitly out per PROJECT.md core constraints (would ship as a separate package if ever).
+
+---
+
+## Out of Scope (reaffirmed at v1.2 start)
+
+- **Paddle Classic Support**: Legacy API concepts and authentication (vendor-id).
+- **Phoenix/Ecto coupling**: No framework dependencies in core.
+- **Payment Method Portals**: Excluded for v0.x.
+- **Invoice Generation**: Excluded for v0.x.
+- **Refunds**: Excluded from v1.2 (deferred to REFUND-01).
+- **Marketplaces / Connect**: Excluded for v0.x.
+- **Discounts, Reports, Simulations, Events list endpoint, Payment Methods**: Pure surface expansion; defer until consumer demand surfaces.
+- **Property-based tests with `stream_data`**: Out of scope for v1.2 hardening; revisit if dialyzer surfaces edge cases.
+- **`Paddle.Subscriptions.update/3`**: Deferred beyond Phase 10. The corrected Phase 10 scope is transaction-driven recurring start plus pause/resume only.
+
+---
+
+## Traceability
+
+Coverage: 14 / 14 v1.2 requirements mapped (100%).
+
+| Requirement | Phase | Status  | Notes |
+|-------------|-------|---------|-------|
+| REL-01      | 8     | Complete | `idempotency_key:` opt -> `Idempotency-Key` header on current `create/*`; Phase 10 inherits pattern for Subscriptions.create/2. |
+| REL-02      | 8     | Complete | `req` retry policy honoring `Retry-After`; 429 + 5xx + transient only. |
+| REL-03      | 8     | Complete | Network errors normalized to `%Paddle.Error{}` with `:network_error?` / `:retryable?` (additive). |
+| PAGE-01     | 9     | Complete | `Paddle.stream/3` + `Paddle.all/3` over `Paddle.Page.next_cursor/1`; locked `list/2` shape preserved. |
+| SUB-04      | 10    | Complete | Transaction-driven recurring start via `Paddle.Transactions.create/3` + checkout/manual collection + webhook/canonical fetch; no public `Paddle.Subscriptions.create/2`. |
+| SUB-05      | 10    | Complete | `Paddle.Subscriptions.pause/2`. |
+| SUB-06      | 10    | Complete | `Paddle.Subscriptions.resume/2`. |
+| TYPES-01    | 11    | Complete | `@spec` on every public function across `lib/paddle/`. |
+| TYPES-02    | 11    | Complete | `:dialyxir` wired; clean baseline; `mix dialyzer` as CI gate. |
+| DOCS-01     | 12    | Pending | `@doc` + example on every public function. |
+| DOCS-02     | 12    | Pending | `@moduledoc` on every public module; SEAM-02 `@moduledoc false` sealings preserved. |
+| DOCS-03     | 12    | Pending | README rewrite draft exists from release-truth reset; Phase 12 must audit/finalize and keep docs warning-free. |
+| DOCS-04     | 12    | Pending | `guides/getting-started.md` draft is in docs extras; Phase 12 must audit/finalize. |
+| DOCS-05     | 12    | Pending | `guides/telemetry.md` published into `:docs` extras. |
+| PROC-01     | 13    | Pending | Pre-commit hook for SUMMARY/git-state drift. |
+| PROC-02     | 13    | Pending | Same drift check as CI step. |
+
+---
+
+_Created 2026-04-29 at v1.2 milestone start. Traceability filled in by roadmap creation 2026-04-29._
+# Phase 12: Documentation Pass - Context
+
+**Gathered:** 2026-06-04
+**Status:** Ready for planning
+
+<domain>
+## Phase Boundary
+
+Documentation pass across the public API surface of the `oarlock` SDK.
+
+This phase ensures all public modules and functions are properly documented with `@moduledoc` and `@doc`, rewrites the `README.md`, and finalizes the `getting-started.md` and `telemetry.md` guides. It aims to provide excellent developer ergonomics (DX) by making the SDK steady, precise, and explicit, without trying to teach Paddle's complex billing rules inline.
+
+</domain>
+
+<decisions>
+## Implementation Decisions
+
+### Code Examples Depth
+- **D-01:** Adopt a "Hybrid Explicit" approach for code examples.
+- **D-02:** At the module level (`@moduledoc`), provide exactly one full, copy-pasteable pipeline showing `%Paddle.Client{}` setup, the API call, and a `case` block handling both `{:ok, struct}` and `{:error, error}`.
+- **D-03:** At the function level (`@doc`), the `client` instantiation may be elided (assume `client` is bound), but the example **must always** show the `{:ok, _}` and `{:error, _}` pattern match. Never hide the return tuple in examples.
+
+### External Linking Strategy
+- **D-04:** Mechanics inline; domain rules external.
+- **D-05:** Document exactly what the Elixir types/structs are inline (e.g., parameter requirements, struct shapes, pagination handling).
+- **D-06:** Do not explain Paddle billing logic (proration, tax rules, etc.) inline.
+- **D-07:** Every `@doc` must end with a `## Related Paddle docs` section containing a direct link to the canonical Paddle Billing API reference. We defer to the provider for domain truth.
+- **D-08:** Include a `## Provider behavior` section in docs for non-obvious footguns.
+
+### Error Documentation Depth
+- **D-09:** Exhaustive local atoms; broad provider structs.
+- **D-10:** Typespecs must exhaustively list the error union (e.g., `{:error, :invalid_id | Paddle.Error.t()}`).
+- **D-11:** Every local validation atom (e.g., `:invalid_transaction_id`) generated by the SDK before the network request must be explicitly documented in the `@doc`.
+- **D-12:** Do not enumerate Paddle's API error codes. Document that all network and provider-side errors are normalized into a single `%Paddle.Error{}` struct, which preserves the original Paddle `code` and `request_id` for debugging.
+
+### Claude's Discretion
+- The exact layout and formatting of the rewritten `README.md` and guides, provided they align with the Oarlock brand book and prioritize the getting started narrative (customer -> address -> transaction -> checkout -> webhook -> subscription).
+
+</decisions>
+
+<canonical_refs>
+## Canonical References
+
+**Downstream agents MUST read these before planning or implementing.**
+
+### Project scope and locked local decisions
+- `.planning/PROJECT.md` - v1.2 production-surface goal, pure SDK constraints, explicit client passing, and typed response promise.
+- `.planning/REQUIREMENTS.md` - Active DOCS-01 through DOCS-05 requirements for Phase 12.
+- `.planning/ROADMAP.md` - Phase 12 goal and success criteria.
+- `prompts/oarlock-brand-book.md` - Oarlock positioning: small, provider-native, explicit, stable, developer-native documentation standards.
+- `prompts/paddle-elixir-lib-deep-research.md` - Original research brief framing the documentation approach.
+- `guides/accrue-seam.md` - Current locked Accrue seam to be preserved.
+- `README.md` - Stub to be rewritten.
+- `guides/getting-started.md` - Draft to be audited/finalized.
+- `guides/telemetry.md` - Guide to be published for telemetry events.
+
+</canonical_refs>
+
+<code_context>
+## Existing Code Insights
+
+### Reusable Assets
+- `README.md` (draft content from release-truth reset)
+- `guides/getting-started.md` (draft content)
+- `guides/accrue-seam.md` (existing canonical seam doc)
+- ExDoc formatting rules and cross-linking syntax for Elixir docs.
+
+### Established Patterns
+- Public modules represent the entry point to the API (e.g., `Paddle.Customers`, `Paddle.Transactions`).
+- Sealed internal modules (`@moduledoc false` on `Paddle`, `Paddle.Http`, etc.) should remain sealed.
+- Functions always take `%Paddle.Client{}` and return tagged tuples `{:ok, struct} | {:error, error}`.
+
+### Integration Points
+- Add `@moduledoc` and `@doc` to all public modules in `lib/paddle/`.
+- Wire `guides/getting-started.md` and `guides/telemetry.md` into `mix.exs` `:docs` extras.
+
+</code_context>
+
+<specifics>
+## Specific Ideas
+
+- Focus on a great DX / ergonomics for the developer using `oarlock`.
+- Maintain the "steady, precise, explicit" brand.
+- Learn from Stripe SDK's footguns (e.g. failing to document global vs explicit client usage).
+
+</specifics>
+
+<deferred>
+## Deferred Ideas
+
+None — discussion stayed within phase scope.
+
+</deferred>
+<user_constraints>
+## User Constraints (from CONTEXT.md)
+
+### Locked Decisions
+### Code Examples Depth
+- **D-01:** Adopt a "Hybrid Explicit" approach for code examples.
+- **D-02:** At the module level (`@moduledoc`), provide exactly one full, copy-pasteable pipeline showing `%Paddle.Client{}` setup, the API call, and a `case` block handling both `{:ok, struct}` and `{:error, error}`.
+- **D-03:** At the function level (`@doc`), the `client` instantiation may be elided (assume `client` is bound), but the example **must always** show the `{:ok, _}` and `{:error, _}` pattern match. Never hide the return tuple in examples.
+
+### External Linking Strategy
+- **D-04:** Mechanics inline; domain rules external.
+- **D-05:** Document exactly what the Elixir types/structs are inline (e.g., parameter requirements, struct shapes, pagination handling).
+- **D-06:** Do not explain Paddle billing logic (proration, tax rules, etc.) inline.
+- **D-07:** Every `@doc` must end with a `## Related Paddle docs` section containing a direct link to the canonical Paddle Billing API reference. We defer to the provider for domain truth.
+- **D-08:** Include a `## Provider behavior` section in docs for non-obvious footguns.
+
+### Error Documentation Depth
+- **D-09:** Exhaustive local atoms; broad provider structs.
+- **D-10:** Typespecs must exhaustively list the error union (e.g., `{:error, :invalid_id | Paddle.Error.t()}`).
+- **D-11:** Every local validation atom (e.g., `:invalid_transaction_id`) generated by the SDK before the network request must be explicitly documented in the `@doc`.
+- **D-12:** Do not enumerate Paddle's API error codes. Document that all network and provider-side errors are normalized into a single `%Paddle.Error{}` struct, which preserves the original Paddle `code` and `request_id` for debugging.
+
+### the agent's Discretion
+- The exact layout and formatting of the rewritten `README.md` and guides, provided they align with the Oarlock brand book and prioritize the getting started narrative (customer -> address -> transaction -> checkout -> webhook -> subscription).
+
+### Deferred Ideas (OUT OF SCOPE)
+None — discussion stayed within phase scope.
+</user_constraints>
+
+<phase_requirements>
+## Phase Requirements
+
+| ID | Description | Research Support |
+|----|-------------|------------------|
+| DOCS-01 | Add `@doc` with at least one example to every public function across `lib/paddle/`. | ExDoc syntax for doctests and code blocks. Pattern match `{:ok, _}` and `{:error, _}` is enforced by D-03. |
+| DOCS-02 | Add `@moduledoc` to every public module. The five sealed modules (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`) keep `@moduledoc false`. | `mix docs` formatting; internal modules (including `Paddle.Internal.Pagination`) remain sealed. |
+| DOCS-03 | Replace the README "TODO: Add description" stub at `README.md:3` with an installation + quick-start + cross-links structure. | A draft `README.md` exists and aligns well; needs final review to ensure "TODO" is gone. |
+| DOCS-04 | Publish a happy-path `guides/getting-started.md`, wired into `mix.exs` `:docs` extras. | The draft `guides/getting-started.md` exists and is already in `:extras` inside `mix.exs`. Needs review. |
+| DOCS-05 | Publish `guides/telemetry.md` documenting the `[:paddle, :request, :start \| :stop \| :exception]` events emitted from `lib/paddle/http/telemetry.ex`. | Needs a new file created in `guides/` and added to `mix.exs` under `:docs` `extras`. |
+</phase_requirements>
+
+# Phase 12: Documentation Pass - Research
+
+**Researched:** 2026-06-04
+**Domain:** Elixir documentation standards (ExDoc) and Paddle API DX
+**Confidence:** HIGH
+
+## Summary
+
+This phase focuses entirely on developer experience (DX) and documentation. We are elevating `oarlock` from a functional library to a genuinely production-ready SDK that an external Elixir developer can integrate using only hexdocs.pm without reading source code.
+
+The primary strategy is "Mechanics inline; domain rules external." We will lean heavily on standard ExDoc conventions (`@moduledoc` and `@doc`) across all unsealed modules in `lib/paddle/`. We will rewrite the README and finalize our Getting Started guide, alongside introducing a Telemetry guide. Code examples will enforce an explicit `{:ok, struct} | {:error, error}` pattern matching paradigm to prevent "happy-path only" assumptions.
+
+**Primary recommendation:** Use `mix docs --warnings-as-errors` throughout implementation as a fast feedback loop to guarantee no broken links or syntax issues. Systematically visit each module, enforcing D-02 (pipeline examples on `@moduledoc`) and D-03 (pattern-match examples on `@doc`). 
+
+## Architectural Responsibility Map
+
+| Capability | Primary Tier | Secondary Tier | Rationale |
+|------------|-------------|----------------|-----------|
+| API Documentation | API / Backend | — | The Elixir compiler and ExDoc extract metadata directly from the source AST. The SDK boundary is entirely Backend-owned. |
+| Guides / Markdown | API / Backend | — | Long-form markdown (`README.md`, `guides/*.md`) bridges onboarding for SDK consumers. |
+
+## Standard Stack
+
+### Core
+| Library | Version | Purpose | Why Standard |
+|---------|---------|---------|--------------|
+| `ex_doc` | ~> 0.34 | Elixir project documentation | Canonical tool for generating HTML and ePub docs from Elixir source. Automatically wired via `mix docs`. |
+
+### Supporting
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `mix` | native | Project tasks | Validating documentation cleanly with `mix docs --warnings-as-errors` and formatting code in examples. |
+
+**Installation:**
+No new installations required. `ex_doc` is already defined in `mix.exs` under `:deps`.
+
+## Architecture Patterns
+
+### Recommended Documentation Structure
+
+```
+lib/paddle/
+├── [module].ex       # Starts with @moduledoc, followed by functions with @doc
+guides/
+├── getting-started.md # Narrative onboarding path
+├── telemetry.md       # Operational metrics documentation
+└── accrue-seam.md     # Locked consumer-facing contract
+```
+
+### Pattern 1: Module-Level Hybrid Explicit Pipeline
+**What:** The `@moduledoc` block demonstrates the full, explicit lifecycle of a resource.
+**When to use:** At the top of every public module.
+**Example:**
+```elixir
+@moduledoc """
+Provides operations for managing Paddle Customers.
+
+## Example Pipeline
+
+```elixir
+client = Paddle.Client.new!(api_key: "...", environment: :sandbox)
+
+case Paddle.Customers.create(client, email: "ada@example.com", name: "Ada Lovelace") do
+  {:ok, %Paddle.Customer{} = customer} ->
+    # Store customer.id
+    IO.puts("Created: #{customer.id}")
+
+  {:error, %Paddle.Error{} = error} ->
+    # Handle API or network errors
+    IO.puts("Failed: #{error.message}")
+end
+```
+"""
+```
+
+### Pattern 2: Function-Level Explicit Pattern Match
+**What:** The `@doc` block elides client instantiation but always handles the tagged tuple return.
+**When to use:** On every public function.
+**Example:**
+```elixir
+@doc """
+Retrieves a customer by ID.
+
+## Examples
+
+```elixir
+case Paddle.Customers.get(client, "ctm_123") do
+  {:ok, %Paddle.Customer{} = customer} ->
+    customer
+
+  {:error, :invalid_customer_id} ->
+    # Handle local validation error
+
+  {:error, %Paddle.Error{} = error} ->
+    # Handle provider/network error
+end
+```
+
+## Provider behavior
+If a customer is archived, they are still returned but `status` will be `"archived"`.
+
+## Related Paddle docs
+- [Get a customer](https://developer.paddle.com/api-reference/customers/get-customer)
+"""
+```
+
+### Anti-Patterns to Avoid
+- **Implicit returns:** `customer = Paddle.Customers.get!(client, "123")` (Avoid bang-functions in examples; oarlock enforces tagged tuples).
+- **Eliding the error case:** Code blocks that only show `{:ok, struct} = ...` without demonstrating the error shape.
+- **Billing domain tutorials:** Explaining how Paddle calculates taxes or prorations within the SDK docs instead of linking out.
+
+## Don't Hand-Roll
+
+| Problem | Don't Build | Use Instead | Why |
+|---------|-------------|-------------|-----|
+| Example Code Verification | Custom grep scripts for code blocks | ExDoc / ExUnit Doctests | Native Elixir tooling guarantees code examples compile and parse correctly. |
+| Linking across modules | Markdown URLs | `[Module](`Module.html`)` or `m:Module` | ExDoc native autolinking prevents dead links on refactors. |
+
+## Common Pitfalls
+
+### Pitfall 1: Breaking `mix docs` with bad markdown
+**What goes wrong:** Generating docs fails or has unformatted blocks.
+**Why it happens:** Improperly indented markdown or missing language tags (e.g. ```elixir).
+**How to avoid:** Run `mix docs --warnings-as-errors` locally continuously during the implementation phase.
+
+### Pitfall 2: Over-documenting internal module signatures
+**What goes wrong:** Private modules (`Paddle.Http`) start showing up in the generated docs, bloating the surface.
+**Why it happens:** Changing `@moduledoc false` to `@moduledoc "..."`.
+**How to avoid:** Respect the lock on the 5 original sealed modules (`Paddle`, `Paddle.Http`, `Paddle.Http.Telemetry`, `Paddle.Application`, `Paddle.Internal.Attrs`), plus `Paddle.Internal.Pagination`.
+
+### Pitfall 3: Failing to document telemetry schemas
+**What goes wrong:** A developer tries to attach to `[:paddle, :request, :start]` but has to read the source to know what metadata is provided.
+**Why it happens:** Vague telemetry guides.
+**How to avoid:** DOCS-05 strictly mandates publishing exact measurement and metadata schemas in `guides/telemetry.md`.
+
+## Code Examples
+
+Verified patterns from official sources:
+
+### Adding Extras to `mix.exs`
+```elixir
+# In mix.exs docs()
+extras: [
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE",
+  "guides/getting-started.md",
+  "guides/telemetry.md", # NEW for DOCS-05
+  "guides/accrue-seam.md"
+],
+```
+
+## State of the Art
+
+| Old Approach | Current Approach | When Changed | Impact |
+|--------------|------------------|--------------|--------|
+| Loose unstructured API mapping | Tagged tuples and explicit types | v1.0 | Forces developers to handle `{:error, %Paddle.Error{}}` explicitly. |
+| Undocumented local validations | Explicit local atom docs | v1.2 Phase 12 | Eliminates guessing what `{:error, :invalid_id}` means and where it originates. |
+
+## Assumptions Log
+
+If this table is empty: All claims in this research were verified or cited — no user confirmation needed.
+
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A1 | `Paddle.Internal.Pagination` should remain `@moduledoc false` | Phase Requirements | If wrong, we accidentally expose an internal cursor mechanism that was not meant for the public Accrue Seam. |
+
+## Open Questions
+
+1. **Doctests vs Examples**
+   - What we know: D-03 says "must always show the `{:ok, _}` and `{:error, _}` pattern match".
+   - What's unclear: Can these be `iex>` doctests?
+   - Recommendation: Standard Elixir `iex>` doctests are hard to write for API clients without mocking network responses. We will use standard ` ```elixir ` code blocks for `@doc` examples instead of executable doctests to adhere strictly to D-03 without requiring a test sandbox.
+
+## Validation Architecture
+
+### Test Framework
+| Property | Value |
+|----------|-------|
+| Framework | ExUnit & ExDoc |
+| Config file | `mix.exs` / `test/test_helper.exs` |
+| Quick run command | `mix docs --warnings-as-errors` |
+| Full suite command | `mix test && mix docs --warnings-as-errors` |
+
+### Phase Requirements → Test Map
+| Req ID | Behavior | Test Type | Automated Command | File Exists? |
+|--------|----------|-----------|-------------------|-------------|
+| DOCS-01 | Every public function has `@doc` and examples | unit/grep | `mix docs --warnings-as-errors` and AST grep | ✅ Wave 0 |
+| DOCS-02 | Every public module has `@moduledoc`; 6 sealed modules keep `@moduledoc false` | unit | `mix test test/paddle/seam_test.exs` (or dedicated test) | ❌ Wave 0 (Need dedicated test to assert module seals) |
+| DOCS-03 | README.md rewritten and "TODO" removed | unit/grep | `grep -q "TODO" README.md` (should fail) | ✅ Wave 0 (Draft exists) |
+| DOCS-04 | `guides/getting-started.md` published & warning-free | smoke | `mix docs --warnings-as-errors` | ✅ Wave 0 |
+| DOCS-05 | `guides/telemetry.md` published & warning-free | smoke | `mix docs --warnings-as-errors` | ❌ Wave 0 (File needs to be created) |
+
+### Wave 0 Gaps
+- [ ] Needs a test asserting that exact 6 modules are sealed (`@moduledoc false`) to prevent regression.
+- [ ] `guides/telemetry.md` file does not exist.
+
+## Security Domain
+
+*Omitted: Documentation phase contains purely static content additions, no runtime application code changes.*
+
+## Sources
+
+### Primary (HIGH confidence)
+- `.planning/phases/12-documentation-pass/12-CONTEXT.md` - Locked implementation decisions.
+- `.planning/REQUIREMENTS.md` - Exact DOCS-* criteria.
+- `mix.exs` - Current configuration and `ex_doc` versions.
+
+## Metadata
+
+**Confidence breakdown:**
+- Standard stack: HIGH - `ex_doc` is the single source of truth for Elixir documentation.
+- Architecture: HIGH - Fully detailed in CONTEXT.md decisions.
+- Pitfalls: HIGH - Known ExDoc constraints and local validation patterns are clear.
+
+**Research date:** 2026-06-04
+**Valid until:** 30 days

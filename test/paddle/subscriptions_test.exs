@@ -140,6 +140,58 @@ defmodule Paddle.SubscriptionsTest do
     end
   end
 
+  describe "update/3" do
+    test "patches only the allowlisted update attrs and returns updated subscription" do
+      response_data = subscription_payload_active_with_scheduled_change()
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :patch
+          assert request.url.path == "/subscriptions/sub_01"
+
+          assert decode_json_body(request.body) == %{
+                   "proration_billing_mode" => "next_billing_period",
+                   "custom_data" => %{"tier" => "pro"},
+                   "discount" => %{"id" => "dsc_123"}
+                 }
+
+          {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
+        end)
+
+      assert {:ok, %Subscription{id: "sub_01", raw_data: ^response_data}} =
+               Subscriptions.update(client, "sub_01", %{
+                 proration_billing_mode: "next_billing_period",
+                 custom_data: %{"tier" => "pro"},
+                 discount: %{"id" => "dsc_123"},
+                 ignored: "drop me"
+               })
+    end
+
+    test "returns explicit validation tuples before dispatch" do
+      client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{"data" => %{}})})
+
+      assert {:error, :invalid_subscription_id} = Subscriptions.update(client, nil, %{})
+      assert {:error, :invalid_subscription_id} = Subscriptions.update(client, " ", %{})
+      assert {:error, :invalid_params} = Subscriptions.update(client, "sub_01", "nope")
+    end
+
+    test "url-encodes subscription ids for patch requests" do
+      client =
+        client_with_adapter(fn request ->
+          assert request.method == :patch
+          assert request.url.path == "/subscriptions/sub%2Fwith%3Freserved"
+
+          {request,
+           Req.Response.new(status: 200, body: %{"data" => subscription_payload_canceled()})}
+        end)
+
+      assert {:ok, %Subscription{}} =
+               Subscriptions.update(client, "sub/with?reserved", %{
+                 proration_billing_mode: "prorated_immediately"
+               })
+    end
+  end
+
   describe "list/2" do
     test "returns a typed %Paddle.Page with hydrated nested structs and a working full-URL next cursor" do
       response_data = [
@@ -835,6 +887,7 @@ defmodule Paddle.SubscriptionsTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
     }
   end
@@ -849,6 +902,7 @@ defmodule Paddle.SubscriptionsTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req:
         Req.new(
           base_url: "https://sandbox-api.paddle.com",

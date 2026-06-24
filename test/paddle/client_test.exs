@@ -23,4 +23,15 @@ defmodule Paddle.ClientTest do
     assert Keyword.has_key?(req.response_steps, :paddle_telemetry_stop)
     assert Keyword.has_key?(req.error_steps, :paddle_telemetry_error)
   end
+
+  test "new!/1 respects the :base_url option when provided" do
+    client = Paddle.Client.new!(api_key: "sk_test_123", base_url: "http://localhost:4001")
+
+    assert %Paddle.Client{
+             api_key: "sk_test_123",
+             req: %Req.Request{} = req
+           } = client
+
+    assert req.options.base_url == "http://localhost:4001"
+  end
 end

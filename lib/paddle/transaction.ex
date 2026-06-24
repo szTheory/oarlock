@@ -1,10 +1,17 @@
 defmodule Paddle.Transaction do
   @moduledoc """
   Represents a Paddle Transaction.
-  
+
+  This is a data struct mapping the JSON response from the Paddle Billing API.
+
   A transaction entity represents an exchange of money for goods or services.
-  It is generated for one-time purchases and as part of a recurring subscription lifecycle.
-  
+  It includes fields like:
+  - `status`: The current state (e.g., draft, ready, billed, paid, completed).
+  - `collection_mode`: Whether payment is collected automatically or manually via invoice.
+  - `items`: The products or prices being purchased.
+  - `checkout`: An object containing the hosted checkout URL for the transaction.
+  - `details`: Breakdown of totals, taxes, and payouts.
+
   ## Related Paddle docs
   - [Transaction concept](https://developer.paddle.com/concepts/transactions)
   - [Transaction API reference](https://developer.paddle.com/api-reference/transactions/overview)

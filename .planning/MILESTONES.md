@@ -4,6 +4,91 @@ Chronological record of shipped milestones. Newest first.
 
 ---
 
+## v2.0 Offline Mode & Advanced Billing — 2026-06-11
+
+**Status:** ✅ Shipped
+**Phases:** 25-26 (3 plans)
+**Test suite at tag:** Passes locally
+
+### Delivered
+
+1. **Offline Mode Foundation** - Introduced `Paddle.MockServer` powered by Bandit for fully standalone offline Paddle development and testing. SDK clients can seamlessly point to the offline server via configuration.
+2. **Advanced Subscription Flows E2E** - Delivered comprehensive E2E testing flows for complex upgrade and downgrade subscription scenarios, fully verifying prorations and billing cycles against Paddle state without manual intervention.
+
+### Key Decisions
+
+- Selected Bandit for the `Paddle.MockServer` foundation.
+- Accepted incomplete verification (missing VERIFICATION.md) for Phase 25 as technical debt to proceed with shipping.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v2.0-ROADMAP.md`
+- Requirements: `.planning/milestones/v2.0-REQUIREMENTS.md`
+- Audit: `.planning/v2.0-MILESTONE-AUDIT.md`
+- Tag: `v2.0`
+
+---
+
+## v1.5 Demo App & DX Hardening — 2026-06-11
+
+**Status:** ✅ Shipped
+**Phases:** 20-24 (5 plans)
+**Test suite at tag:** Passes locally (E2E simulation integrated)
+
+### Delivered
+
+1. **Local DX & Repository Foundation** - Standalone `/demo` Phoenix 1.7+ project created using Docker Compose and Traefik for an isolated evaluation environment free of port collisions.
+2. **UI Scaffolding & Mock Auth** - Integrated Petal Components and a frictionless mock authentication flow protecting the `/admin` boundary.
+3. **Core SaaS Checkout & Webhooks** - Built backend-driven Paddle SaaS checkout. Implemented `DemoWeb.WebhookController` using a unified persistent inbox pattern, effectively securing the event ingress via `Paddle.Webhooks.verify_signature/4`.
+4. **Customer Portal & Lifecycle Management** - Engineered a robust LiveView `open_portal` event invoking the newly authored `Paddle.PortalSessions.create/2`. Gracefully extended the webhook listener to ingest `subscription.canceled` and `subscription.paused` payloads identically to creation events.
+5. **Shift-Left E2E Testing Pipeline** - Converted Playwright UI mandates into a deterministic Elixir-native workflow using `phoenix_test`. Constructed `DemoWeb.WebhookSimulator` to inject mathematically valid HMAC-SHA256 test payloads dynamically through the actual endpoint to confidently test the local DB persistence and real-time PubSub UI.
+
+### Key Decisions
+
+- Selected `phoenix_test` to verify browser logic deterministically inside ExUnit instead of provisioning an external headless framework.
+- Persisted webhooks prior to evaluation (`webhook_events` schema) in accordance with the industry-standard event inbox strategy.
+- Adopted the "Second Processor" standard by exclusively wrapping frontend components around server-side SDK execution instead of allowing purely frontend initialization.
+
+### Archive
+
+- Roadmap: `.planning/ROADMAP.md`
+- Requirements: `.planning/REQUIREMENTS.md`
+- Audit: `.planning/v1.5-MILESTONE-AUDIT.md`
+- Tag: `v1.5`
+
+---
+
+## v1.3 Support & Self-Serve Surface — 2026-06-09
+
+**Status:** ✅ Shipped
+**Phases:** 14-16 (3 plans, 6 tasks)
+**Test suite at tag:** Passes locally (see CI for total tests count)
+
+### Delivered
+
+1. **Customer Portal Sessions** - `Paddle.Customers.PortalSessions.create/3`
+2. **Adjustments** - `Paddle.Adjustments` for full and partial refunds and credits.
+3. **Seam Validation & Documentation** - Expanded `guides/accrue-seam.md` with explicit field tiers for new entities. End-to-end Accrue seam test incorporates adjustments and portal session flows.
+
+### Key Decisions
+
+- Avoided deeply validating `subscription_ids` for portal sessions, deferring to the API.
+- Implemented custom `Inspect` protocols to redact sensitive temporary URLs.
+- Instantiated distinct one-shot clients for test isolation.
+- Used custom `Req` mock instead of `Tesla.Mock` for tests to match established conventions.
+
+### Known Gaps / Audit Trail
+
+- **No formal milestone audit (`v1.3-MILESTONE-AUDIT.md`) was produced before close.** Proceeded with archival accepting gaps as tech debt.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v1.3-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.3-REQUIREMENTS.md`
+- Tag: `v1.3`
+
+---
+
 ## v1.1 Accrue Seam Hardening — 2026-04-29
 
 **Status:** ✅ Shipped

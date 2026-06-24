@@ -19,6 +19,81 @@ defmodule Paddle.SeamTest do
   @seam_timestamp 1_700_000_000
   @transaction_completed_body ~s({"event_id":"evt_seam01","event_type":"transaction.completed","occurred_at":"2024-04-12T10:37:59Z","notification_id":"ntf_seam01","data":{"id":"txn_seam01","status":"completed","customer_id":"ctm_seam01","subscription_id":"sub_seam01","checkout":{"url":"https://checkout.paddle.com/checkout/txn_seam01"},"currency_code":"USD","collection_mode":"automatic"}})
 
+  @documented_public_inventory %{
+    Paddle.Customers => [create: 2, create: 3, get: 2, update: 3],
+    Paddle.Customers.Addresses => [
+      all: 2,
+      all: 3,
+      create: 3,
+      create: 4,
+      get: 3,
+      list: 2,
+      list: 3,
+      stream: 2,
+      stream: 3,
+      update: 4
+    ],
+    Paddle.Customers.PortalSessions => [create: 2, create: 3, create: 4],
+    Paddle.Transactions => [create: 2, create: 3, get: 2],
+    Paddle.Adjustments => [
+      all: 1,
+      all: 2,
+      create: 2,
+      create: 3,
+      get: 2,
+      list: 1,
+      list: 2,
+      stream: 1,
+      stream: 2
+    ],
+    Paddle.Subscriptions => [
+      all: 1,
+      all: 2,
+      cancel: 2,
+      cancel_immediately: 2,
+      get: 2,
+      list: 1,
+      list: 2,
+      pause: 2,
+      pause: 3,
+      pause_immediately: 2,
+      pause_immediately: 3,
+      resume: 2,
+      resume: 3,
+      stream: 1,
+      stream: 2,
+      update: 3
+    ],
+    Paddle.Webhooks => [parse_event: 1, verify_signature: 3, verify_signature: 4],
+    Paddle.Products => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.Prices => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.Events => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.NotificationSettings => [
+      all: 1,
+      all: 2,
+      create: 2,
+      create: 3,
+      delete: 2,
+      get: 2,
+      list: 1,
+      list: 2,
+      stream: 1,
+      stream: 2,
+      update: 3
+    ],
+    Paddle.Page => [next_cursor: 1],
+    Paddle.Error => [exception: 1, from_response: 1, from_transport: 1, message: 1],
+    Paddle.PortalSessions => [create: 2]
+  }
+
+  @public_docs [
+    "README.md",
+    "guides/getting-started.md",
+    "guides/accrue-seam.md",
+    "demo/README.md",
+    "CHANGELOG.md"
+  ]
+
   test "locks the Accrue seam across the customer, checkout, webhook, and subscription lifecycle flow" do
     customer_client =
       client_with_adapter(fn request ->
@@ -42,6 +117,20 @@ defmodule Paddle.SeamTest do
              )
 
     assert is_map(customer.raw_data)
+
+    portal_session_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/customers/ctm_seam01/portal-sessions"
+
+        {request, Req.Response.new(status: 201, body: %{"data" => portal_session_payload()})}
+      end)
+
+    assert {:ok,
+            %Paddle.PortalSession{id: "pts_seam01", customer_id: "ctm_seam01"} = portal_session} =
+             Paddle.Customers.PortalSessions.create(portal_session_client, customer.id)
+
+    assert is_map(portal_session.raw_data)
 
     address_client =
       client_with_adapter(fn request ->
@@ -146,6 +235,32 @@ defmodule Paddle.SeamTest do
             } = event} = Webhooks.parse_event(@transaction_completed_body)
 
     assert is_map(event.raw_data)
+
+    adjustment_client =
+      client_with_adapter(fn request ->
+        assert request.method == :post
+        assert request.url.path == "/adjustments"
+
+        assert decode_json_body(request.body) == %{
+                 "action" => "refund",
+                 "reason" => "fraud",
+                 "transaction_id" => "txn_seam01",
+                 "items" => [%{"item_id" => "pri_seam01", "type" => "full"}]
+               }
+
+        {request, Req.Response.new(status: 201, body: %{"data" => adjustment_payload()})}
+      end)
+
+    assert {:ok, %Paddle.Adjustment{id: "adj_seam01"} = adjustment} =
+             Paddle.Adjustments.create(adjustment_client,
+               action: "refund",
+               reason: "fraud",
+               transaction_id: "txn_seam01",
+               items: [%{item_id: "pri_seam01", type: "full"}]
+             )
+
+    assert is_map(adjustment.raw_data)
+
     refute function_exported?(Paddle.Subscriptions, :create, 2)
 
     subscription_get_client =
@@ -237,6 +352,7 @@ defmodule Paddle.SeamTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
     }
   end
@@ -381,6 +497,52 @@ defmodule Paddle.SeamTest do
     })
   end
 
+  defp portal_session_payload do
+    %{
+      "id" => "pts_seam01",
+      "customer_id" => "ctm_seam01",
+      "urls" => %{
+        "general" => %{"overview" => "https://buyer-portal.paddle.com/pts_seam01"},
+        "subscriptions" => [
+          %{"id" => "sub_seam01", "cancel" => "https://buyer-portal.paddle.com/cancel/sub_seam01"}
+        ]
+      },
+      "custom_data" => %{},
+      "created_at" => "2024-04-12T10:16:30Z"
+    }
+  end
+
+  defp adjustment_payload do
+    %{
+      "id" => "adj_seam01",
+      "action" => "refund",
+      "transaction_id" => "txn_seam01",
+      "subscription_id" => "sub_seam01",
+      "customer_id" => "ctm_seam01",
+      "reason" => "fraud",
+      "credit_applied_to_balance" => false,
+      "currency_code" => "USD",
+      "status" => "pending_approval",
+      "items" => [],
+      "totals" => %{
+        "subtotal" => "1000",
+        "tax" => "0",
+        "total" => "1000",
+        "fee" => "0",
+        "earnings" => "1000"
+      },
+      "payouts" => %{
+        "subtotal" => "1000",
+        "tax" => "0",
+        "total" => "1000",
+        "fee" => "0",
+        "earnings" => "1000"
+      },
+      "created_at" => "2024-04-12T10:38:00Z",
+      "updated_at" => "2024-04-12T10:38:00Z"
+    }
+  end
+
   test "sealed modules remain undocumented" do
     for module <- [
           Paddle,
@@ -392,5 +554,50 @@ defmodule Paddle.SeamTest do
         ] do
       assert {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(module)
     end
+  end
+
+  test "seam guide documents the live public inventory and portal compatibility boundary" do
+    seam_guide = File.read!("guides/accrue-seam.md")
+
+    for {module, expected_functions} <- @documented_public_inventory do
+      actual_functions =
+        module.__info__(:functions)
+        |> Keyword.drop([:__struct__])
+        |> Enum.sort()
+
+      assert actual_functions == Enum.sort(expected_functions)
+      assert seam_guide =~ inspect(module)
+
+      for {function, arity} <- expected_functions do
+        assert seam_guide =~ "#{function}/#{arity}",
+               "#{inspect(module)}.#{function}/#{arity} is exported but missing from the seam guide"
+      end
+    end
+
+    assert seam_guide =~ "Paddle.Customers.PortalSessions.create/4"
+    assert seam_guide =~ "preferred customer portal seam"
+    assert seam_guide =~ "Paddle.PortalSessions.create/2"
+    assert seam_guide =~ "compatibility"
+  end
+
+  test "public docs do not claim provider-state proof from local fixtures" do
+    unsupported_claims = [
+      ~r/\bsandbox verified\b/i,
+      ~r/\bprovider-state verified\b/i,
+      ~r/\blive verified\b/i
+    ]
+
+    for path <- @public_docs do
+      body = File.read!(path)
+
+      for claim <- unsupported_claims do
+        refute Regex.match?(claim, body),
+               "#{path} contains unsupported provider proof wording matching #{inspect(claim)}"
+      end
+    end
+
+    assert Enum.any?(@public_docs, fn path ->
+             File.read!(path) =~ "MockServer"
+           end)
   end
 end

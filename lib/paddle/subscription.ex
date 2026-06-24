@@ -1,10 +1,18 @@
 defmodule Paddle.Subscription do
   @moduledoc """
   Represents a Paddle Subscription.
-  
-  A subscription entity tracks the recurring billing relationship with a customer,
-  including items, billing periods, scheduled changes, and management URLs.
-  
+
+  This is a data struct mapping the JSON response from the Paddle Billing API.
+
+  A subscription entity tracks the recurring billing relationship with a customer.
+  It includes essential fields like:
+  - `status`: The current state (e.g., active, paused, canceled).
+  - `items`: The products or prices included.
+  - `scheduled_change`: Future actions (e.g., scheduled cancellation or pause).
+  - `management_urls`: Links for the customer to update payment details or cancel.
+  - `current_billing_period`: The start and end dates for the current cycle.
+  - `billing_cycle`: The frequency of billing.
+
   ## Related Paddle docs
   - [Subscription concept](https://developer.paddle.com/concepts/subscriptions)
   - [Subscription API reference](https://developer.paddle.com/api-reference/subscriptions/overview)

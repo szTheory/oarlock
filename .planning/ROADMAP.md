@@ -1,64 +1,81 @@
-# Roadmap
+# Project Roadmap
 
 ## Milestones
 
-- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09) — see [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29) — see [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
-- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; foundational SDK surface)
+- ◼ **v2.1 Adopter Truth & Release Readiness** — Phases 27-29 (planned)
+- ✅ **v2.0 Offline Mode & Advanced Billing** — Phases 25-26 (shipped 2026-06-11)
+- ✅ **v1.5 Demo App & DX Hardening** — Phases 20-24 (shipped 2026-06-11)
+- ✅ **v1.4 Catalog & Events** — Phases 17-19 (shipped 2026-06-10)
+- ✅ **v1.3 Support & Self-Serve Surface** — Phases 14-16 (shipped 2026-06-09)
+- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09)
+- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29)
 
-## Phases
+## Current Milestone: v2.1 Adopter Truth & Release Readiness
 
-<details>
-<summary>✅ v1.1 Accrue Seam Hardening (Phases 6-7) — SHIPPED 2026-04-29</summary>
+**Goal:** Make the public adopter story, GSD planning state, and release proof match what the code actually ships before adding more Paddle API breadth.
 
-- [x] Phase 6: Transactions Retrieval (1/1 plans) — TXN-03
-- [x] Phase 7: Accrue Seam Lock (2/2 plans) — SEAM-01, SEAM-02
+### Phase 27: Public Contract & Documentation Truth
 
-</details>
+**Goal:** A cold Phoenix SaaS adopter can understand the real supported SDK surface without reading source.
+**Requirements:** DOCS-01, DOCS-02, DOCS-03, DOCS-04
+**Plans:** 3/3 plans complete
 
-<details>
-<summary>✅ v1.0 MVP (Phases 1-5) — pre-archival baseline</summary>
+Plans:
+**Wave 1**
 
-- [x] Phase 1: Core Transport & Client Setup (3/3 plans) — CORE-01..05
-- [x] Phase 2: Webhook Verification (2/2 plans) — WEB-01..03
-- [x] Phase 3: Core Entities (Customers & Addresses) (3/3 plans) — CUST-01, ADDR-01
-- [x] Phase 4: Transactions & Hosted Checkout (2/2 plans) — TXN-01, TXN-02
-- [x] Phase 5: Subscriptions Management (3/3 plans) — SUB-01..03
+- [x] 27-01-PLAN.md — Seam docs-truth guard and canonical contract inventory.
+- [x] 27-02-PLAN.md — README, Getting Started, and demo runbook adopter truth.
 
-</details>
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 27-03-PLAN.md — Changelog narrative and final documentation consistency gate.
+
+**Success Criteria:**
+
+1. README, Getting Started, seam contract, demo runbook, and changelog agree with shipped modules and function arities.
+2. Docs distinguish core SDK responsibilities from Phoenix/Ecto/provisioning responsibilities.
+3. MockServer-backed proof is described honestly and not conflated with live Paddle provider-state testing.
+
+### Phase 28: CI, Demo, and Package Proof
+
+**Goal:** Release readiness is continuously proven for the library, demo, and downstream install path.
+**Requirements:** PROOF-01, PROOF-02, PROOF-03, PROOF-04
+**Plans:** 2/2 plans complete
+
+Plans:
+**Wave 1**
+
+- [x] 28-01-PLAN.md — MockServer optional dependency compile boundary and docs.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 28-02-PLAN.md — CI jobs and downstream Hex package smoke proof.
+
+**Success Criteria:**
+
+1. CI keeps the existing library gates: format, compile warnings-as-errors, tests, public specs, Dialyzer, and SUMMARY drift guard.
+2. CI runs the demo test suite with a PostgreSQL service.
+3. A downstream consumer/package smoke test verifies oarlock can be depended on and compiled by a fresh Mix app.
+4. Optional `plug`/`bandit` behavior is explicitly verified or documented for `Paddle.MockServer`.
+
+### Phase 29: GSD State Reconciliation
+
+**Goal:** Future milestone planning starts from trustworthy project state rather than stale backlog or overclaimed audits.
+**Requirements:** GSD-01, GSD-02, GSD-03, GSD-04
+
+**Success Criteria:**
+
+1. PROJECT, REQUIREMENTS, ROADMAP, STATE, BACKLOG, milestone audit files, and investigation threads agree on shipped/open scope.
+2. Shipped backlog items are marked as historical, Accrue-only, or superseded.
+3. v2.0 audit/validation language is reconciled with actual evidence.
+4. Recurring GSD preferences are available in project/global defaults.
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status   | Completed  |
-|-------|-----------|----------------|----------|------------|
-| 1. Core Transport & Client Setup | v1.0 | 3/3 | Complete | pre-archival |
-| 2. Webhook Verification | v1.0 | 2/2 | Complete | pre-archival |
-| 3. Core Entities (Customers & Addresses) | v1.0 | 3/3 | Complete | pre-archival |
-| 4. Transactions & Hosted Checkout | v1.0 | 2/2 | Complete | pre-archival |
-| 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
-| 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
-| 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
-| 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
-| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 7/7 | Complete    | 2026-06-04 |
-| 13. Process Guard | v1.2 | 1/1 | Complete   | 2026-06-09 |
-
----
-
-## Future Work — Accrue Integration
-
-Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for any prioritized entries that survive milestone close.
-
-Per project memory, Accrue-side asks should be triaged into `BACKLOG.md` rather than auto-inserted as phases here.
-
-## Post-v1.2 Direction
-
-Once v1.2 is clean, green, and released, prefer this order:
-
-1. Support operations: refunds/credits via `Paddle.Adjustments`.
-2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
-3. Catalog read surface: products/prices read/list before any broad CRUD.
-
-Do not mirror Paddle endpoints for their own sake. Promote only work tied to a real Phoenix SaaS adopter job.
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete    | 2026-06-24 |
+| 28. CI, Demo, and Package Proof | v2.1 | 2/2 | Complete    | 2026-06-24 |
+| 29. GSD State Reconciliation | v2.1 | 0/0 | Planned | — |
+| 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
+| 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |
