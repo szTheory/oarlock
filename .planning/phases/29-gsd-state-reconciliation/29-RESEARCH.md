@@ -113,7 +113,7 @@ Actionable nested demo constraints, if a later task touches `demo/`: run `mix pr
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | `.planning/BACKLOG-ARCHIVE.md` | Keep all B-IDs in `.planning/BACKLOG.md` | Rejected by locked decision D-02; active queue would remain stale-looking. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`] |
-| Evidence ledger inside audit | Standalone `.planning/EVIDENCE.md` | Both are allowed; standalone improves scanability across v2.0/v2.1, embedded audit keeps changes localized. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`] |
+| Evidence ledger inside audit | Standalone `.planning/EVIDENCE.md` | Standalone ledger selected for Phase 29 because it improves scanability across v2.0/v2.1 while the audit keeps a dated pointer and errata. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-02-PLAN.md`] |
 | ADR for every thread | Lightweight `.planning/threads/INDEX.md` | Locked decision D-14 rejects turning every small thread into ADR overhead. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`] |
 
 **Installation:**
@@ -164,7 +164,7 @@ Inventory and classify each claim
 .planning/
 ├── BACKLOG.md                    # Small active queue: Open + selected Accrue-only
 ├── BACKLOG-ARCHIVE.md            # Shipped, superseded, reference backlog history
-├── EVIDENCE.md                   # Optional standalone proof ledger, if chosen
+├── EVIDENCE.md                   # Standalone proof ledger selected for this phase
 ├── v2.0-MILESTONE-AUDIT.md       # Existing audit; may host ledger/errata instead
 ├── threads/
 │   ├── INDEX.md                  # Thread status, lesson, canonical link, reopen condition
@@ -341,19 +341,17 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | A separate policy/defaults markdown artifact is acceptable if GSD config schema cannot represent adopter-first/DX/research lenses directly. [ASSUMED] | Standard Stack / Pitfalls | Planner may need to choose an exact filename or ask whether to use global defaults instead. |
+| A1 | Resolved: non-schema project judgment lenses live in committed `.planning/GSD-PREFERENCES.md`; supported gates remain in `.planning/config.json`; personal autonomy/model knobs remain per-run or user-global. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`] | Standard Stack / Pitfalls | Low after plan selection; future changes should update both the policy note and config references together. |
 
-## Open Questions
+## Open Questions - RESOLVED
 
 1. **Where should non-schema project judgment lenses live?**
    - What we know: `.planning/config.json` top-level `preferences` is currently warned as unknown by `gsd-tools`. [VERIFIED: local command]
-   - What's unclear: Whether the user prefers a project-local markdown defaults file, a global user default, or both. [ASSUMED]
-   - Recommendation: Put supported gates in `.planning/config.json` and preserve prose judgment lenses in a small committed planning policy note unless the planner confirms a supported global defaults path. [VERIFIED: `/Users/jon/.codex/gsd-core/references/planning-config.md`; ASSUMED]
+   - Resolution: Put supported gates in `.planning/config.json` and preserve prose judgment lenses in committed `.planning/GSD-PREFERENCES.md`. Keep `yolo`, `auto_advance`, aggressive parallelization, and model profile as per-run or user-global choices. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`]
 
 2. **Should the evidence ledger be standalone or embedded?**
    - What we know: Both `.planning/EVIDENCE.md` and an explicit section in `.planning/v2.0-MILESTONE-AUDIT.md` are allowed. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`]
-   - What's unclear: Which location the planner should choose for lowest future drift. [ASSUMED]
-   - Recommendation: Use standalone `.planning/EVIDENCE.md` if the plan also wants v2.1 proof classification; embed in `v2.0-MILESTONE-AUDIT.md` if keeping blast radius minimal is more important. [ASSUMED]
+   - Resolution: Use standalone `.planning/EVIDENCE.md` as the canonical ledger. Add a dated errata/pointer in `.planning/v2.0-MILESTONE-AUDIT.md` instead of embedding the ledger there. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-02-PLAN.md`]
 
 ## Environment Availability
 
@@ -383,8 +381,8 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 |--------|----------|-----------|-------------------|--------------|
 | GSD-01 | Core planning docs agree on shipped/open scope. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep/manual read | `rg -n "Phase 29|GSD-0[1-4]|v2.1|Phase 27|Phase 28|Phase 25|Phase 26" .planning/PROJECT.md .planning/REQUIREMENTS.md .planning/ROADMAP.md .planning/STATE.md .planning/MILESTONES.md .planning/v2.0-MILESTONE-AUDIT.md` | ✅ Wave 0 not needed. [VERIFIED: codebase grep] |
 | GSD-02 | Stale backlog/thread items are classified and archived. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep | `rg -n "B-0[123567]" .planning/BACKLOG.md .planning/BACKLOG-ARCHIVE.md && rg -n "subscription-create|Reopen Condition|resolved" .planning/threads` | ❌ Wave 0: `BACKLOG-ARCHIVE.md`, `threads/INDEX.md`, resolved folder. [VERIFIED: codebase grep] |
-| GSD-03 | v2.0/Phase 25/26 proof wording matches evidence. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep/manual read | `rg -n "against Paddle state|via Paddle|provider-state|VALIDATION.md|MockServer-backed|VERIFICATION.md" .planning/MILESTONES.md .planning/milestones/v2.0-*.md .planning/v2.0-MILESTONE-AUDIT.md .planning/phases/25-offline-mode-foundation/VALIDATION.md .planning/phases/26-advanced-subscription-flows-e2e/26-VERIFICATION.md` | ✅ Existing proof files; ❌ ledger/errata if standalone. [VERIFIED: codebase grep] |
-| GSD-04 | Durable preferences are available in supported project/global defaults. [VERIFIED: `.planning/REQUIREMENTS.md`] | config/schema probe | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 2>&1 | rg "unknown config key|preferences" -n` should have no unknown-key warning after reconciliation. | ✅ `.planning/config.json`; policy/defaults file TBD. [VERIFIED: local command] |
+| GSD-03 | v2.0/Phase 25/26 proof wording matches evidence. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep/manual read | `rg -n "against Paddle state|via Paddle|provider-state|VALIDATION.md|MockServer-backed|VERIFICATION.md" .planning/MILESTONES.md .planning/milestones/v2.0-*.md .planning/v2.0-MILESTONE-AUDIT.md .planning/phases/25-offline-mode-foundation/VALIDATION.md .planning/phases/26-advanced-subscription-flows-e2e/26-VERIFICATION.md` | Wave 0: standalone `.planning/EVIDENCE.md` plus audit errata pointer. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-02-PLAN.md`] |
+| GSD-04 | Durable preferences are available in supported project/global defaults. [VERIFIED: `.planning/REQUIREMENTS.md`] | config/schema probe | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 2>&1 | rg "unknown config key|preferences" -n` should have no unknown-key warning after reconciliation. | Wave 0: `.planning/config.json` plus `.planning/GSD-PREFERENCES.md`. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`] |
 
 ### Sampling Rate
 - **Per task commit:** Run the focused `rg` probe for the edited surface. [VERIFIED: codebase grep]
@@ -395,8 +393,8 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 - [ ] `.planning/BACKLOG-ARCHIVE.md` covers GSD-02. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`]
 - [ ] `.planning/threads/INDEX.md` covers GSD-02. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`]
 - [ ] `.planning/threads/resolved/2026/` folder and moved thread covers GSD-02. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`]
-- [ ] Evidence ledger location chosen and created/updated covers GSD-03. [VERIFIED: `.planning/phases/29-gsd-state-reconciliation/29-CONTEXT.md`]
-- [ ] Supported location for prose GSD preferences chosen covers GSD-04. [VERIFIED: local command]
+- [x] Evidence ledger location chosen as standalone `.planning/EVIDENCE.md`; Plan 29-02 creates it and adds audit errata. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-02-PLAN.md`]
+- [x] Supported location for prose GSD preferences chosen as `.planning/GSD-PREFERENCES.md`; Plan 29-03 creates it while keeping supported gates in `.planning/config.json`. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`]
 
 ## Security Domain
 
@@ -436,7 +434,7 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 - https://semver.org/ - public API claim precision. [CITED: https://semver.org/]
 
 ### Tertiary (LOW confidence)
-- Assumption that a small markdown policy/defaults note is the best fallback for non-schema GSD preference prose if no supported global-default path is chosen. [ASSUMED]
+- Resolved planning choice: `.planning/GSD-PREFERENCES.md` is the committed project-local policy note for non-schema GSD preference prose. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`]
 
 ## Metadata
 
@@ -447,4 +445,4 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 - External norms: MEDIUM - sourced from official/public docs via web search and cached through GSD research store. [CITED: https://keepachangelog.com/en/1.1.0/; CITED: https://sre.google/sre-book/postmortem-culture/]
 
 **Research date:** 2026-06-24
-**Valid until:** 2026-07-24 for local planning-state findings; re-run grep/config probes if Phase 29 planning is delayed. [ASSUMED]
+**Valid until:** 2026-07-24 for local planning-state findings; re-run grep/config probes if Phase 29 planning is delayed. [RESEARCHER ESTIMATE]
