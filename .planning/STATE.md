@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Adopter Truth & Release Readiness
 current_phase: 28
 current_phase_name: CI, Demo, and Package Proof
-status: verifying
+status: planning
 stopped_at: Completed Phase 27
 last_updated: "2026-06-24T15:02:57.435Z"
 last_activity: 2026-06-24
@@ -28,12 +28,12 @@ progress:
 
 Phase: 28 — CI, Demo, and Package Proof
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Phase 27 complete — Phase 28 ready for planning
 Last activity: 2026-06-24 — Phase 27 complete, transitioned to Phase 28
 
 ### Progress
 
-Phase 27: Public Contract & Documentation Truth [....................] 0%
+Phase 27: Public Contract & Documentation Truth [####################] 100%
 Phase 28: CI, Demo, and Package Proof [....................] 0%
 Phase 29: GSD State Reconciliation [....................] 0%
 
@@ -65,7 +65,6 @@ Phase 29: GSD State Reconciliation [....................] 0%
 
 ### Known Technical Debt / Blockers
 
-- Public docs and planning state drifted from shipped code: portal sessions, adjustments, subscription update/lifecycle, catalog/events/notification settings, stream behavior, and MockServer proof boundaries need alignment.
 - Root `.planning/REQUIREMENTS.md` was missing before v2.1 planning and has been restored for the selected milestone.
 - Demo proof is not yet fully wired into CI.
 - `Paddle.MockServer` is a useful offline fixture but not a complete Paddle clone; docs and planning should avoid claiming provider-state E2E unless sandbox/live verification is actually run.
