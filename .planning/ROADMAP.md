@@ -18,12 +18,12 @@
 
 **Goal:** A cold Phoenix SaaS adopter can understand the real supported SDK surface without reading source.
 **Requirements:** DOCS-01, DOCS-02, DOCS-03, DOCS-04
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 27-01-PLAN.md — Seam docs-truth guard and canonical contract inventory.
+- [x] 27-01-PLAN.md — Seam docs-truth guard and canonical contract inventory.
 - [ ] 27-02-PLAN.md — README, Getting Started, and demo runbook adopter truth.
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -64,7 +64,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 27. Public Contract & Documentation Truth | v2.1 | 0/3 | Planned | — |
+| 27. Public Contract & Documentation Truth | v2.1 | 1/3 | In Progress|  |
 | 28. CI, Demo, and Package Proof | v2.1 | 0/0 | Planned | — |
 | 29. GSD State Reconciliation | v2.1 | 0/0 | Planned | — |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
