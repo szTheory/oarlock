@@ -8,7 +8,7 @@
 ### Adopter Truth
 
 - [x] **DOCS-01**: README, Getting Started, and seam contract accurately describe the shipped SDK surface.
-- [ ] **DOCS-02**: Demo app documentation explains local setup, mock auth, webhook processing, portal handoff, and Offline Mode.
+- [x] **DOCS-02**: Demo app documentation explains local setup, mock auth, webhook processing, portal handoff, and Offline Mode.
 - [x] **DOCS-03**: Docs distinguish core SDK responsibilities from app-owned Phoenix/Ecto/provisioning responsibilities.
 - [x] **DOCS-04**: Docs state the proof boundary honestly: MockServer-backed integration is not the same as live Paddle provider-state verification.
 
@@ -58,7 +58,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DOCS-01 | Phase 27 | Complete |
-| DOCS-02 | Phase 27 | Pending |
+| DOCS-02 | Phase 27 | Complete |
 | DOCS-03 | Phase 27 | Complete |
 | DOCS-04 | Phase 27 | Complete |
 | PROOF-01 | Phase 28 | Pending |
