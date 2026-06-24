@@ -18,7 +18,23 @@ customer -> address -> transaction -> checkout -> webhook -> subscription.
 - Create a transaction and hand the hosted checkout URL to a browser.
 - Fetch a transaction later to reconcile what happened.
 - Verify and parse Paddle webhooks as pure functions.
-- Fetch, list, and cancel subscriptions.
+- Fetch, list, update, pause, resume, and cancel subscriptions.
+- Create customer portal sessions for signed-in self-serve billing.
+- Create, fetch, list, and page through adjustments for refunds and credits.
+- Read products, prices, historical events, and notification settings.
+- Run local integration flows against `Paddle.MockServer` for offline development.
+
+## Proof Boundary
+
+Use the same proof ladder throughout an integration:
+
+- Unit and contract tests prove local SDK behavior.
+- `Paddle.MockServer` proves deterministic local SDK/demo wiring. It is not
+  live Paddle provider-state verification.
+- Paddle sandbox checks prove real provider-state behavior only when you run
+  them with real Paddle sandbox credentials.
+- Live mode remains your operator-owned readiness step before charging
+  customers.
 
 ## What This Library Is For
 
@@ -39,7 +55,7 @@ still `:paddle` / `Paddle.*`.
 ```elixir
 def deps do
   [
-    {:paddle, "~> 0.1.0", hex: :oarlock}
+    {:paddle, "~> 0.1.1", hex: :oarlock}
   ]
 end
 ```
@@ -89,7 +105,7 @@ case Paddle.Transactions.create(client,
   {:ok, %Paddle.Transaction{} = transaction} ->
     checkout_url = transaction.checkout.url
     # Redirect user to checkout_url
-  {:error, error} ->
+  {:error, %Paddle.Error{} = error} ->
     raise "Failed: #{error.message}"
 end
 ```
@@ -111,12 +127,29 @@ For a recurring purchase, the usual app-level next step is:
 2. Save the Paddle customer and subscription IDs against your user or account.
 3. Grant access in your app.
 
+When you need more than one page of provider state, use the pagination helpers:
+
+```elixir
+active_subscriptions =
+  client
+  |> Paddle.Subscriptions.stream(status: "active")
+  |> Enum.take(100)
+
+{:ok, subscriptions} = Paddle.Subscriptions.all(client, status: "active")
+{:ok, page} = Paddle.Subscriptions.list(client, status: "active")
+next_cursor = Paddle.Page.next_cursor(page)
+```
+
 ## Guides
 
 - [Getting Started](guides/getting-started.md): the jobs-to-be-done and the
   happy path through a real SaaS integration.
+- [Telemetry](guides/telemetry.md): request lifecycle events for logging and
+  metrics.
 - [Accrue Seam Contract](guides/accrue-seam.md): the locked consumer-facing
   contract, including supported modules, functions, and struct guarantees.
+- [Demo App](demo/README.md): a Phoenix example with mock auth, webhook
+  persistence, customer portal handoff, and offline test flows.
 
 ## Current Boundary
 
@@ -128,6 +161,4 @@ oarlock is intentionally not:
 - A complete Paddle endpoint mirror.
 
 If you need the exact supported public surface, use the
-[Accrue Seam Contract](guides/accrue-seam.md) as the source of truth.
- public surface, use the
 [Accrue Seam Contract](guides/accrue-seam.md) as the source of truth.
