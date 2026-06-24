@@ -19,6 +19,81 @@ defmodule Paddle.SeamTest do
   @seam_timestamp 1_700_000_000
   @transaction_completed_body ~s({"event_id":"evt_seam01","event_type":"transaction.completed","occurred_at":"2024-04-12T10:37:59Z","notification_id":"ntf_seam01","data":{"id":"txn_seam01","status":"completed","customer_id":"ctm_seam01","subscription_id":"sub_seam01","checkout":{"url":"https://checkout.paddle.com/checkout/txn_seam01"},"currency_code":"USD","collection_mode":"automatic"}})
 
+  @documented_public_inventory %{
+    Paddle.Customers => [create: 2, create: 3, get: 2, update: 3],
+    Paddle.Customers.Addresses => [
+      all: 2,
+      all: 3,
+      create: 3,
+      create: 4,
+      get: 3,
+      list: 2,
+      list: 3,
+      stream: 2,
+      stream: 3,
+      update: 4
+    ],
+    Paddle.Customers.PortalSessions => [create: 2, create: 3, create: 4],
+    Paddle.Transactions => [create: 2, create: 3, get: 2],
+    Paddle.Adjustments => [
+      all: 1,
+      all: 2,
+      create: 2,
+      create: 3,
+      get: 2,
+      list: 1,
+      list: 2,
+      stream: 1,
+      stream: 2
+    ],
+    Paddle.Subscriptions => [
+      all: 1,
+      all: 2,
+      cancel: 2,
+      cancel_immediately: 2,
+      get: 2,
+      list: 1,
+      list: 2,
+      pause: 2,
+      pause: 3,
+      pause_immediately: 2,
+      pause_immediately: 3,
+      resume: 2,
+      resume: 3,
+      stream: 1,
+      stream: 2,
+      update: 3
+    ],
+    Paddle.Webhooks => [parse_event: 1, verify_signature: 3, verify_signature: 4],
+    Paddle.Products => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.Prices => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.Events => [all: 1, all: 2, get: 2, list: 1, list: 2, stream: 1, stream: 2],
+    Paddle.NotificationSettings => [
+      all: 1,
+      all: 2,
+      create: 2,
+      create: 3,
+      delete: 2,
+      get: 2,
+      list: 1,
+      list: 2,
+      stream: 1,
+      stream: 2,
+      update: 3
+    ],
+    Paddle.Page => [next_cursor: 1],
+    Paddle.Error => [exception: 1, from_response: 1, from_transport: 1, message: 1],
+    Paddle.PortalSessions => [create: 2]
+  }
+
+  @public_docs [
+    "README.md",
+    "guides/getting-started.md",
+    "guides/accrue-seam.md",
+    "demo/README.md",
+    "CHANGELOG.md"
+  ]
+
   test "locks the Accrue seam across the customer, checkout, webhook, and subscription lifecycle flow" do
     customer_client =
       client_with_adapter(fn request ->
@@ -479,5 +554,50 @@ defmodule Paddle.SeamTest do
         ] do
       assert {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(module)
     end
+  end
+
+  test "seam guide documents the live public inventory and portal compatibility boundary" do
+    seam_guide = File.read!("guides/accrue-seam.md")
+
+    for {module, expected_functions} <- @documented_public_inventory do
+      actual_functions =
+        module.__info__(:functions)
+        |> Keyword.drop([:__struct__])
+        |> Enum.sort()
+
+      assert actual_functions == Enum.sort(expected_functions)
+      assert seam_guide =~ inspect(module)
+
+      for {function, arity} <- expected_functions do
+        assert seam_guide =~ "#{function}/#{arity}",
+               "#{inspect(module)}.#{function}/#{arity} is exported but missing from the seam guide"
+      end
+    end
+
+    assert seam_guide =~ "Paddle.Customers.PortalSessions.create/4"
+    assert seam_guide =~ "preferred customer portal seam"
+    assert seam_guide =~ "Paddle.PortalSessions.create/2"
+    assert seam_guide =~ "compatibility"
+  end
+
+  test "public docs do not claim provider-state proof from local fixtures" do
+    unsupported_claims = [
+      ~r/\bsandbox verified\b/i,
+      ~r/\bprovider-state verified\b/i,
+      ~r/\blive verified\b/i
+    ]
+
+    for path <- @public_docs do
+      body = File.read!(path)
+
+      for claim <- unsupported_claims do
+        refute Regex.match?(claim, body),
+               "#{path} contains unsupported provider proof wording matching #{inspect(claim)}"
+      end
+    end
+
+    assert Enum.any?(@public_docs, fn path ->
+             File.read!(path) =~ "MockServer"
+           end)
   end
 end
