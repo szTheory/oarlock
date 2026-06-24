@@ -40,6 +40,16 @@ Plans:
 
 **Goal:** Release readiness is continuously proven for the library, demo, and downstream install path.
 **Requirements:** PROOF-01, PROOF-02, PROOF-03, PROOF-04
+**Plans:** 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 28-01-PLAN.md — MockServer optional dependency compile boundary and docs.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 28-02-PLAN.md — CI jobs and downstream Hex package smoke proof.
 
 **Success Criteria:**
 
