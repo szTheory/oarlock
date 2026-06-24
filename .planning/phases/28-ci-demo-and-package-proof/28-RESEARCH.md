@@ -302,17 +302,15 @@ All claims in this research were verified by codebase inspection, local command 
 |---|-------|---------|---------------|
 | A1 | Gating or splitting `Paddle.MockServer` are likely viable fixes. [ASSUMED] | Summary / Pitfalls | Planner may need to spike the exact Elixir conditional compilation pattern. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `Paddle.MockServer` stay in the published package?**
    - What we know: It is currently included by `package.files` through `lib` and the unpacked artifact includes it. [VERIFIED: local command]
-   - What's unclear: Whether the preferred design is conditional compilation, a split optional file, or documentation plus dependency declaration examples. [ASSUMED]
-   - Recommendation: Plan a small implementation task before the smoke-test YAML so PROOF-03 can pass. [VERIFIED: local command]
+   - RESOLVED outcome: `Paddle.MockServer` stays available in the published package, per D-13 and D-15, but optional `plug` and `bandit` compile requirements must be isolated so fresh package consumers without those deps can compile unless they use MockServer. Plan 28-01 implements the source/docs boundary first; Plan 28-02 proves the negative fresh-consumer compile lane through the Hex artifact smoke and the positive MockServer lane with optional deps available. [VERIFIED: plan review]
 
 2. **Should demo asset proof be included?**
    - What we know: Phase context says asset proof is optional/path-filtered or follow-up unless asset path is release-readiness risk. [VERIFIED: CONTEXT.md]
-   - What's unclear: No current CI asset failures were researched because PROOF-02 is demo tests, not deployment certification. [VERIFIED: CONTEXT.md]
-   - Recommendation: Keep assets out of default Phase 28 unless implementation uncovers asset regressions. [VERIFIED: CONTEXT.md]
+   - RESOLVED outcome: Dedicated asset proof is intentionally excluded from Phase 28 unless implementation exposes asset risk. Demo proof remains `cd demo && mix test` with a GitHub Actions PostgreSQL service plus the CI-safe demo quality gates from D-05 and D-06. [VERIFIED: plan review]
 
 ## Environment Availability
 
