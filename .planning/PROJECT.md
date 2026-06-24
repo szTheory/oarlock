@@ -10,15 +10,27 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 - Must be a pure functional library, avoiding UI, database syncing, or framework-specific plugins (like `Plug.Parsers` implementations for Phoenix, which will be documented instead).
 - Must avoid legacy "Paddle Classic" concepts.
 - Must retain forward compatibility via `__raw__` mapping of API responses.
-- Explicit deferment of complex domain areas (refunds, invoices, marketplaces, payment portals) to v0.2+.
+- Explicit deferment of broad endpoint mirroring, invoice generation, marketplaces/connect, and app-level billing workflows to demand-driven future work.
 
 ## Current State
 
 **Shipped:** v2.0 Offline Mode & Advanced Billing on 2026-06-11 — see `.planning/milestones/v2.0-ROADMAP.md`.
 
-oarlock now exposes a fully typed, documented, and resilient consumer surface including core entities, events, notification settings, and a fully standalone Offline Mode mock server:
-- `Paddle.MockServer` powered by Bandit for frictionless offline development.
-- Complex upgrade and downgrade subscription scenarios verified via E2E testing.
+oarlock now exposes a typed, documented, and resilient consumer surface including core entities, events, notification settings, support adjustments, portal sessions, and an Offline Mode mock server:
+- `Paddle.MockServer` powered by Bandit for local offline development and tests.
+- Complex upgrade and downgrade subscription scenarios verified through MockServer-backed integration tests, with sandbox/provider-state checks remaining optional and demand-driven.
+- Phase 27 aligned README, Getting Started, Accrue seam contract, demo runbook,
+  changelog, and generated docs with the shipped SDK surface and proof
+  boundary.
+
+## Current Milestone: v2.1 Adopter Truth & Release Readiness
+
+**Goal:** Make the public adopter story, GSD planning state, and release proof match what the code actually ships before adding more Paddle API breadth.
+
+**Target features:**
+- Align README, guides, seam contract, demo runbook, changelog, and generated docs with the real SDK surface.
+- Prove demo and package/install paths in CI, including a downstream consumer smoke test and demo test job.
+- Reconcile GSD state, backlog, milestone audits, and investigations so future milestone planning starts from trustworthy context.
 
 <details>
 <summary>v1.5 Demo App & DX Hardening (Shipped 2026-06-11)</summary>
@@ -63,7 +75,7 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ## Next Milestone Goals
 
-- To be defined via `/gsd:new-milestone`.
+- v2.1 Adopter Truth & Release Readiness: docs, demo, CI, packaging, and GSD state alignment.
 
 ## Requirements
 
@@ -93,19 +105,25 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 - [x] **PROC-01 / PROC-02**: Pre-commit hook and CI step to prevent SUMMARY drift. *(Validated in Phase 13)*
 - [x] **PORTAL-01**: Customer Portal Sessions (`Paddle.Customers.PortalSessions.create/3`). *(Validated in Phase 14)*
 - [x] **ADJ-01**: Adjustments (`Paddle.Adjustments` for refunds and credits). *(Validated in Phase 15)*
-- [x] **ADV-01**: Fully standalone Offline Mode mock server. *(Validated in Phase 25)*
-- [x] **ADV-02**: Complex upgrade/downgrade E2E testing flows via Paddle. *(Validated in Phase 26)*
+- [x] **ADV-01**: Offline Mode mock server for local SDK and demo integration tests. *(Validated in Phase 25)*
+- [x] **ADV-02**: Complex upgrade/downgrade flows verified through MockServer-backed integration tests. *(Validated in Phase 26)*
+- [x] **DOCS-01..04**: Public README, Getting Started, seam contract, demo
+  runbook, changelog, and generated docs describe the shipped SDK surface,
+  app-owned responsibilities, and MockServer/sandbox/live proof boundary.
+  *(Validated in Phase 27)*
 
 ### Active
 
-(To be populated via `/gsd:new-milestone`)
+- [ ] Add demo CI and downstream package smoke proof.
+- [ ] Reconcile GSD backlog, requirements, milestone audit, and stale investigations.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
 - **Phoenix/Ecto coupling**: No framework or database integration code in the core library.
-- **Payment Method Portals**: Deferred for v0.x.
+- **App-owned billing workflows**: Entitlements, provisioning, support policies, and database synchronization remain consumer concerns.
+- **Direct Subscription Creation**: Paddle-native recurring starts remain transaction/checkout or invoice-backed, not `Paddle.Subscriptions.create/2`.
+- **Payment Method APIs**: Deferred beyond customer portal sessions and surfaced management URLs.
 - **Invoice Generation**: Deferred for v0.x.
-- **Refunds**: Deferred for v0.x.
 - **Connect / Marketplaces**: Deferred for v0.x.
 
 ## Key Decisions
@@ -115,7 +133,8 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 | **HTTP Client** | `req` provides modern Elixir standard, built-in JSON, and telemetry out-of-the-box. | `req` selected over Tesla/Finch. |
 | **Response Payloads** | Typed Structs (e.g., `%Paddle.Customer{}`) with a `raw_data` field improve DX while preserving forward-compatibility. | Structs selected over raw Maps. |
 | **Client Instantiation** | Explicit `client` passing supports multi-tenant apps and avoids global application config conflicts. | Explicit structs selected. |
-| **Mock Server** | Standalone Offline Mode using Bandit for frictionless development. | Provided isolated testing environments without sandbox state leak. |
+| **Mock Server** | Offline Mode using Bandit provides fast local integration proof without sandbox state leak. | Useful development fixture; not a complete Paddle clone. |
+| **Next Work Boundary** | The recurring SaaS lifecycle is mostly covered; broad API expansion now risks endpoint mirroring. | Prioritize adopter truth, CI/package proof, and Accrue consumption before more endpoints. |
 
 ## Integration Consumers
 
@@ -124,9 +143,9 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 
 - **Locked struct surfaces:** `%Paddle.Transaction{}`, `%Paddle.Transaction.Checkout{}`, `%Paddle.Subscription{}`, `%Paddle.Subscription.ScheduledChange{}`, `%Paddle.Subscription.ManagementUrls{}`, `%Paddle.Event{}`. Field additions are safe (the `:raw_data` field on each preserves forward compatibility); field removals or renames are breaking and require a major bump.
 - **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
-- **Deferred surface:** subscription `update` and payment-method update flows remain deferred. Phase 10 expands the seam additively with transaction-driven recurring start guidance/tests plus `pause`, `pause_immediately`, and `resume`; it does not add `Paddle.Subscriptions.create/2`.
+- **Deferred surface:** payment-method APIs beyond portal sessions/management URLs remain deferred. Phase 10 locked transaction-driven recurring starts and subscription lifecycle/update operations without adding `Paddle.Subscriptions.create/2`.
 
 Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`.
 
 ---
-*Last updated: 2026-06-11*
+*Last updated: 2026-06-24 after Phase 27 public documentation truth*

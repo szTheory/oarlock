@@ -64,7 +64,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete   | 2026-06-24 |
+| 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete    | 2026-06-24 |
 | 28. CI, Demo, and Package Proof | v2.1 | 0/0 | Planned | — |
 | 29. GSD State Reconciliation | v2.1 | 0/0 | Planned | — |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
