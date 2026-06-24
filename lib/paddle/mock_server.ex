@@ -1,10 +1,14 @@
 defmodule Paddle.MockServer do
   @moduledoc """
-  A standalone Plug Router that simulates the Paddle Billing API.
+  An optional local HTTP fixture that simulates the Paddle Billing API.
 
   This server can be started in your application's supervision tree during
   development or testing to allow fully offline development without hitting
   the real Paddle sandbox.
+
+  `Paddle.MockServer` requires the optional `:plug` and `:bandit` dependencies.
+  The core SDK compiles without them; calling `start_link/1` without those
+  dependencies returns a clear error.
 
   ## Example Usage
 
@@ -22,78 +26,120 @@ defmodule Paddle.MockServer do
   ```
   """
 
-  use Plug.Router
-  alias Paddle.MockServer.Fixtures
-
-  plug :match
-  plug Plug.Parsers, parsers: [:json], pass: ["*/*"], json_decoder: Jason
-  plug :dispatch
-
   @doc """
   Starts the Bandit server wrapping this Plug router.
   Accepts a `:port` option (defaults to 4001).
   """
   def start_link(opts \\ []) do
-    port = Keyword.get(opts, :port, 4001)
-    Bandit.start_link(plug: __MODULE__, port: port)
+    with :ok <- ensure_optional_deps() do
+      port = Keyword.get(opts, :port, 4001)
+      bandit = Module.concat([Bandit])
+
+      apply(bandit, :start_link, [[plug: __MODULE__.Router, port: port]])
+    end
   end
 
-  # --- Customers ---
+  defp ensure_optional_deps do
+    missing =
+      [
+        {:plug, Plug.Router},
+        {:plug, Plug.Parsers},
+        {:bandit, Bandit}
+      ]
+      |> Enum.reject(fn {_app, module} -> Code.ensure_loaded?(module) end)
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.uniq()
 
-  post "/customers" do
-    send_json(conn, 201, Fixtures.customer())
+    case missing do
+      [] ->
+        :ok
+
+      apps ->
+        {:error,
+         %RuntimeError{
+           message:
+             "Paddle.MockServer requires optional dependencies #{format_apps(apps)}. " <>
+               "Add them to your Mix dependencies to use the offline development/test fixture."
+         }}
+    end
   end
 
-  get "/customers/:id" do
-    send_json(conn, 200, Fixtures.customer(id))
+  defp format_apps(apps) do
+    apps
+    |> Enum.map(&inspect/1)
+    |> Enum.join(" and ")
   end
 
-  patch "/customers/:id" do
-    send_json(conn, 200, Fixtures.customer(id))
-  end
+  if Code.ensure_loaded?(Plug.Router) and Code.ensure_loaded?(Plug.Parsers) and
+       Code.ensure_loaded?(Bandit) do
+    defmodule Router do
+      @moduledoc false
 
-  # --- Portal Sessions ---
+      use Plug.Router
+      alias Paddle.MockServer.Fixtures
 
-  post "/customers/:id/portal-sessions" do
-    send_json(conn, 201, Fixtures.portal_session(id))
-  end
+      plug(:match)
+      plug(Plug.Parsers, parsers: [:json], pass: ["*/*"], json_decoder: Jason)
+      plug(:dispatch)
 
-  # --- Subscriptions ---
+      # --- Customers ---
 
-  patch "/subscriptions/:id" do
-    mode = conn.body_params["proration_billing_mode"]
-
-    fixture =
-      if mode == "next_billing_period" do
-        Fixtures.subscription_scheduled_change(id)
-      else
-        Fixtures.subscription_updated(id)
+      post "/customers" do
+        send_json(conn, 201, Fixtures.customer())
       end
 
-    send_json(conn, 200, fixture)
-  end
+      get "/customers/:id" do
+        send_json(conn, 200, Fixtures.customer(id))
+      end
 
-  # --- Transactions ---
+      patch "/customers/:id" do
+        send_json(conn, 200, Fixtures.customer(id))
+      end
 
-  post "/transactions" do
-    send_json(conn, 201, Fixtures.transaction())
-  end
+      # --- Portal Sessions ---
 
-  get "/transactions/:id" do
-    send_json(conn, 200, Fixtures.transaction(id))
-  end
+      post "/customers/:id/portal-sessions" do
+        send_json(conn, 201, Fixtures.portal_session(id))
+      end
 
-  # --- Fallback ---
+      # --- Subscriptions ---
 
-  match _ do
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(404, Jason.encode!(%{error: %{message: "Mock route not found"}}))
-  end
+      patch "/subscriptions/:id" do
+        mode = conn.body_params["proration_billing_mode"]
 
-  defp send_json(conn, status, data) do
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(status, Jason.encode!(%{data: data}))
+        fixture =
+          if mode == "next_billing_period" do
+            Fixtures.subscription_scheduled_change(id)
+          else
+            Fixtures.subscription_updated(id)
+          end
+
+        send_json(conn, 200, fixture)
+      end
+
+      # --- Transactions ---
+
+      post "/transactions" do
+        send_json(conn, 201, Fixtures.transaction())
+      end
+
+      get "/transactions/:id" do
+        send_json(conn, 200, Fixtures.transaction(id))
+      end
+
+      # --- Fallback ---
+
+      match _ do
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(404, Jason.encode!(%{error: %{message: "Mock route not found"}}))
+      end
+
+      defp send_json(conn, status, data) do
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(status, Jason.encode!(%{data: data}))
+      end
+    end
   end
 end
