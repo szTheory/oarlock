@@ -62,6 +62,17 @@ Plans:
 
 **Goal:** Future milestone planning starts from trustworthy project state rather than stale backlog or overclaimed audits.
 **Requirements:** GSD-01, GSD-02, GSD-03, GSD-04
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 29-01-PLAN.md — Backlog archive split and resolved investigation index.
+- [ ] 29-02-PLAN.md — v2.0 evidence ledger and audit wording reconciliation.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 29-03-PLAN.md — Root planning state and durable GSD defaults reconciliation.
 
 **Success Criteria:**
 
