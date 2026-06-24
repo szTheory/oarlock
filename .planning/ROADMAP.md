@@ -18,7 +18,7 @@
 
 **Goal:** A cold Phoenix SaaS adopter can understand the real supported SDK surface without reading source.
 **Requirements:** DOCS-01, DOCS-02, DOCS-03, DOCS-04
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -28,7 +28,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 27-03-PLAN.md — Changelog narrative and final documentation consistency gate.
+- [x] 27-03-PLAN.md — Changelog narrative and final documentation consistency gate.
 
 **Success Criteria:**
 
@@ -64,7 +64,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 27. Public Contract & Documentation Truth | v2.1 | 2/3 | In Progress|  |
+| 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete   | 2026-06-24 |
 | 28. CI, Demo, and Package Proof | v2.1 | 0/0 | Planned | — |
 | 29. GSD State Reconciliation | v2.1 | 0/0 | Planned | — |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
