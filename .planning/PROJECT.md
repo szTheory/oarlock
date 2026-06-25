@@ -22,6 +22,12 @@ oarlock now exposes a typed, documented, and resilient consumer surface includin
 - Phase 27 aligned README, Getting Started, Accrue seam contract, demo runbook,
   changelog, and generated docs with the shipped SDK surface and proof
   boundary.
+- Phase 29 reconciled GSD planning state: active work lives in
+  `.planning/BACKLOG.md`, shipped or historical backlog entries live in
+  `.planning/BACKLOG-ARCHIVE.md`, proof classification lives in
+  `.planning/EVIDENCE.md`, resolved investigations are indexed in
+  `.planning/threads/INDEX.md`, and durable GSD planning preferences live in
+  `.planning/GSD-PREFERENCES.md`.
 
 ## Current Milestone: v2.1 Adopter Truth & Release Readiness
 
@@ -117,7 +123,7 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ### Active
 
-- [ ] Reconcile GSD backlog, requirements, milestone audit, and stale investigations.
+- [ ] Release-readiness handoff and next-milestone selection after v2.1 closeout.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -147,7 +153,11 @@ Higher-level multi-processor billing library that consumes oarlock for Paddle (a
 - **Webhook seam:** `Paddle.Webhooks.verify_signature/4` and `Paddle.Webhooks.parse_event/1` remain pure functions. No Phoenix/Plug coupling will land in core; framework helpers, if ever needed, ship as optional adjacent packages.
 - **Deferred surface:** payment-method APIs beyond portal sessions/management URLs remain deferred. Phase 10 locked transaction-driven recurring starts and subscription lifecycle/update operations without adding `Paddle.Subscriptions.create/2`.
 
-Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`.
+Outstanding Accrue requests are tracked in `.planning/BACKLOG.md`; shipped,
+superseded, or historical backlog entries are preserved in
+`.planning/BACKLOG-ARCHIVE.md`. Proof boundaries for v2.0/v2.1 planning are
+classified in `.planning/EVIDENCE.md`, and recurring GSD planning preferences
+are documented in `.planning/GSD-PREFERENCES.md`.
 
 ---
-*Last updated: 2026-06-24 after Phase 28 CI, demo, and package proof*
+*Last updated: 2026-06-25 after Phase 29 GSD state reconciliation*

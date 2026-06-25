@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- ◼ **v2.1 Adopter Truth & Release Readiness** — Phases 27-29 (planned)
+- ✅ **v2.1 Adopter Truth & Release Readiness** — Phases 27-29 (shipped 2026-06-25)
 - ✅ **v2.0 Offline Mode & Advanced Billing** — Phases 25-26 (shipped 2026-06-11)
 - ✅ **v1.5 Demo App & DX Hardening** — Phases 20-24 (shipped 2026-06-11)
 - ✅ **v1.4 Catalog & Events** — Phases 17-19 (shipped 2026-06-10)
@@ -62,7 +62,7 @@ Plans:
 
 **Goal:** Future milestone planning starts from trustworthy project state rather than stale backlog or overclaimed audits.
 **Requirements:** GSD-01, GSD-02, GSD-03, GSD-04
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -72,7 +72,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 29-03-PLAN.md — Root planning state and durable GSD defaults reconciliation.
+- [x] 29-03-PLAN.md — Root planning state and durable GSD defaults reconciliation.
 
 **Success Criteria:**
 
@@ -87,6 +87,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete    | 2026-06-24 |
 | 28. CI, Demo, and Package Proof | v2.1 | 2/2 | Complete    | 2026-06-24 |
-| 29. GSD State Reconciliation | v2.1 | 2/3 | In Progress|  |
+| 29. GSD State Reconciliation | v2.1 | 3/3 | Complete | 2026-06-25 |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
 | 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |
