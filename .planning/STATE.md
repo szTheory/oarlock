@@ -44,7 +44,7 @@ Phase 30: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof [###########
 
 - Requirement Coverage: 12/12 mapped (100%)
 - Success Criteria: 10 defined
-- Current Milestone: v2.1
+- Last Completed Milestone: v2.1
 
 | Phase 27 P01 | 24 min | 2 tasks | 2 files |
 | Phase 27 P02 | 29 min | 2 tasks | 4 files |
@@ -96,7 +96,6 @@ Phase 30: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof [###########
 
 - Completed v2.0 on 2026-06-11.
 - 2026-06-24 adopter truth assessment found oarlock is approximately 88% done for its intended scope: strong core SDK coverage, with remaining leverage in docs, demo, CI, package proof, and GSD truth alignment.
-- Recommended next milestone: v2.1 Adopter Truth & Release Readiness.
 - Completed and archived v2.1 on 2026-06-25. Next session should start fresh requirements with `$gsd-new-milestone`.
 
 ## Decisions
