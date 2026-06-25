@@ -4,9 +4,9 @@ milestone: v2.1
 milestone_name: Adopter Truth & Release Readiness
 current_phase: 29
 current_phase_name: gsd-state-reconciliation
-status: executing
-stopped_at: Completing 29-03-PLAN.md
-last_updated: "2026-06-25T02:40:00Z"
+status: ready_for_verification
+stopped_at: Completed 29-03-PLAN.md
+last_updated: "2026-06-25T02:35:16.068Z"
 last_activity: 2026-06-25
 last_activity_desc: Phase 29 plan 03 root state reconciliation
 progress:
@@ -28,7 +28,7 @@ progress:
 
 Phase: 29 (gsd-state-reconciliation) — EXECUTING
 Plan: 3 of 3
-Status: Finalizing
+Status: Ready for verification
 Last activity: 2026-06-25 — Phase 29 plan 03 root state reconciliation
 
 ### Progress
@@ -51,6 +51,7 @@ Phase 29: GSD State Reconciliation [####################] 100%
 | Phase 27 P03 | 14 min | 2 tasks | 1 files |
 | Phase 29 P01 | 3 min | 2 tasks | 5 files |
 | Phase 29 P02 | 3min | 2 tasks | 5 files |
+| Phase 29 P03 | 2min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -80,8 +81,8 @@ Phase 29: GSD State Reconciliation [####################] 100%
 
 ## Session Continuity
 
-**Last session:** 2026-06-25T02:27:45.667Z
-**Stopped at:** Completing 29-03-PLAN.md
+**Last session:** 2026-06-25T02:35:16.063Z
+**Stopped at:** Completed 29-03-PLAN.md
 **Resume file:** None
 
 - Completed v2.0 on 2026-06-11.
@@ -93,5 +94,5 @@ Phase 29: GSD State Reconciliation [####################] 100%
 - [Phase 29]: Phase 29 Plan 02: Use .planning/EVIDENCE.md as the scan-first canonical proof ledger for v2.0/v2.1 requirement evidence.
 - [Phase 29]: Phase 29 Plan 02: Treat Phase 25 VALIDATION.md as real ADV-01 validation with a filename-standard caveat.
 - [Phase 29]: Phase 29 Plan 02: Describe Phase 26 as MockServer-backed integration proof unless sandbox/live provider-state evidence is separately recorded.
-- [Phase 29]: Phase 29 Plan 03: Keep schema-supported shared quality gates in `.planning/config.json` and prose judgment lenses in `.planning/GSD-PREFERENCES.md`.
-- [Phase 29]: Phase 29 Plan 03: Treat `yolo`, `workflow.auto_advance`, aggressive parallelization, and `model_profile` as per-run or user-global choices, not hidden project policy.
+- [Phase 29]: Phase 29 Plan 03: Removed ignored config preferences and moved non-schema GSD judgment lenses to .planning/GSD-PREFERENCES.md.
+- [Phase 29]: Phase 29 Plan 03: Keep yolo, auto_advance, aggressive parallelization, and model profile as per-run or user-global choices rather than project policy.
