@@ -13,12 +13,16 @@ Chronological record of shipped milestones. Newest first.
 ### Delivered
 
 1. **Offline Mode Foundation** - Introduced `Paddle.MockServer` powered by Bandit for fully standalone offline Paddle development and testing. SDK clients can seamlessly point to the offline server via configuration.
-2. **Advanced Subscription Flows E2E** - Delivered comprehensive E2E testing flows for complex upgrade and downgrade subscription scenarios, fully verifying prorations and billing cycles against Paddle state without manual intervention.
+2. **Advanced Subscription Flows E2E** - Delivered comprehensive MockServer-backed integration tests for complex upgrade and downgrade subscription scenarios, verifying deterministic prorations and billing-cycle behavior without manual intervention.
 
 ### Key Decisions
 
 - Selected Bandit for the `Paddle.MockServer` foundation.
-- Accepted incomplete verification (missing VERIFICATION.md) for Phase 25 as technical debt to proceed with shipping.
+- Recorded Phase 25 validation in `VALIDATION.md`; the absent standard `VERIFICATION.md` filename is an artifact-standard caveat, not missing ADV-01 proof.
+
+### Correction - 2026-06-24
+
+Earlier v2.0 wording implied Phase 26 provider-state verification. The canonical evidence ledger is `.planning/EVIDENCE.md`: ADV-02 is MockServer-backed integration proof unless sandbox/live Paddle provider-state evidence is separately recorded.
 
 ### Archive
 
