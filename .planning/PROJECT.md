@@ -14,7 +14,7 @@ Provides seamless, native Elixir interaction with the current Paddle Billing API
 
 ## Current State
 
-**Shipped:** v2.0 Offline Mode & Advanced Billing on 2026-06-11 — see `.planning/milestones/v2.0-ROADMAP.md`.
+**Shipped:** v2.1 Adopter Truth & Release Readiness on 2026-06-25 — see `.planning/milestones/v2.1-ROADMAP.md`.
 
 oarlock now exposes a typed, documented, and resilient consumer surface including core entities, events, notification settings, support adjustments, portal sessions, and an Offline Mode mock server:
 - `Paddle.MockServer` powered by Bandit for local offline development and tests.
@@ -28,15 +28,14 @@ oarlock now exposes a typed, documented, and resilient consumer surface includin
   `.planning/EVIDENCE.md`, resolved investigations are indexed in
   `.planning/threads/INDEX.md`, and durable GSD planning preferences live in
   `.planning/GSD-PREFERENCES.md`.
+- Phase 30 closed the DOCS-02/PROOF-02 handoff gap with deterministic
+  MockServer-backed LiveView and PhoenixTest proof for checkout and customer
+  portal handoffs.
 
-## Current Milestone: v2.1 Adopter Truth & Release Readiness
+## Current Milestone
 
-**Goal:** Make the public adopter story, GSD planning state, and release proof match what the code actually ships before adding more Paddle API breadth.
-
-**Target features:**
-- Align README, guides, seam contract, demo runbook, changelog, and generated docs with the real SDK surface.
-- Prove demo and package/install paths in CI, including a downstream consumer smoke test and demo test job.
-- Reconcile GSD state, backlog, milestone audits, and investigations so future milestone planning starts from trustworthy context.
+No active milestone. The next milestone should be selected from the active
+backlog, evidence ledger, and Accrue consumption needs.
 
 <details>
 <summary>v1.5 Demo App & DX Hardening (Shipped 2026-06-11)</summary>
@@ -81,7 +80,9 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ## Next Milestone Goals
 
-- v2.1 Adopter Truth & Release Readiness: docs, demo, CI, packaging, and GSD state alignment.
+- Select the next consumer-driven slice with `$gsd-new-milestone`.
+- Prefer Accrue consumption or offline fidelity only where there is a real adopter job.
+- Keep broad Paddle endpoint expansion demand-driven rather than mirroring the API.
 
 ## Requirements
 
@@ -120,10 +121,17 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 - [x] **PROOF-01..04**: CI runs root library gates, demo PostgreSQL checks,
   downstream Hex package smoke proof, and positive/negative optional
   dependency proof for `Paddle.MockServer`. *(Validated in Phase 28)*
+- [x] **GSD-01..04**: Root planning state, backlog/archive split, evidence
+  ledger, resolved investigation index, and durable GSD preferences agree on
+  shipped/open scope. *(Validated in Phase 29)*
+- [x] **DOCS-02 / PROOF-02 closure**: Demo checkout and customer portal
+  handoffs are directly verified through deterministic MockServer-backed
+  LiveView/PhoenixTest coverage. *(Validated in Phase 30)*
 
 ### Active
 
-- [ ] Release-readiness handoff and next-milestone selection after v2.1 closeout.
+- [ ] Next-milestone requirements definition.
+- [ ] Hosted GitHub Actions exact-SHA proof after push or PR, if release proof is required for the next external handoff.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -160,4 +168,4 @@ classified in `.planning/EVIDENCE.md`, and recurring GSD planning preferences
 are documented in `.planning/GSD-PREFERENCES.md`.
 
 ---
-*Last updated: 2026-06-25 after Phase 29 GSD state reconciliation*
+*Last updated: 2026-06-25 after v2.1 milestone completion*

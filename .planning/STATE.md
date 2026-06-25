@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Adopter Truth & Release Readiness
-current_phase: 30
-status: complete
+current_phase: null
+status: Awaiting next milestone
 stopped_at: v2.1 milestone ready for completion
-last_updated: "2026-06-25T16:00:45.400Z"
+last_updated: "2026-06-25T17:56:57.150Z"
 last_activity: 2026-06-25
-last_activity_desc: Phase 30 complete
+last_activity_desc: Milestone v2.1 completed and archived
 progress:
   total_phases: 4
   completed_phases: 4
@@ -21,20 +21,21 @@ progress:
 ## Project Reference
 
 **Core Value**: A production-quality, idiomatic Elixir SDK for Paddle Billing (`paddle_sdk`) serving as a pure, standalone foundation for Accrue's "second processor" strategy.
-**Current Focus**: v2.1 Adopter Truth & Release Readiness
+**Current Focus**: Planning next milestone
 
 ## Current Position
 
-Phase: 30
-Plan: Complete
-Status: Phase complete; milestone ready for completion
-Last activity: 2026-06-25 — Phase 30 complete
+Phase: Milestone v2.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-25 — Milestone v2.1 completed and archived
 
 ### Progress
 
 Phase 27: Public Contract & Documentation Truth [####################] 100%
 Phase 28: CI, Demo, and Package Proof [####################] 100%
 Phase 29: GSD State Reconciliation [####################] 100%
+Phase 30: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof [####################] 100%
 
 ## Performance Metrics
 
@@ -67,12 +68,16 @@ Phase 29: GSD State Reconciliation [####################] 100%
 - **Phase 29 Plan 01:** Keep B-04 visible only as Accrue-only consumer follow-up, not oarlock SDK scope.
 - **Phase 29 Plan 01:** Move the subscription-create investigation to resolved thread memory with an explicit provider-native reopen condition.
 - **Phase 29 Plan 03:** Future milestone planning starts from `.planning/BACKLOG.md`, `.planning/BACKLOG-ARCHIVE.md`, `.planning/EVIDENCE.md`, `.planning/threads/INDEX.md`, and `.planning/GSD-PREFERENCES.md`.
+- **Phase 30:** Keep demo checkout/portal proof deterministic and
+  MockServer-backed unless sandbox/live Paddle provider-state evidence is
+  explicitly captured.
 
 ### Known Technical Debt / Blockers
 
-- Root `.planning/REQUIREMENTS.md` was missing before v2.1 planning and has been restored for the selected milestone.
 - `Paddle.MockServer` is a useful offline fixture but not a complete Paddle clone; docs and planning should avoid claiming provider-state E2E unless sandbox/live verification is actually run.
 - Accrue still has a consumer-side follow-up to migrate any `%Paddle.Error{}.raw` usage to `raw_data`; this remains tracked as B-04 in `.planning/BACKLOG.md` and is not oarlock SDK scope unless later promoted.
+- Hosted GitHub Actions exact-SHA proof remains unavailable for local HEAD until the branch is pushed or opened as a PR.
+- Phase 28 validation artifact remains stale/partial even though local implementation and proof commands passed.
 
 ### Todos
 
@@ -81,6 +86,7 @@ Phase 29: GSD State Reconciliation [####################] 100%
 ### Roadmap Evolution
 
 - Phase 30 added: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof
+- v2.1 archived to `.planning/milestones/v2.1-ROADMAP.md` and `.planning/milestones/v2.1-REQUIREMENTS.md`.
 
 ## Session Continuity
 
@@ -91,6 +97,7 @@ Phase 29: GSD State Reconciliation [####################] 100%
 - Completed v2.0 on 2026-06-11.
 - 2026-06-24 adopter truth assessment found oarlock is approximately 88% done for its intended scope: strong core SDK coverage, with remaining leverage in docs, demo, CI, package proof, and GSD truth alignment.
 - Recommended next milestone: v2.1 Adopter Truth & Release Readiness.
+- Completed and archived v2.1 on 2026-06-25. Next session should start fresh requirements with `$gsd-new-milestone`.
 
 ## Decisions
 
@@ -99,3 +106,7 @@ Phase 29: GSD State Reconciliation [####################] 100%
 - [Phase 29]: Phase 29 Plan 02: Describe Phase 26 as MockServer-backed integration proof unless sandbox/live provider-state evidence is separately recorded.
 - [Phase 29]: Phase 29 Plan 03: Removed ignored config preferences and moved non-schema GSD judgment lenses to .planning/GSD-PREFERENCES.md.
 - [Phase 29]: Phase 29 Plan 03: Keep yolo, auto_advance, aggressive parallelization, and model profile as per-run or user-global choices rather than project policy.
+
+## Operator Next Steps
+
+- Start the next milestone with $gsd-new-milestone

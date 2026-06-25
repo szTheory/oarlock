@@ -4,6 +4,38 @@ Chronological record of shipped milestones. Newest first.
 
 ---
 
+## v2.1 Adopter Truth & Release Readiness (Shipped: 2026-06-25)
+
+**Status:** ✅ Shipped
+**Phases:** 27-30 (4 phases, 10 plans, 22 tasks)
+**Test suite at tag:** Local release-proof gates passed; hosted GitHub Actions exact-SHA proof remains deferred until pushed/PR CI runs.
+
+### Delivered
+
+- README, Getting Started, and demo runbook now describe the shipped adopter journey, app-owned boundaries, and MockServer proof limits
+- Unreleased changelog now names the public documentation truth pass without overclaiming Hex version, runtime capability, or provider-state proof
+- Paddle.MockServer now preserves offline HTTP fixture behavior with Plug/Bandit present while keeping the core SDK compile-safe for consumers that do not install those optional dependencies.
+- CI now continuously proves the root gates, Phoenix demo PostgreSQL tests, Hex package downstream consumption, and the MockServer optional dependency boundary.
+- Active planning surfaces now expose only current candidates while shipped backlog and resolved investigation history remain searchable through archive and index files.
+- Canonical v2.0/v2.1 evidence ledger with append-only audit errata and corrected MockServer proof boundaries for archived v2.0 planning docs
+- Root GSD state now points to active backlog, archive, evidence, resolved-thread, and durable preference surfaces without ignored config policy.
+- Deterministic Phoenix demo tests now prove MockServer checkout `open_checkout` and customer portal redirects directly.
+- Demo docs and the evidence ledger now describe the strengthened MockServer-backed checkout and portal proof without hosted/live overclaims.
+
+### Known Deferred Debt
+
+- Hosted GitHub Actions exact-SHA proof is unavailable for local HEAD until the branch is pushed or opened as a PR.
+- Phase 28 validation artifact remains stale/partial even though local implementation and proof commands passed.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v2.1-ROADMAP.md`
+- Requirements: `.planning/milestones/v2.1-REQUIREMENTS.md`
+- Audit: `.planning/milestones/v2.1-MILESTONE-AUDIT.md`
+- Tag: `v2.1`
+
+---
+
 ## v2.0 Offline Mode & Advanced Billing — 2026-06-11
 
 **Status:** ✅ Shipped
