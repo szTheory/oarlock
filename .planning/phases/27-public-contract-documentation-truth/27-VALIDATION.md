@@ -1,10 +1,11 @@
 ---
 phase: 27
 slug: public-contract-documentation-truth
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: verified
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Phase 27 — Validation Strategy
@@ -39,11 +40,11 @@ created: 2026-06-24
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 27-01-01 | 01 | 1 | DOCS-01 | T-27-01 / T-27-03 | Public surface docs match live exported modules and arities | docs-truth/unit | `mix test test/paddle/seam_test.exs --warnings-as-errors` | ✅ | ⬜ pending |
-| 27-01-02 | 01 | 1 | DOCS-03 | T-27-04 | Webhook examples verify raw body before trusting parsed events | docs build/manual | `mix docs --warnings-as-errors` | ✅ | ⬜ pending |
-| 27-02-01 | 02 | 1 | DOCS-02 | T-27-03 | Demo docs label MockServer proof as offline deterministic proof only | docs build/manual | `mix docs --warnings-as-errors` | ✅ | ⬜ pending |
-| 27-02-02 | 02 | 1 | DOCS-04 | T-27-03 | No docs claim sandbox/provider-state proof without real Paddle run evidence | docs grep/manual | `mix docs --warnings-as-errors` | ✅ | ⬜ pending |
-| 27-03-01 | 03 | 2 | DOCS-01, DOCS-04 | T-27-03 | Changelog and generated docs describe shipped seam without release/version overclaim | full suite | `mix test --warnings-as-errors && mix docs --warnings-as-errors` | ✅ | ⬜ pending |
+| 27-01-01 | 01 | 1 | DOCS-01 | T-27-01 / T-27-03 | Public surface docs match live exported modules and arities | docs-truth/unit | `mix test test/paddle/seam_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 27-01-02 | 01 | 1 | DOCS-03 | T-27-04 | Webhook examples verify raw body before trusting parsed events and app-owned boundaries stay explicit | docs-truth/unit | `mix test test/paddle/seam_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 27-02-01 | 02 | 1 | DOCS-02 | T-27-03 | Demo docs label MockServer proof as offline deterministic proof only and include required runbook anchors | docs-truth/unit | `mix test test/paddle/seam_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 27-02-02 | 02 | 1 | DOCS-04 | T-27-03 | No docs claim sandbox/provider-state proof without real Paddle run evidence | docs-truth/unit | `mix test test/paddle/seam_test.exs --warnings-as-errors` | ✅ | ✅ green |
+| 27-03-01 | 03 | 2 | DOCS-01, DOCS-04 | T-27-03 | Changelog and generated docs describe shipped seam without release/version overclaim | full suite | `mix test --warnings-as-errors && mix docs --warnings-as-errors` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,9 +52,9 @@ created: 2026-06-24
 
 ## Wave 0 Requirements
 
-- [ ] Extend or add a docs-truth guard that compares live public `Paddle.*` inventory to `guides/accrue-seam.md`.
-- [ ] Add a checklist or assertion for proof-boundary language so unsupported "sandbox verified" or "provider-state verified" claims are caught.
-- [ ] Decide and encode the `Paddle.PortalSessions` classification in the seam/docs plan.
+- [x] Extend or add a docs-truth guard that compares live public `Paddle.*` inventory to `guides/accrue-seam.md`.
+- [x] Add a checklist or assertion for proof-boundary language so unsupported "sandbox verified" or "provider-state verified" claims are caught.
+- [x] Decide and encode the `Paddle.PortalSessions` classification in the seam/docs plan.
 
 ---
 
@@ -61,19 +62,42 @@ created: 2026-06-24
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Task-based adopter journey is coherent across README and Getting Started | DOCS-01, DOCS-03 | Structure, wording, and app-owned boundary labels need human reading | Read both docs in order and confirm install -> explicit client -> customer/address -> transaction/checkout -> webhook verification -> subscription state -> cancel/manage flow is present without implying Phoenix/Ecto coupling |
-| Demo runbook proof boundary is clear | DOCS-02, DOCS-04 | Proof language is semantic and can pass markdown builds while being misleading | Read `demo/README.md` and confirm MockServer, sandbox, and live readiness are separated using the phase proof ladder |
+| Task-based adopter journey is coherent across README and Getting Started | DOCS-01, DOCS-03 | Human reading still checks narrative flow beyond the automated anchor guard | Read both docs in order and confirm install -> explicit client -> customer/address -> transaction/checkout -> webhook verification -> subscription state -> cancel/manage flow is present without implying Phoenix/Ecto coupling |
+| Demo runbook proof boundary is clear | DOCS-02, DOCS-04 | Human reading still checks semantic clarity beyond the automated section/anchor guard | Read `demo/README.md` and confirm MockServer, sandbox, and live readiness are separated using the phase proof ladder |
 | Changelog avoids version/release overclaim | DOCS-01, DOCS-04 | Release narrative depends on wording and current milestone context | Read latest `CHANGELOG.md` entry and confirm it names docs truth work without implying a Hex major release or new runtime capability |
+
+---
+
+## Validation Audit 2026-06-25
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 2 |
+| Resolved | 2 |
+| Escalated | 0 |
+
+### Gaps Resolved
+
+- Added a demo runbook docs-truth guard in `test/paddle/seam_test.exs` for local setup, mock auth, webhook processing, portal handoff, Offline Mode/MockServer proof boundary, and before-live checklist anchors.
+- Added a first-read docs guard in `test/paddle/seam_test.exs` for README and Getting Started adopter journey anchors, raw-body webhook verification, portal handoff, subscription state, idempotency, and app-owned Phoenix/Ecto/provisioning boundaries.
+
+### Verification Evidence
+
+- `mix test test/paddle/seam_test.exs --warnings-as-errors` - passed, 6 tests
+- `mix docs --warnings-as-errors` - passed
+- `rg -n "Paddle\\.Subscriptions\\.create|Stripe compatibility|official Paddle SDK|sandbox verified|provider-state verified|live verified" README.md guides/getting-started.md guides/accrue-seam.md demo/README.md CHANGELOG.md` - no matches
+- `cd demo && mix precommit` - passed, 25 tests
+- `mix test --warnings-as-errors && mix docs --warnings-as-errors` - passed, 224 tests
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Per-edit feedback latency < 30s where possible; full-suite sign-off may run 30-60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Per-edit feedback latency < 30s where possible; full-suite sign-off may run 30-60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** Nyquist-compliant after 2026-06-25 audit
