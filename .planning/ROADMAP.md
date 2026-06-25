@@ -96,14 +96,14 @@ Plans:
 **Goal:** Deterministic MockServer-backed Phoenix demo proof directly verifies checkout and customer portal handoffs, with docs and evidence matching the actual proof boundary.
 **Requirements**: DOCS-02, PROOF-02
 **Depends on:** Phase 29
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 
 **Wave 1**
 
-- [ ] 30-01-PLAN.md — Demo checkout and portal handoff proof.
+- [x] 30-01-PLAN.md — Demo checkout and portal handoff proof.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 30-02-PLAN.md — Public docs and evidence ledger truth maintenance.
+- [x] 30-02-PLAN.md — Public docs and evidence ledger truth maintenance.
