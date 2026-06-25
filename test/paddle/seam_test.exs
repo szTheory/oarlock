@@ -580,6 +580,98 @@ defmodule Paddle.SeamTest do
     assert seam_guide =~ "compatibility"
   end
 
+  test "demo runbook documents local setup, mock auth, handoffs, proof boundary, and live checklist" do
+    demo_readme = File.read!("demo/README.md")
+
+    intro = demo_readme |> markdown_section!("# oarlock Phoenix Demo") |> normalize_markdown()
+    demonstrated = demo_readme |> markdown_section!("## What It Demonstrates") |> normalize_markdown()
+    run_locally = demo_readme |> markdown_section!("## Run Locally") |> normalize_markdown()
+    offline_mode = demo_readme |> markdown_section!("## Offline Paddle Mode") |> normalize_markdown()
+    webhook_flow = demo_readme |> markdown_section!("## Webhook Flow") |> normalize_markdown()
+    handoffs = demo_readme |> markdown_section!("## Checkout and Portal Handoffs") |> normalize_markdown()
+    before_live = demo_readme |> markdown_section!("## Before Live Mode") |> normalize_markdown()
+
+    assert intro =~ "sign in as the mock merchant"
+    assert intro =~ "demo app code versus oarlock SDK code"
+    assert demonstrated =~ "Mock authentication"
+    assert demonstrated =~ "Paddle.Transactions.create/3"
+    assert demonstrated =~ "Raw-body webhook verification"
+    assert demonstrated =~ "Customer portal handoff"
+    assert demonstrated =~ "Offline development against `Paddle.MockServer`"
+    assert demonstrated =~ "The demo owns users, database tables, PubSub updates, and UI state"
+    assert demonstrated =~ "oarlock only owns the Paddle client seam"
+    assert demonstrated =~ "fixed demo merchant"
+
+    assert run_locally =~ "cd demo"
+    assert run_locally =~ "mix setup"
+    assert run_locally =~ "mix phx.server"
+    assert run_locally =~ "http://localhost:4000/login"
+    assert run_locally =~ "http://localhost:4000/admin"
+
+    assert webhook_flow =~ "verifies the exact raw request body before it trusts an event"
+    assert webhook_flow =~ "stores the event and updates local subscription state"
+    assert webhook_flow =~ "DemoWeb.WebhookSimulator"
+    assert webhook_flow =~ "raw-body verification boundary"
+
+    assert handoffs =~ "MockServer checkout URL"
+    assert handoffs =~ "`open_checkout`"
+    assert handoffs =~ "`Manage billing`"
+    assert handoffs =~ "creates a Paddle portal session"
+    assert handoffs =~ "Paddle-hosted URL"
+    assert handoffs =~ "operational handoff"
+
+    assert offline_mode =~ "Paddle.MockServer"
+    assert offline_mode =~ "development fixture, not a complete Paddle clone"
+    assert offline_mode =~ "deterministic local SDK/demo wiring"
+    assert offline_mode =~ "real Paddle sandbox credentials"
+    assert offline_mode =~ "operator-owned readiness"
+    assert offline_mode =~ "not live Paddle provider-state verification"
+
+    for checklist_item <- [
+          "Configure real Paddle price IDs",
+          "Complete a sandbox checkout using real sandbox credentials",
+          "Configure the Paddle webhook destination and endpoint secret",
+          "Verify the exact raw request body before parsing or trusting events",
+          "Make webhook handling idempotent",
+          "Keep sandbox and live credentials, secrets, and price IDs separated",
+          "final live credential swap as an operator-owned release step"
+        ] do
+      assert before_live =~ checklist_item
+    end
+  end
+
+  test "first-read docs preserve app-owned boundaries and the supported adopter journey" do
+    readme = "README.md" |> File.read!() |> normalize_markdown()
+    getting_started = "guides/getting-started.md" |> File.read!() |> normalize_markdown()
+
+    assert readme =~ "explicit `%Paddle.Client{}` passing"
+    assert readme =~ "customer -> address -> transaction -> checkout -> webhook -> subscription"
+    assert readme =~ "Create a transaction and hand the hosted checkout URL to a browser"
+    assert readme =~ "verify the raw body before you trust it"
+    assert readme =~ "Paddle.Webhooks.verify_signature(raw_body, signature_header, secret)"
+    assert readme =~ "Paddle.Webhooks.parse_event(raw_body)"
+    assert readme =~ "Your app owns users, accounts, provisioning, entitlements, and persistence"
+    assert readme =~ "A Phoenix or Plug integration package"
+    assert readme =~ "An Ecto schema or database sync layer"
+    assert readme =~ "A billing UI or customer portal replacement"
+
+    assert getting_started =~ "Create or look up a Paddle customer"
+    assert getting_started =~ "Attach a billing address"
+    assert getting_started =~ "Create a transaction for the price you want to sell"
+    assert getting_started =~ "Send the user to Paddle Checkout"
+    assert getting_started =~ "Verify the webhook when Paddle tells you payment completed"
+    assert getting_started =~ "Save the resulting Paddle IDs and grant access in your app"
+    assert getting_started =~ "Paddle.Webhooks.verify_signature(raw_body, signature_header, secret)"
+    assert getting_started =~ "Paddle.Webhooks.parse_event(raw_body)"
+    assert getting_started =~ "Paddle.Subscriptions.get(client, transaction.subscription_id)"
+    assert getting_started =~ "Paddle.Customers.PortalSessions.create/4"
+    assert getting_started =~ "Your app still owns authorization, audit records, and local state updates"
+    assert getting_started =~ "Phoenix request parsing or webhook plugs"
+    assert getting_started =~ "Ecto schemas or synchronization tables"
+    assert getting_started =~ "Stored idempotency keys for app-level retry jobs"
+    assert getting_started =~ "verifies the exact raw request body before parsing or trusting events"
+  end
+
   test "public docs do not claim provider-state proof from local fixtures" do
     unsupported_claims = [
       ~r/\bsandbox verified\b/i,
@@ -599,5 +691,18 @@ defmodule Paddle.SeamTest do
     assert Enum.any?(@public_docs, fn path ->
              File.read!(path) =~ "MockServer"
            end)
+  end
+
+  defp markdown_section!(markdown, heading) do
+    pattern = Regex.compile!("^#{Regex.escape(heading)}\\n(?<body>.*?)(?=^## |\\z)", "ms")
+
+    case Regex.named_captures(pattern, markdown) do
+      %{"body" => body} -> body
+      _ -> flunk("#{heading} section is missing from demo/README.md")
+    end
+  end
+
+  defp normalize_markdown(markdown) do
+    Regex.replace(~r/\s+/, markdown, " ")
   end
 end
