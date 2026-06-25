@@ -5,16 +5,16 @@ milestone_name: Adopter Truth & Release Readiness
 current_phase: 29
 current_phase_name: gsd-state-reconciliation
 status: executing
-stopped_at: Completed 29-01-PLAN.md
-last_updated: "2026-06-25T02:18:46.332Z"
+stopped_at: Completed 29-02-PLAN.md
+last_updated: "2026-06-25T02:27:45.673Z"
 last_activity: 2026-06-25
-last_activity_desc: Phase 29 plan 01 complete
+last_activity_desc: Phase 29 plan 02 complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -27,15 +27,15 @@ progress:
 ## Current Position
 
 Phase: 29 (gsd-state-reconciliation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-06-25 — Phase 29 plan 01 complete
+Last activity: 2026-06-25 — Phase 29 plan 02 complete
 
 ### Progress
 
 Phase 27: Public Contract & Documentation Truth [####################] 100%
 Phase 28: CI, Demo, and Package Proof [####################] 100%
-Phase 29: GSD State Reconciliation [#######.............] 33%
+Phase 29: GSD State Reconciliation [#############.......] 67%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Phase 29: GSD State Reconciliation [#######.............] 33%
 | Phase 27 P02 | 29 min | 2 tasks | 4 files |
 | Phase 27 P03 | 14 min | 2 tasks | 1 files |
 | Phase 29 P01 | 3 min | 2 tasks | 5 files |
+| Phase 29 P02 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -79,10 +80,16 @@ Phase 29: GSD State Reconciliation [#######.............] 33%
 
 ## Session Continuity
 
-**Last session:** 2026-06-25T02:18:46.325Z
-**Stopped at:** Completed 29-01-PLAN.md
+**Last session:** 2026-06-25T02:27:45.667Z
+**Stopped at:** Completed 29-02-PLAN.md
 **Resume file:** None
 
 - Completed v2.0 on 2026-06-11.
 - 2026-06-24 adopter truth assessment found oarlock is approximately 88% done for its intended scope: strong core SDK coverage, with remaining leverage in docs, demo, CI, package proof, and GSD truth alignment.
 - Recommended next milestone: v2.1 Adopter Truth & Release Readiness.
+
+## Decisions
+
+- [Phase 29]: Phase 29 Plan 02: Use .planning/EVIDENCE.md as the scan-first canonical proof ledger for v2.0/v2.1 requirement evidence.
+- [Phase 29]: Phase 29 Plan 02: Treat Phase 25 VALIDATION.md as real ADV-01 validation with a filename-standard caveat.
+- [Phase 29]: Phase 29 Plan 02: Describe Phase 26 as MockServer-backed integration proof unless sandbox/live provider-state evidence is separately recorded.

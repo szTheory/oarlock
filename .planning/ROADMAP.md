@@ -62,13 +62,13 @@ Plans:
 
 **Goal:** Future milestone planning starts from trustworthy project state rather than stale backlog or overclaimed audits.
 **Requirements:** GSD-01, GSD-02, GSD-03, GSD-04
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 29-01-PLAN.md — Backlog archive split and resolved investigation index.
-- [ ] 29-02-PLAN.md — v2.0 evidence ledger and audit wording reconciliation.
+- [x] 29-02-PLAN.md — v2.0 evidence ledger and audit wording reconciliation.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -87,6 +87,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 27. Public Contract & Documentation Truth | v2.1 | 3/3 | Complete    | 2026-06-24 |
 | 28. CI, Demo, and Package Proof | v2.1 | 2/2 | Complete    | 2026-06-24 |
-| 29. GSD State Reconciliation | v2.1 | 1/3 | In Progress|  |
+| 29. GSD State Reconciliation | v2.1 | 2/3 | In Progress|  |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
 | 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |
