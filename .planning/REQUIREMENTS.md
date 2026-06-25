@@ -21,8 +21,8 @@
 
 ### GSD Truth
 
-- [ ] **GSD-01**: Root PROJECT, REQUIREMENTS, ROADMAP, STATE, BACKLOG, and milestone audit files agree on the current shipped state.
-- [ ] **GSD-02**: Stale investigations and backlog items are marked resolved, superseded, or explicitly moved to Accrue-side follow-up.
+- [x] **GSD-01**: Root PROJECT, REQUIREMENTS, ROADMAP, STATE, BACKLOG, and milestone audit files agree on the current shipped state.
+- [x] **GSD-02**: Stale investigations and backlog items are marked resolved, superseded, or explicitly moved to Accrue-side follow-up.
 - [ ] **GSD-03**: v2.0 audit and Phase 25/26 validation language is reconciled with actual evidence.
 - [ ] **GSD-04**: Recurring GSD preferences for research, adopter-first assessment, DX/UX, and lesson retention are present in project/global defaults.
 
@@ -65,8 +65,8 @@
 | PROOF-02 | Phase 28 | Complete |
 | PROOF-03 | Phase 28 | Complete |
 | PROOF-04 | Phase 28 | Complete |
-| GSD-01 | Phase 29 | Pending |
-| GSD-02 | Phase 29 | Pending |
+| GSD-01 | Phase 29 | Complete |
+| GSD-02 | Phase 29 | Complete |
 | GSD-03 | Phase 29 | Pending |
 | GSD-04 | Phase 29 | Pending |
 
