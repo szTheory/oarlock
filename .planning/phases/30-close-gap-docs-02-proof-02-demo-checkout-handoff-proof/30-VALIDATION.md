@@ -1,10 +1,11 @@
 ---
 phase: 30
 slug: close-gap-docs-02-proof-02-demo-checkout-handoff-proof
-status: draft
+status: verified
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-06-25
+updated: 2026-06-25
 ---
 
 # Phase 30 - Validation Strategy
@@ -40,10 +41,10 @@ created: 2026-06-25
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 30-01-01 | 01 | 1 | DOCS-02/PROOF-02 | T-30-01 | Checkout proof cannot pass without an `open_checkout` event containing the MockServer checkout URL. | source smoke + LiveView integration | `rg -n "assert_push_event\\(view, \"open_checkout\"|mock-checkout-url|start-checkout-button" demo/test/demo_web/live/admin_live_test.exs demo/lib/demo_web/live/admin_live/index.ex && cd demo && mix test test/demo_web/live/admin_live_test.exs` | W0 | pending |
-| 30-01-02 | 01 | 1 | DOCS-02/PROOF-02 | T-30-02 | Portal proof asserts authenticated hosted portal redirect from active subscription state. | source smoke + LiveView integration | `rg -n "mock-portal-session|manage-billing-button" demo/test/demo_web/live/admin_live_test.exs demo/lib/demo_web/live/admin_live/index.ex && cd demo && mix test test/demo_web/live/admin_live_test.exs test/demo_web/integration/billing_flow_test.exs` | W0 | pending |
-| 30-02-01 | 02 | 2 | DOCS-02/PROOF-02 | - | Public docs and evidence ledger state deterministic MockServer proof and do not overclaim hosted/live CI. | source/docs | `rg "DOCS-02|PROOF-02|Phase 30|hosted CI|MockServer" .planning/EVIDENCE.md demo/README.md README.md guides` | W0 | pending |
-| 30-02-02 | 02 | 2 | DOCS-02/PROOF-02 | - | Demo regression and precommit suite pass with the strengthened checkout/portal proof. | source smoke + full suite | `rg -n "Phase 30|DOCS-02|PROOF-02|MockServer-backed|open_checkout|mock-checkout-url|mock-portal-session|hosted CI|no hosted" .planning/EVIDENCE.md demo/README.md README.md guides/getting-started.md && cd demo && mix precommit` | W0 | pending |
+| 30-01-01 | 01 | 1 | DOCS-02/PROOF-02 | T-30-01 | Checkout proof cannot pass without an `open_checkout` event containing the MockServer checkout URL. | source smoke + LiveView integration | `rg -n "assert_push_event\\(view, \"open_checkout\"|mock-checkout-url|start-checkout-button" demo/test/demo_web/live/admin_live_test.exs demo/lib/demo_web/live/admin_live/index.ex && cd demo && mix test test/demo_web/live/admin_live_test.exs` | ✅ | ✅ green |
+| 30-01-02 | 01 | 1 | DOCS-02/PROOF-02 | T-30-02 | Portal proof asserts authenticated hosted portal redirect from active subscription state. | source smoke + LiveView integration | `rg -n "mock-portal-session|manage-billing-button" demo/test/demo_web/live/admin_live_test.exs demo/lib/demo_web/live/admin_live/index.ex && cd demo && mix test test/demo_web/live/admin_live_test.exs test/demo_web/integration/billing_flow_test.exs` | ✅ | ✅ green |
+| 30-02-01 | 02 | 2 | DOCS-02/PROOF-02 | - | Public docs and evidence ledger state deterministic MockServer proof and do not overclaim hosted/live CI. | source/docs | `rg "DOCS-02|PROOF-02|Phase 30|hosted CI|MockServer" .planning/EVIDENCE.md demo/README.md README.md guides` | ✅ | ✅ green |
+| 30-02-02 | 02 | 2 | DOCS-02/PROOF-02 | - | Demo regression and precommit suite pass with the strengthened checkout/portal proof. | source smoke + full suite | `rg -n "Phase 30|DOCS-02|PROOF-02|MockServer-backed|open_checkout|mock-checkout-url|mock-portal-session|hosted CI|no hosted" .planning/EVIDENCE.md demo/README.md README.md guides/getting-started.md && cd demo && mix precommit` | ✅ | ✅ green |
 
 ---
 
@@ -75,4 +76,14 @@ Existing infrastructure covers all phase requirements:
 - [x] Smoke feedback latency < 5s before full gates; full-gate latency < 180s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved 2026-06-25
+**Approval:** verified 2026-06-25
+
+## Validation Audit 2026-06-25
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 4 |
+| Escalated | 0 |
+
+All phase behaviors have automated verification. The hosted GitHub Actions status for the final SHA remains manual-only because this local branch is ahead of `origin/main`; `.planning/EVIDENCE.md` records the no-hosted-run caveat.
