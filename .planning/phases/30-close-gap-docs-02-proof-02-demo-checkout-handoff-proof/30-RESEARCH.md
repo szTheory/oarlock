@@ -376,17 +376,17 @@ plug Plug.Parsers,
 |---|-------|---------|---------------|
 | N/A | No assumptions; findings are from local code, local commands, phase context, or cited official docs. | All | N/A |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should the demo create or hard-code mock customer/address IDs before checkout?**
+1. **RESOLVED: Use deterministic demo-owned mock customer/address IDs before checkout.**
    - What we know: `Paddle.Transactions.create/3` requires `customer_id` and `address_id`; the current demo checkout request does not provide them. [VERIFIED: lib/paddle/transactions.ex; VERIFIED: demo/lib/demo_web/live/admin_live/index.ex]
-   - What's unclear: Whether the best adopter-facing demo shape is deterministic hard-coded mock IDs, setup-time mock customer/address creation, or a tiny app-owned local mapping. [VERIFIED: codebase grep]
-   - Recommendation: Choose the smallest demo-owned shape that keeps the SDK validation strict and gets MockServer checkout handoff working deterministically. [VERIFIED: 30-CONTEXT.md]
+   - Resolution: Phase 30 should provide deterministic demo-owned mock IDs from `DemoWeb.AdminLive.Index` or its test setup/AdminLive path when creating the MockServer checkout transaction. The IDs must be non-empty Paddle-style fixture values owned by the demo flow, not SDK defaults or relaxed validation. [VERIFIED: 30-CONTEXT.md; VERIFIED: lib/paddle/transactions.ex]
+   - Implementation implication: Keep `Paddle.Transactions.create/3` validation strict; make the demo satisfy the existing contract with deterministic `customer_id` and `address_id` alongside `items` and `custom_data`. [VERIFIED: 30-CONTEXT.md]
 
-2. **Should portal fixture field names be reconciled with current Paddle docs?**
+2. **RESOLVED: Portal fixture field-name reconciliation is out of Phase 30 scope unless implementation reveals a direct bug.**
    - What we know: Local fixture and LiveView use `urls["general"]["url"]`; current Paddle docs show `urls.general.overview`. [VERIFIED: lib/paddle/mock_server/fixtures.ex; VERIFIED: demo/lib/demo_web/live/admin_live/index.ex; CITED: https://developer.paddle.com/build/customers/integrate-customer-portal/]
-   - What's unclear: Whether this is intentional SDK compatibility or stale demo fixture naming. [VERIFIED: codebase grep]
-   - Recommendation: Do not broaden Phase 30 into portal API redesign; assert current local behavior unless implementation reveals a direct bug in the existing SDK struct. [VERIFIED: 30-CONTEXT.md]
+   - Resolution: Phase 30 should assert current local SDK/MockServer behavior and the deterministic MockServer portal URL. Do not broaden this close-gap phase into a portal response-shape redesign or public fixture rename. [VERIFIED: 30-CONTEXT.md]
+   - Implementation implication: Only touch portal field naming if the planned LiveViewTest exposes a direct bug in the existing `Paddle.PortalSession` struct, MockServer fixture, or demo LiveView handoff path. Otherwise keep local SDK/MockServer semantics unchanged and document the proof boundary. [VERIFIED: 30-CONTEXT.md]
 
 ## Environment Availability
 
