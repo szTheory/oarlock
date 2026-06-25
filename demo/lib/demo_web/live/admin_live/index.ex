@@ -74,12 +74,13 @@ defmodule DemoWeb.AdminLive.Index do
                       Renews: {Calendar.strftime(@subscription.current_period_end, "%B %d, %Y")}
                     </p>
                     <.button
+                      id="manage-billing-button"
                       phx-click="open_portal"
                       color="white"
                       variant="outline"
                       disabled={@portal_loading}
                     >
-                      {if @portal_loading, do: "Loading...", else: "Manage Subscription"}
+                      {if @portal_loading, do: "Loading...", else: "Manage billing"}
                     </.button>
                   <% else %>
                     <.icon name="hero-shopping-bag-solid" class="w-16 h-16 text-blue-500 mb-4" />
@@ -93,8 +94,13 @@ defmodule DemoWeb.AdminLive.Index do
                         Purchase a plan to unlock premium features.
                       <% end %>
                     </p>
-                    <.button phx-click="subscribe_now" color="primary" disabled={@checkout_loading}>
-                      {if @checkout_loading, do: "Loading...", else: "Subscribe Now"}
+                    <.button
+                      id="start-checkout-button"
+                      phx-click="subscribe_now"
+                      color="primary"
+                      disabled={@checkout_loading}
+                    >
+                      {if @checkout_loading, do: "Loading...", else: "Start checkout"}
                     </.button>
                   <% end %>
                 </div>
@@ -174,6 +180,8 @@ defmodule DemoWeb.AdminLive.Index do
 
     # Backend-driven transaction creation
     case Paddle.Transactions.create(client, %{
+           customer_id: "ctm_demo_#{socket.assigns.current_user.id}",
+           address_id: "add_demo_#{socket.assigns.current_user.id}",
            items: [%{price_id: price_id, quantity: 1}],
            # Important: inject our mock user id so the webhook knows who owns the resulting subscription
            custom_data: %{"mock_user_id" => socket.assigns.current_user.id}

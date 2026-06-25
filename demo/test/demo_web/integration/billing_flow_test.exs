@@ -19,7 +19,7 @@ defmodule DemoWeb.Integration.BillingFlowTest do
       |> assert_path("/admin")
       |> assert_has("h1", text: "Dashboard")
       |> assert_has("h3", text: "No Active Subscription")
-      |> assert_has("button", text: "Subscribe Now")
+      |> assert_has("button", text: "Start checkout")
 
     # Phase D & E: Simulate Webhook & Real-time PubSub update
     # In a real E2E test with Playwright, we would click checkout, fill out the paddle iframe,
@@ -52,8 +52,8 @@ defmodule DemoWeb.Integration.BillingFlowTest do
     # and it will automatically handle the PubSub re-render cycle!
     session
     |> assert_has("h3", text: "Subscription Active")
-    |> assert_has("button", text: "Manage Subscription")
-    |> refute_has("button", text: "Subscribe Now")
+    |> assert_has("button", text: "Manage billing")
+    |> refute_has("button", text: "Start checkout")
   end
 
   test "E2E Offline Flow: UI buttons trigger MockServer integrations successfully", %{conn: conn} do
@@ -64,10 +64,10 @@ defmodule DemoWeb.Integration.BillingFlowTest do
       |> click_button("Login as Demo Merchant")
       |> assert_path("/admin")
 
-    # Click "Subscribe Now" -> should talk to MockServer to create a transaction and emit a JS event
+    # Click "Start checkout" -> should talk to MockServer to create a transaction and emit a JS event
     session =
       session
-      |> click_button("Subscribe Now")
+      |> click_button("Start checkout")
       # Wait for loading state to clear if any or assert JS event, but in PhoenixTest
       # unhandled pushes are silently swallowed or returned. We just ensure it doesn't crash.
       |> assert_path("/admin")
@@ -91,10 +91,10 @@ defmodule DemoWeb.Integration.BillingFlowTest do
       webhook_payload
     )
 
-    # Click "Manage Subscription" -> should talk to MockServer to create portal session and redirect
+    # Click "Manage billing" -> should talk to MockServer to create portal session and redirect
     session
-    |> assert_has("button", text: "Manage Subscription")
-    |> click_button("Manage Subscription")
+    |> assert_has("button", text: "Manage billing")
+    |> click_button("Manage billing")
     |> assert_path("/mock-portal-session")
   end
 end
