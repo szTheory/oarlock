@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Adopter Truth & Release Readiness
-current_phase: 29
-status: complete
-stopped_at: Phase 29 complete
-last_updated: "2026-06-25T02:44:50.768Z"
-last_activity: 2026-06-25
-last_activity_desc: Phase 29 complete
+status: completed
+stopped_at: Phase 30 context gathered
+last_updated: "2026-06-25T15:24:36.589Z"
+last_activity: 2026-06-25 — Phase 29 complete
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
   total_plans: 8
   completed_plans: 8
-  percent: 100
-current_phase_name: gsd-state-reconciliation
+  percent: 75
 ---
 
 # Project State
@@ -79,11 +76,15 @@ Phase 29: GSD State Reconciliation [####################] 100%
 
 - Use the active backlog, archive, evidence ledger, thread index, and durable GSD preferences as the starting context for the next milestone.
 
+### Roadmap Evolution
+
+- Phase 30 added: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof
+
 ## Session Continuity
 
-**Last session:** 2026-06-25T02:35:16.063Z
-**Stopped at:** Phase 29 complete
-**Resume file:** None
+**Last session:** 2026-06-25T15:24:36.584Z
+**Stopped at:** Phase 30 context gathered
+**Resume file:** .planning/phases/30-close-gap-docs-02-proof-02-demo-checkout-handoff-proof/30-CONTEXT.md
 
 - Completed v2.0 on 2026-06-11.
 - 2026-06-24 adopter truth assessment found oarlock is approximately 88% done for its intended scope: strong core SDK coverage, with remaining leverage in docs, demo, CI, package proof, and GSD truth alignment.
