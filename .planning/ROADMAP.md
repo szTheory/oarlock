@@ -90,3 +90,20 @@ Plans:
 | 29. GSD State Reconciliation | v2.1 | 3/3 | Complete    | 2026-06-25 |
 | 25. Offline Mode Foundation | v2.0 | 1/1 | Complete | 2026-06-11 |
 | 26. Advanced Subscription Flows E2E | v2.0 | 2/2 | Complete | 2026-06-11 |
+
+### Phase 30: Close gap: DOCS-02/PROOF-02 - demo checkout handoff proof
+
+**Goal:** Deterministic MockServer-backed Phoenix demo proof directly verifies checkout and customer portal handoffs, with docs and evidence matching the actual proof boundary.
+**Requirements**: DOCS-02, PROOF-02
+**Depends on:** Phase 29
+**Plans:** 2 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 30-01-PLAN.md — Demo checkout and portal handoff proof.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 30-02-PLAN.md — Public docs and evidence ledger truth maintenance.
