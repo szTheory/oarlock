@@ -10,11 +10,14 @@ demo app code versus oarlock SDK code.
 ## What It Demonstrates
 
 - Mock authentication around an `/admin` dashboard.
-- A server-side checkout handoff using `Paddle.Transactions.create/3`.
+- A server-side checkout handoff using `Paddle.Transactions.create/3`, with
+  tests asserting the MockServer checkout URL is pushed to the LiveView checkout
+  hook.
 - Raw-body webhook verification through `Paddle.Webhooks`.
 - Webhook inbox persistence before business logic runs.
 - Local subscription state updated from signed Paddle-style webhook events.
-- Customer portal handoff through oarlock.
+- Customer portal handoff through oarlock, with tests asserting the
+  provider-hosted portal redirect URL from `Paddle.MockServer`.
 - Offline development against `Paddle.MockServer` with the optional `plug` and
   `bandit` dependencies available in the demo/test dependency set.
 
@@ -90,10 +93,15 @@ updates are demo Phoenix/Ecto code. They show one app-owned shape for webhook
 processing; they are not core SDK routes, schemas, migrations, or provisioning
 policy.
 
-## Portal Handoff
+## Checkout and Portal Handoffs
 
-The dashboard's manage-subscription action creates a Paddle portal session for
-the signed-in demo merchant and redirects to a Paddle-hosted URL. In a real app,
+The dashboard starts checkout by creating a transaction on the server, then
+pushing the returned MockServer checkout URL to the browser hook as
+`open_checkout`. In the UI this is a `Start checkout` handoff, not a local
+subscription-creation workflow.
+
+The dashboard's `Manage billing` action creates a Paddle portal session for the
+signed-in demo merchant and redirects to a Paddle-hosted URL. In a real app,
 authorize the signed-in user before creating a portal session, store any audit
 record you need, and treat the returned URL as an operational handoff rather
 than durable state.
@@ -106,8 +114,9 @@ Run the demo test suite from this directory:
 mix test
 ```
 
-The integration tests cover the mock login, dashboard state, signed webhook
-processing, subscription UI update, checkout handoff path, and portal handoff.
+The integration and LiveView tests cover the mock login, dashboard state,
+signed webhook processing, subscription UI update, checkout handoff path,
+`open_checkout` event payload, and portal handoff redirect.
 
 ## Production Boundary
 
