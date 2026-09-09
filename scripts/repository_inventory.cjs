@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("node:fs");
 const path = require("node:path");
 const {
   collectRepositorySnapshot,
   evaluateRepositoryInventory,
   exitCodeFor,
+  readBoundedRepositoryFile,
   renderHuman,
   renderJson,
 } = require("./lib/repository_truth.cjs");
@@ -27,10 +27,24 @@ Exit status:
   2  incomplete or unsafe collection, including unreadable Git or registry data
 `;
 
-function readRegistry(registryPath, maximumBytes = 1024 * 1024) {
-  const stat = fs.statSync(registryPath);
-  if (stat.size > maximumBytes) throw new Error(`ownership registry exceeds ${maximumBytes} bytes`);
-  return JSON.parse(fs.readFileSync(registryPath, "utf8"));
+function readRegistry(root, registryPath, options = {}) {
+  const record = readBoundedRepositoryFile(root, registryPath, {
+    ...options,
+    maximumBytes: options.maximumBytes || 1024 * 1024,
+  });
+  try {
+    return JSON.parse(record.content);
+  } catch (_error) {
+    throw new Error("ownership registry contains invalid JSON");
+  }
+}
+
+function repositoryArtifact(root, candidate) {
+  const relative = path.relative(root, path.resolve(candidate));
+  if (relative && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+    return relative.split(path.sep).join("/");
+  }
+  return path.resolve(candidate);
 }
 
 function main(argv = process.argv.slice(2), options = {}) {
@@ -45,14 +59,21 @@ function main(argv = process.argv.slice(2), options = {}) {
   }
 
   const snapshot = collectRepositorySnapshot({ cwd: options.cwd || process.cwd(), ...(options.collectOptions || {}) });
-  const registryPath = options.registryPath || path.resolve(__dirname, "../.planning/repository-ownership.json");
+  const repositoryRoot = snapshot.repository.root || path.resolve(options.cwd || process.cwd());
+  const registryPath = options.registryPath || path.join(repositoryRoot, ".planning/repository-ownership.json");
+  const registryArtifact = repositoryArtifact(repositoryRoot, registryPath);
   let registry = null;
   try {
-    registry = readRegistry(registryPath, options.maximumRegistryBytes);
+    registry = readRegistry(repositoryRoot, registryPath, {
+      ...(options.registryReadOptions || {}),
+      maximumBytes: options.maximumRegistryBytes
+        || (options.registryReadOptions && options.registryReadOptions.maximumBytes)
+        || 1024 * 1024,
+    });
   } catch (error) {
     snapshot.collectionErrors.push({
       code: "RINV_REGISTRY_UNREADABLE",
-      artifact: registryPath,
+      artifact: registryArtifact,
       field: "registry",
       actual: null,
       evidence: error.message,
