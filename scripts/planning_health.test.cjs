@@ -215,13 +215,13 @@ test("concurrent snapshot: injected source change exits 2 instead of returning m
     let changed = false;
     const snapshot = collectPlanningSnapshot(root, {
       collectCorroboration: false,
-      afterRead(relative, absolute) {
-        if (!changed && relative === ".planning/ROADMAP.md") {
-          changed = true;
-          fs.appendFileSync(absolute, "\n<!-- concurrent -->\n");
-        }
+      beforeConsistencyCheck() {
+        const roadmap = path.join(root, ".planning/ROADMAP.md");
+        changed = true;
+        fs.appendFileSync(roadmap, "\n<!-- concurrent -->\n");
       },
     });
+    assert.equal(changed, true);
     const result = evaluatePlanningHealth(snapshot);
     assert.equal(result.conclusion.exitCode, 2);
     assert.equal(result.diagnostics.some(({ code }) => code === "PSCOPE_SNAPSHOT_CHANGED"), true);
