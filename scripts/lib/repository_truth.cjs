@@ -149,12 +149,20 @@ function parseStatus(buffer) {
     detached: false,
     dirty: [],
   };
+  let sawHead = false;
+  let sawBranch = false;
   const tokens = splitNul(buffer);
   for (let index = 0; index < tokens.length; index += 1) {
     const token = decode(tokens[index]);
     if (token === "") continue;
-    if (token.startsWith("# branch.oid ")) status.head = token.slice(13);
+    if (token.startsWith("# branch.oid ")) {
+      if (sawHead) throw new Error("duplicate porcelain-v2 branch.oid header");
+      sawHead = true;
+      status.head = token.slice(13);
+    }
     else if (token.startsWith("# branch.head ")) {
+      if (sawBranch) throw new Error("duplicate porcelain-v2 branch.head header");
+      sawBranch = true;
       const branch = token.slice(14);
       status.detached = branch === "(detached)";
       status.branch = status.detached ? null : branch;
@@ -188,8 +196,9 @@ function parseStatus(buffer) {
       status.dirty.push({ kind: "untracked", path: token.slice(2), originalPath: null, index: "?", worktree: "?" });
     } else if (token.startsWith("! ")) {
       status.dirty.push({ kind: "ignored", path: token.slice(2), originalPath: null, index: "!", worktree: "!" });
-    }
+    } else throw new Error(`unsupported porcelain-v2 record: ${token}`);
   }
+  if (!sawHead || !sawBranch || !status.head) throw new Error("mandatory porcelain-v2 branch headers are incomplete");
   status.dirty.sort(compareDirty);
   return status;
 }

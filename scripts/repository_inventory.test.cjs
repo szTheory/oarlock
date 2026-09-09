@@ -381,6 +381,8 @@ test("hostile paths: ordinary modified records retain only the exact path", () =
 test("hostile paths: malformed dirty porcelain fails closed", () => {
   assert.throws(() => parseStatus(Buffer.from("1 malformed\0")), /malformed porcelain-v2 ordinary record/);
   assert.throws(() => parseStatus(Buffer.from("2 R. incomplete\0")), /malformed porcelain-v2 rename record/);
+  assert.throws(() => parseStatus(Buffer.from(`# branch.oid ${"a".repeat(40)}\0# branch.head main\0future record\0`)), /unsupported porcelain-v2 record/);
+  assert.throws(() => parseStatus(Buffer.from(`# branch.oid ${"a".repeat(40)}\0`)), /branch headers are incomplete/);
 });
 
 test("edge policy: empty state is valid while null observations and bounded output fail incomplete", (t) => {
