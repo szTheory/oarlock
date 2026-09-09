@@ -383,12 +383,65 @@ test("milestone identity: tag, peeled SHA, package version, and publication rema
     if (args[0] === "show") return { status: 0, stdout: Buffer.from('defmodule Paddle.MixProject do\n  @version "0.1.1"\nend\n') };
     throw new Error(`unexpected git args: ${args.join(" ")}`);
   };
-  assert.deepEqual(collectTagIdentities("/fixture", { runner }), [{
-    tag: "v1.2", sourceSha: "abc123", declaredPackageVersion: "0.1.1", publicationStatus: "unknown",
-  }]);
+  assert.deepEqual(collectTagIdentities("/fixture", { runner }), {
+    identities: [{ tag: "v1.2", sourceSha: "abc123", declaredPackageVersion: "0.1.1", publicationStatus: "unknown" }],
+    collectionErrors: [],
+  });
   assert.deepEqual(readPackageVersion("/fixture", "v1.2", { runner }), {
     value: "0.1.1", evidence: "git show v1.2:mix.exs", status: "known",
   });
+});
+
+test("git identity collection: for-each-ref failure exits 2 with cause", () => {
+  const runner = (_command, args) => {
+    assert.equal(args[0], "for-each-ref");
+    return { status: 128, stdout: Buffer.alloc(0), stderr: Buffer.from("fatal: refs unavailable\n") };
+  };
+  const observed = collectTagIdentities("/fixture", { runner });
+  assert.deepEqual(observed.identities, []);
+  assert.equal(observed.collectionErrors.length, 1);
+  assert.deepEqual(observed.collectionErrors[0].actual, {
+    command: "git for-each-ref --format=%(refname:short)%00%(objectname)%00%(*objectname)%00 refs/tags",
+    status: 128,
+    stderr: "fatal: refs unavailable",
+    cause: "fatal: refs unavailable",
+  });
+
+  const snapshot = snapshotFrom();
+  snapshot.milestoneArchives = historySnapshot().milestoneArchives;
+  snapshot.documents = { ...snapshot.documents, ...historySnapshot().documents };
+  snapshot.tagIdentities = observed.identities;
+  snapshot.collectionErrors.push(...observed.collectionErrors);
+  const result = evaluatePlanningHealth(snapshot);
+  assert.equal(result.conclusion.exitCode, 2);
+  assert.ok(result.diagnostics.some(({ code, evidence }) => code === "PIDENT_TAG_COLLECTION_FAILED" && /refs unavailable/.test(evidence)));
+  assert.equal(result.diagnostics.some(({ code }) => code === "PIDENT_TAG_SHA_MISMATCH"), false);
+});
+
+test("git identity collection: tagged git-show failure exits 2 with cause", () => {
+  const runner = (_command, args) => {
+    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\0abc123\0\n"), stderr: Buffer.alloc(0) };
+    return { status: 128, stdout: Buffer.alloc(0), stderr: Buffer.from("fatal: tagged file unreadable\n") };
+  };
+  const observed = collectTagIdentities("/fixture", { runner });
+  assert.equal(observed.identities.length, 1);
+  assert.equal(observed.identities[0].packageVersionStatus, "collection-error");
+  assert.equal(observed.collectionErrors.length, 1);
+
+  const snapshot = historySnapshot({ tagIdentities: observed.identities, collectionErrors: observed.collectionErrors });
+  const planning = snapshotFrom();
+  Object.assign(planning, snapshot);
+  planning.documents = { ...snapshotFrom().documents, ...snapshot.documents };
+  const result = evaluatePlanningHealth(planning);
+  assert.equal(result.conclusion.exitCode, 2);
+  assert.ok(result.diagnostics.some(({ code, evidence }) => code === "PIDENT_PACKAGE_COLLECTION_FAILED" && /tagged file unreadable/.test(evidence)));
+  assert.equal(result.diagnostics.some(({ code }) => code === "PIDENT_PACKAGE_VERSION_MISMATCH"), false);
+
+  const absent = readPackageVersion("/fixture", "v1.2", {
+    runner: () => ({ status: 0, stdout: Buffer.from("defmodule Fixture do\nend\n"), stderr: Buffer.alloc(0) }),
+  });
+  assert.equal(absent.status, "unknown");
+  assert.match(absent.evidence, /declaration absent/);
 });
 
 test("milestone archive: missing, mutable, contradictory, and escaped history edges diagnose separately", () => {
