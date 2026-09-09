@@ -1220,6 +1220,12 @@ function validateCompletionProof(snapshot, phaseNumber) {
   ));
 
   for (const plan of phase ? phase.plans : []) {
+    if (!plan.complete) diagnostics.push(completionDiagnostic(
+      "PCOMP_PLAN_NOT_ACCEPTED", ".planning/ROADMAP.md", `plan ${plan.file}`,
+      "checked accepted plan", "unchecked plan", ".planning/ROADMAP.md",
+      `Declared plan ${plan.file} has not been accepted in the ROADMAP checklist`,
+      "Review the plan proof and check the canonical ROADMAP entry only after acceptance.",
+    ));
     const expectedSummary = plan.file.replace(/-PLAN\.md$/, "-SUMMARY.md");
     const summaryArtifact = artifactForPlan(snapshot, phaseDirectory, plan.file, "-SUMMARY.md");
     if (!summaryArtifact) {

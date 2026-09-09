@@ -229,6 +229,12 @@ test("completion: failed evidence and verification rows never satisfy requiremen
   ]);
 });
 
+test("completion: unchecked plans remain blocking even with complete summaries", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace("- [x] 31-02-PLAN.md", "- [ ] 31-02-PLAN.md");
+  assert.ok(validateCompletionProof(snapshot, "31").some(({ code, field }) => code === "PCOMP_PLAN_NOT_ACCEPTED" && field === "plan 31-02-PLAN.md"));
+});
+
 test("canonical completion: missing or ambiguous phase directory is incomplete", () => {
   const missing = completedSnapshot();
   missing.phaseArtifacts = [".planning/phases/99-decoy/31-01-SUMMARY.md"];
