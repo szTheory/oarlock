@@ -66,6 +66,7 @@ function invoke(command, args, options) {
   return runner(command, args, {
     cwd: options.cwd,
     encoding: null,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0", LC_ALL: "C" },
     shell: false,
     windowsHide: true,
     maxBuffer: options.maxBuffer,
@@ -159,23 +160,25 @@ function parseStatus(buffer) {
       status.ahead = Number(match[1]);
       status.behind = Number(match[2]);
     } else if (token.startsWith("1 ")) {
-      const fields = token.split(" ", 9);
+      const match = /^1 (\S{2}) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) ([\s\S]*)$/.exec(token);
+      if (!match) throw new Error(`malformed porcelain-v2 ordinary record: ${token}`);
       status.dirty.push({
         kind: "ordinary",
-        path: token.slice(fields.slice(0, 8).join(" ").length + 1),
+        path: match[8],
         originalPath: null,
-        index: fields[1][0],
-        worktree: fields[1][1],
+        index: match[1][0],
+        worktree: match[1][1],
       });
     } else if (token.startsWith("2 ")) {
-      const fields = token.split(" ", 10);
-      const dirtyPath = token.slice(fields.slice(0, 9).join(" ").length + 1);
+      const match = /^2 (\S{2}) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) ([\s\S]*)$/.exec(token);
+      if (!match || index + 1 >= tokens.length) throw new Error(`malformed porcelain-v2 rename record: ${token}`);
       const originalPath = index + 1 < tokens.length ? decode(tokens[index + 1]) : null;
       index += 1;
-      status.dirty.push({ kind: "rename", path: dirtyPath, originalPath, index: fields[1][0], worktree: fields[1][1] });
+      status.dirty.push({ kind: "rename", path: match[9], originalPath, index: match[1][0], worktree: match[1][1] });
     } else if (token.startsWith("u ")) {
-      const fields = token.split(" ", 11);
-      status.dirty.push({ kind: "unmerged", path: token.slice(fields.slice(0, 10).join(" ").length + 1), originalPath: null, index: fields[1][0], worktree: fields[1][1] });
+      const match = /^u (\S{2}) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) ([\s\S]*)$/.exec(token);
+      if (!match) throw new Error(`malformed porcelain-v2 unmerged record: ${token}`);
+      status.dirty.push({ kind: "unmerged", path: match[10], originalPath: null, index: match[1][0], worktree: match[1][1] });
     } else if (token.startsWith("? ")) {
       status.dirty.push({ kind: "untracked", path: token.slice(2), originalPath: null, index: "?", worktree: "?" });
     } else if (token.startsWith("! ")) {
@@ -225,7 +228,7 @@ function collectRepositorySnapshot(options = {}) {
   const snapshot = {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: (options.now ? options.now() : new Date()).toISOString(),
-    repository: { root: null, commonDir: null },
+    repository: { root: null, commonDir: null, pruneDryRun: null },
     worktrees: [],
     collectionErrors: [],
   };
@@ -245,6 +248,13 @@ function collectRepositorySnapshot(options = {}) {
   } catch (error) {
     snapshot.collectionErrors.push(collectionError({ artifact: snapshot.repository.root, field: "worktrees", actual: null, evidence: error.message }));
     return snapshot;
+  }
+
+  try {
+    const pruneOutput = decode(runGit(["worktree", "prune", "--dry-run", "--verbose"], commandOptions));
+    snapshot.repository.pruneDryRun = pruneOutput.split(/\r?\n/).filter((line) => line.length > 0);
+  } catch (error) {
+    snapshot.collectionErrors.push(collectionError({ artifact: snapshot.repository.root, field: "pruneDryRun", actual: null, evidence: error.message }));
   }
 
   const canonicalMain = path.resolve(snapshot.repository.root);
@@ -305,9 +315,16 @@ function registryDiagnostics(registry) {
   registry.claims.forEach((claim, index) => {
     const required = ["selector", "owner", "provenance", "confidence", "revisit_at", "proposed_disposition"];
     const missing = required.filter((field) => !claim || claim[field] === null || claim[field] === undefined || claim[field] === "");
-    const selectorValid = claim && claim.selector && claim.selector.kind === "dirty_path"
-      && ["main", "linked"].includes(claim.selector.worktree_role)
-      && typeof claim.selector.path === "string" && claim.selector.path.length > 0;
+    const selector = claim && claim.selector;
+    const selectorKeys = selector && typeof selector === "object" ? Object.keys(selector).sort() : [];
+    const dirtySelector = selector && selector.kind === "dirty_path"
+      && ["main", "linked"].includes(selector.worktree_role)
+      && typeof selector.path === "string" && selector.path.length > 0
+      && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "path", "worktree_role"]);
+    const worktreeSelector = selector && ["worktree_lock", "worktree_prunable", "branch_divergence"].includes(selector.kind)
+      && typeof selector.worktree_path === "string" && path.isAbsolute(selector.worktree_path)
+      && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "worktree_path"]);
+    const selectorValid = dirtySelector || worktreeSelector;
     if (missing.length || !selectorValid || !["low", "medium", "high"].includes(claim && claim.confidence) || Number.isNaN(Date.parse(claim && claim.revisit_at))) {
       diagnostics.push(makeDiagnostic({
         code: "RINV_CLAIM_INVALID", severity: "error", artifact: `.planning/repository-ownership.json#claims[${index}]`,
@@ -318,6 +335,14 @@ function registryDiagnostics(registry) {
     }
   });
   return diagnostics;
+}
+
+function selectorMatches(selector, observation) {
+  if (!selector || selector.kind !== observation.kind) return false;
+  if (observation.kind === "dirty_path") {
+    return selector.worktree_role === observation.worktree.role && selector.path === observation.dirty.path;
+  }
+  return selector.worktree_path === observation.worktree.path;
 }
 
 function evaluateRepositoryInventory(snapshot, registry, options = {}) {
@@ -332,6 +357,58 @@ function evaluateRepositoryInventory(snapshot, registry, options = {}) {
       code: "RINV_COLLECTION_INCOMPLETE", severity: "error", artifact: "repository snapshot", field: "snapshot",
       expected: "normalized repository snapshot", actual: snapshot ?? null, authority: "Git porcelain",
       evidence: "required snapshot fields are absent", repair: "Re-run the inventory after restoring readable Git metadata.", incomplete: true,
+    }));
+  }
+
+  if (snapshot && Array.isArray(snapshot.worktrees) && snapshot.worktrees.length === 0) {
+    diagnostics.push(makeDiagnostic({
+      code: "RINV_COLLECTION_INCOMPLETE", severity: "error", artifact: snapshot.repository && snapshot.repository.root ? snapshot.repository.root : "repository snapshot",
+      field: "worktrees", expected: "at least the main Git worktree", actual: [], authority: "git worktree list --porcelain -z",
+      evidence: "Git repository collection returned no worktree records", repair: "Inspect Git administrative metadata, then re-run inventory.", incomplete: true,
+    }));
+  }
+
+  function classifyObservation(observation) {
+    const matching = validRegistry ? registry.claims.filter((claim) => selectorMatches(claim && claim.selector, observation)) : [];
+    const { artifact } = observation;
+    if (matching.length > 1) {
+      dispositions.push({ artifact, kind: observation.kind, state: "ambiguous", proposed_disposition: null, claims: matching.map((claim) => structuredClone(claim)) });
+      diagnostics.push(makeDiagnostic({
+        code: "RINV_AMBIGUOUS_CLAIM", severity: "error", artifact, field: observation.field,
+        expected: "exactly one current evidence-backed claim", actual: matching.length,
+        authority: ".planning/repository-ownership.json", evidence: "multiple exact selectors matched the same observation",
+        repair: "Remove or narrow overlapping claims after owner review.",
+      }));
+      return;
+    }
+    if (matching.length === 0) {
+      dispositions.push({ artifact, kind: observation.kind, state: "unknown", owner: "unknown", provenance: null, confidence: null, revisit_at: null, proposed_disposition: null });
+      diagnostics.push(makeDiagnostic({
+        code: observation.unknownCode, severity: "error", artifact, field: observation.field,
+        expected: "one current evidence-backed claim", actual: observation.actual,
+        authority: ".planning/repository-ownership.json", evidence: observation.evidence,
+        repair: observation.repair,
+      }));
+      return;
+    }
+
+    const claim = matching[0];
+    if (Date.parse(claim.revisit_at) < observedAt) {
+      dispositions.push({ artifact, kind: observation.kind, state: "stale", owner: claim.owner, provenance: claim.provenance, confidence: claim.confidence, revisit_at: claim.revisit_at, proposed_disposition: claim.proposed_disposition });
+      diagnostics.push(makeDiagnostic({
+        code: "RINV_STALE_CLAIM", severity: "error", artifact, field: "revisit_at",
+        expected: "current review date", actual: claim.revisit_at, authority: ".planning/repository-ownership.json",
+        evidence: claim.provenance, repair: "Ask the recorded owner to renew or retire the claim.", owner: claim.owner, revisit_at: claim.revisit_at,
+      }));
+      return;
+    }
+
+    dispositions.push({ artifact, kind: observation.kind, state: "intentional", owner: claim.owner, provenance: claim.provenance, confidence: claim.confidence, revisit_at: claim.revisit_at, proposed_disposition: claim.proposed_disposition });
+    diagnostics.push(makeDiagnostic({
+      code: "RINV_INTENTIONAL_STATE", severity: "info", artifact, field: observation.field,
+      expected: "evidence-backed intentional state", actual: claim.proposed_disposition,
+      authority: ".planning/repository-ownership.json", evidence: claim.provenance,
+      repair: "No automatic action; revisit the claim by its recorded date.", owner: claim.owner, revisit_at: claim.revisit_at,
     }));
   }
 
@@ -363,48 +440,37 @@ function evaluateRepositoryInventory(snapshot, registry, options = {}) {
     }
 
     for (const dirty of worktree.dirty) {
-      const matching = validRegistry
-        ? registry.claims.filter((claim) => claim && claim.selector
-          && claim.selector.kind === "dirty_path"
-          && claim.selector.worktree_role === worktree.role
-          && claim.selector.path === dirty.path)
-        : [];
-      const artifact = `${worktree.path}:${dirty.path}`;
-      if (matching.length > 1) {
-        dispositions.push({ artifact, state: "ambiguous", proposed_disposition: null, claims: matching.map((claim) => ({ ...claim })) });
-        diagnostics.push(makeDiagnostic({
-          code: "RINV_AMBIGUOUS_CLAIM", severity: "error", artifact, field: "ownership",
-          expected: "exactly one current evidence-backed claim", actual: matching.length,
-          authority: ".planning/repository-ownership.json", evidence: "multiple exact selectors matched the same observation",
-          repair: "Remove or narrow overlapping claims after owner review.",
-        }));
-      } else if (matching.length === 1) {
-        const claim = matching[0];
-        const revisitAt = Date.parse(claim.revisit_at);
-        if (revisitAt < observedAt) {
-          dispositions.push({ artifact, state: "stale", owner: claim.owner, provenance: claim.provenance, confidence: claim.confidence, revisit_at: claim.revisit_at, proposed_disposition: claim.proposed_disposition });
-          diagnostics.push(makeDiagnostic({
-            code: "RINV_STALE_CLAIM", severity: "error", artifact, field: "revisit_at",
-            expected: "current review date", actual: claim.revisit_at, authority: ".planning/repository-ownership.json",
-            evidence: claim.provenance, repair: "Ask the recorded owner to renew or retire the claim.", owner: claim.owner, revisit_at: claim.revisit_at,
-          }));
-        } else {
-          dispositions.push({ artifact, state: "intentional", owner: claim.owner, provenance: claim.provenance, confidence: claim.confidence, revisit_at: claim.revisit_at, proposed_disposition: claim.proposed_disposition });
-          diagnostics.push(makeDiagnostic({
-            code: "RINV_INTENTIONAL_STATE", severity: "info", artifact, field: "ownership",
-            expected: "evidence-backed intentional state", actual: claim.proposed_disposition,
-            authority: ".planning/repository-ownership.json", evidence: claim.provenance,
-            repair: "No automatic action; revisit the claim by its recorded date.", owner: claim.owner, revisit_at: claim.revisit_at,
-          }));
-        }
-      } else {
-        dispositions.push({ artifact, state: "unknown", owner: "unknown", provenance: null, confidence: null, revisit_at: null, proposed_disposition: null });
-        diagnostics.push(makeDiagnostic({
-          code: "RINV_UNKNOWN_STATE", severity: "error", artifact, field: "ownership",
-          expected: "one current evidence-backed claim", actual: "unknown", authority: ".planning/repository-ownership.json",
-          evidence: "no exact selector matched this observed dirty path", repair: "Record owner evidence and a finite revisit date before cleanup.",
-        }));
-      }
+      classifyObservation({
+        kind: "dirty_path", worktree, dirty, artifact: `${worktree.path}:${dirty.path}`, field: "ownership",
+        actual: "unknown", unknownCode: "RINV_UNKNOWN_STATE",
+        evidence: "no exact selector matched this observed dirty path",
+        repair: "Record owner evidence and a finite revisit date before cleanup.",
+      });
+    }
+
+    if ((worktree.ahead || 0) > 0 || (worktree.behind || 0) > 0) {
+      classifyObservation({
+        kind: "branch_divergence", worktree, artifact: `${worktree.path}:branch-divergence`, field: "ahead/behind",
+        actual: { ahead: worktree.ahead, behind: worktree.behind }, unknownCode: "RINV_BRANCH_DIVERGED",
+        evidence: "the observed branch differs from its configured upstream",
+        repair: "Review the commits and record an owned disposition before synchronizing branches.",
+      });
+    }
+    if (worktree.lock) {
+      classifyObservation({
+        kind: "worktree_lock", worktree, artifact: `${worktree.path}:lock`, field: "lock",
+        actual: worktree.lock, unknownCode: "RINV_UNKNOWN_LOCK",
+        evidence: worktree.processEvidence ? JSON.stringify(worktree.processEvidence) : worktree.lock,
+        repair: "Identify the lock owner and record evidence before any unlock action.",
+      });
+    }
+    if (worktree.prunable) {
+      classifyObservation({
+        kind: "worktree_prunable", worktree, artifact: `${worktree.path}:prunable`, field: "prunable",
+        actual: worktree.prunable, unknownCode: "RINV_PRUNABLE_WORKTREE",
+        evidence: "Git reports this registered worktree as prunable",
+        repair: "Confirm ownership and record a reviewed disposition; this inventory never prunes.",
+      });
     }
   }
 

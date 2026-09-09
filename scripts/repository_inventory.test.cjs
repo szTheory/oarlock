@@ -118,7 +118,7 @@ test("tracer: one evaluated inventory drives human and JSON truth", () => {
         head: "a".repeat(40),
         branch: "main",
         upstream: "origin/main",
-        ahead: 1,
+        ahead: 0,
         behind: 0,
         detached: false,
         bare: false,
@@ -274,6 +274,11 @@ test("hostile paths: ordinary modified records retain only the exact path", () =
   }]);
 });
 
+test("hostile paths: malformed dirty porcelain fails closed", () => {
+  assert.throws(() => parseStatus(Buffer.from("1 malformed\0")), /malformed porcelain-v2 ordinary record/);
+  assert.throws(() => parseStatus(Buffer.from("2 R. incomplete\0")), /malformed porcelain-v2 rename record/);
+});
+
 test("edge policy: empty state is valid while null observations and bounded output fail incomplete", (t) => {
   const empty = {
     schemaVersion: 1,
@@ -296,6 +301,56 @@ test("edge policy: empty state is valid while null observations and bounded outp
   const bounded = collectRepositorySnapshot({ cwd: root, maxBuffer: 1 });
   assert.equal(exitCodeFor(evaluateRepositoryInventory(bounded, { schema_version: 1, claims: [] })), 2);
   assert.ok(bounded.collectionErrors.length > 0);
+});
+
+test("edge policy: unclassified divergence, lock, and prunable observations remain visible and blocking", () => {
+  const snapshot = {
+    schemaVersion: 1,
+    generatedAt: "2026-09-09T00:00:00.000Z",
+    repository: { root: "/fixture", commonDir: "/fixture/.git", pruneDryRun: ["would prune"] },
+    worktrees: [{
+      path: "/fixture", role: "main", head: "5".repeat(40), branch: "main",
+      upstream: "origin/main", ahead: 2, behind: 1, detached: false, bare: false,
+      lock: "owner (pid 99999999)", prunable: "gitdir missing",
+      processEvidence: { pid: 99999999, state: "dead", evidence: "ps exited 1" },
+      dirty: [], collectionErrors: [],
+    }],
+    collectionErrors: [],
+  };
+  const result = evaluateRepositoryInventory(snapshot, { schema_version: 1, claims: [] });
+  assert.equal(exitCodeFor(result), 1);
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_BRANCH_DIVERGED"));
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_UNKNOWN_LOCK"));
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_PRUNABLE_WORKTREE"));
+  assert.ok(result.dispositions.every(({ proposed_disposition }) => proposed_disposition === null));
+});
+
+test("edge policy: an exact current lock claim records evidence without overwriting the lock fact", () => {
+  const snapshot = {
+    schemaVersion: 1,
+    generatedAt: "2026-09-09T00:00:00.000Z",
+    repository: { root: "/fixture", commonDir: "/fixture/.git", pruneDryRun: [] },
+    worktrees: [{
+      path: "/fixture", role: "main", head: "6".repeat(40), branch: "main",
+      upstream: null, ahead: null, behind: null, detached: false, bare: false,
+      lock: "fixture owner", prunable: null,
+      processEvidence: { pid: null, state: "unparseable", evidence: "fixture owner" },
+      dirty: [], collectionErrors: [],
+    }],
+    collectionErrors: [],
+  };
+  const registry = {
+    schema_version: 1,
+    claims: [{
+      selector: { kind: "worktree_lock", worktree_path: "/fixture" },
+      owner: "fixture-owner", provenance: "reviewed fixture lock", confidence: "high",
+      revisit_at: "2099-01-01", proposed_disposition: "preserve",
+    }],
+  };
+  const result = evaluateRepositoryInventory(snapshot, registry);
+  assert.equal(exitCodeFor(result), 0);
+  assert.equal(result.facts.worktrees[0].lock, "fixture owner");
+  assert.equal(result.dispositions[0].owner, "fixture-owner");
 });
 
 test("deterministic: repeated collection and both renderers retain ordered conclusions", (t) => {
