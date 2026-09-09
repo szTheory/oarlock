@@ -816,31 +816,100 @@ function sameIdentity(left, right) {
   return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeMs === right.mtimeMs;
 }
 
-function readPlanningFile(root, relativePath, options, snapshot) {
-  const absolute = path.resolve(root, relativePath);
-  if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`)) throw new Error("planning path escapes repository root");
-  const before = fs.lstatSync(absolute);
-  if (before.isSymbolicLink() || !before.isFile()) throw new Error("canonical planning source must be a regular in-repository file");
-  if (before.size > options.maximumBytes) throw new Error(`planning source exceeds ${options.maximumBytes} bytes`);
-  const content = fs.readFileSync(absolute, "utf8");
-  if (typeof options.afterRead === "function") options.afterRead(relativePath, absolute, snapshot);
-  const after = fs.lstatSync(absolute);
-  const initialIdentity = identityFor(before);
-  const finalIdentity = identityFor(after);
-  if (!sameIdentity(initialIdentity, finalIdentity)) {
-    snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: finalIdentity, evidence: "source identity changed during bounded collection", incomplete: true });
+function sourceBoundaryError(message, artifact) {
+  const error = new Error(`source boundary: ${message}`);
+  error.code = "SOURCE_BOUNDARY";
+  error.artifact = artifact;
+  return error;
+}
+
+function boundedPath(root, relativeOrAbsolutePath, expectedType) {
+  const resolvedRoot = fs.realpathSync(path.resolve(root));
+  const absolute = path.isAbsolute(relativeOrAbsolutePath)
+    ? path.resolve(relativeOrAbsolutePath)
+    : path.resolve(resolvedRoot, relativeOrAbsolutePath);
+  const artifact = path.isAbsolute(relativeOrAbsolutePath)
+    ? path.relative(resolvedRoot, absolute) || "."
+    : relativeOrAbsolutePath;
+  if (absolute !== resolvedRoot && !absolute.startsWith(`${resolvedRoot}${path.sep}`)) {
+    throw sourceBoundaryError("candidate escapes the resolved repository root", artifact);
   }
-  return { content, identity: finalIdentity };
+
+  const components = path.relative(resolvedRoot, absolute).split(path.sep).filter(Boolean);
+  let cursor = resolvedRoot;
+  for (let index = 0; index < components.length; index += 1) {
+    cursor = path.join(cursor, components[index]);
+    const stat = fs.lstatSync(cursor);
+    const relative = path.relative(resolvedRoot, cursor) || ".";
+    if (stat.isSymbolicLink()) throw sourceBoundaryError(`symbolic link component rejected at ${relative}`, relative);
+    const isFinal = index === components.length - 1;
+    if (!isFinal && !stat.isDirectory()) throw sourceBoundaryError(`non-directory path component rejected at ${relative}`, relative);
+    if (isFinal && expectedType === "directory" && !stat.isDirectory()) throw sourceBoundaryError(`expected a repository directory at ${relative}`, relative);
+    if (isFinal && expectedType === "file" && !stat.isFile()) throw sourceBoundaryError(`expected a regular repository file at ${relative}`, relative);
+  }
+
+  const resolvedCandidate = fs.realpathSync(absolute);
+  if (resolvedCandidate !== resolvedRoot && !resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`)) {
+    throw sourceBoundaryError("resolved candidate escapes the resolved repository root", artifact);
+  }
+  return { artifact, resolvedRoot, absolute, resolvedCandidate };
+}
+
+function readBoundedRepositoryFile(root, relativeOrAbsolutePath, options = {}) {
+  const maximumBytes = options.maximumBytes || DEFAULT_MAX_BUFFER;
+  const candidate = boundedPath(root, relativeOrAbsolutePath, "file");
+  const noFollow = typeof fs.constants.O_NOFOLLOW === "number" ? fs.constants.O_NOFOLLOW : 0;
+  let descriptor;
+  try {
+    descriptor = fs.openSync(candidate.absolute, fs.constants.O_RDONLY | noFollow);
+    const opened = fs.fstatSync(descriptor);
+    if (!opened.isFile()) throw sourceBoundaryError(`opened source is not a regular file at ${candidate.artifact}`, candidate.artifact);
+    if (opened.size > maximumBytes) throw sourceBoundaryError(`source exceeds ${maximumBytes} bytes at ${candidate.artifact}`, candidate.artifact);
+
+    const currentBeforeRead = boundedPath(candidate.resolvedRoot, candidate.absolute, "file");
+    const beforeRead = fs.lstatSync(currentBeforeRead.absolute);
+    const openedIdentity = identityFor(opened);
+    if (!sameIdentity(openedIdentity, identityFor(beforeRead))) {
+      throw sourceBoundaryError(`source identity changed before descriptor read at ${candidate.artifact}`, candidate.artifact);
+    }
+    if (typeof options.afterOpen === "function") {
+      options.afterOpen(candidate.artifact, candidate.absolute, descriptor, options.context);
+    }
+
+    const content = fs.readFileSync(descriptor, options.encoding === null ? undefined : (options.encoding || "utf8"));
+    if (typeof options.afterRead === "function") {
+      options.afterRead(candidate.artifact, candidate.absolute, options.context);
+    }
+
+    const currentAfterRead = boundedPath(candidate.resolvedRoot, candidate.absolute, "file");
+    const afterRead = fs.lstatSync(currentAfterRead.absolute);
+    if (!sameIdentity(openedIdentity, identityFor(afterRead))) {
+      throw sourceBoundaryError(`source identity changed during descriptor read at ${candidate.artifact}`, candidate.artifact);
+    }
+    return { content, identity: openedIdentity, resolvedPath: candidate.resolvedCandidate };
+  } finally {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+  }
+}
+
+function readPlanningFile(root, relativePath, options, snapshot) {
+  return readBoundedRepositoryFile(root, relativePath, { ...options, context: snapshot });
 }
 
 function listPhaseArtifacts(root) {
   const base = path.join(root, ".planning", "phases");
   if (!fs.existsSync(base)) return [];
+  boundedPath(root, base, "directory");
   const artifacts = [];
   for (const phase of fs.readdirSync(base, { withFileTypes: true })) {
-    if (!phase.isDirectory() || phase.isSymbolicLink()) continue;
-    for (const entry of fs.readdirSync(path.join(base, phase.name), { withFileTypes: true })) {
-      if (entry.isFile()) artifacts.push(path.posix.join(".planning/phases", phase.name, entry.name));
+    const phasePath = path.join(base, phase.name);
+    if (phase.isSymbolicLink()) throw sourceBoundaryError(`symbolic link component rejected at .planning/phases/${phase.name}`, `.planning/phases/${phase.name}`);
+    if (!phase.isDirectory()) continue;
+    boundedPath(root, phasePath, "directory");
+    for (const entry of fs.readdirSync(phasePath, { withFileTypes: true })) {
+      if (entry.isFile() || entry.isSymbolicLink() || (!entry.isDirectory() && /(?:-PLAN|-SUMMARY|-VERIFICATION)\.md$|^VALIDATION\.md$/.test(entry.name))) {
+        artifacts.push(path.posix.join(".planning/phases", phase.name, entry.name));
+      }
     }
   }
   return artifacts.sort(compareText);
@@ -850,8 +919,14 @@ function collectMilestoneArchives(root, options, snapshot) {
   const base = path.join(root, ".planning", "milestones");
   const archives = {};
   if (!fs.existsSync(base)) return archives;
+  try {
+    boundedPath(root, base, "directory");
+  } catch (error) {
+    snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: error.artifact || ".planning/milestones", field: "artifact names", expected: "bounded repository directory", actual: null, evidence: error.message, incomplete: true });
+    return archives;
+  }
   for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
-    if (!entry.isFile() || entry.isSymbolicLink() || !/^v[^/]+-(?:ROADMAP|REQUIREMENTS)\.md$/.test(entry.name)) continue;
+    if (!/^v[^/]+-(?:ROADMAP|REQUIREMENTS)\.md$/.test(entry.name)) continue;
     const relativePath = path.posix.join(".planning/milestones", entry.name);
     try {
       const record = readPlanningFile(root, relativePath, options, snapshot);
@@ -889,9 +964,7 @@ function verifyPlanningConsistency(root, snapshot, options) {
   for (const [relativePath, initialIdentity] of identities) {
     let finalIdentity = null;
     try {
-      const stat = fs.lstatSync(path.resolve(root, relativePath));
-      if (stat.isSymbolicLink() || !stat.isFile()) throw new Error("source is no longer a regular file");
-      finalIdentity = identityFor(stat);
+      finalIdentity = readBoundedRepositoryFile(root, relativePath, { maximumBytes: options.maximumBytes, encoding: null }).identity;
     } catch (error) {
       snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: null, evidence: error.message, incomplete: true });
       continue;
@@ -932,7 +1005,7 @@ function collectGsdCorroboration(root, options) {
 }
 
 function collectPlanningSnapshot(root, options = {}) {
-  const resolvedRoot = path.resolve(root || process.cwd());
+  const resolvedRoot = fs.realpathSync(path.resolve(root || process.cwd()));
   const settings = { maximumBytes: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options };
   const snapshot = {
     schemaVersion: SCHEMA_VERSION,
@@ -961,7 +1034,7 @@ function collectPlanningSnapshot(root, options = {}) {
     snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
     snapshot.artifactContents = phaseArtifactContents(resolvedRoot, snapshot.phaseArtifacts, settings, snapshot);
   } catch (error) {
-    snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: ".planning/phases", field: "artifact names", expected: "readable directory", actual: null, evidence: error.message, incomplete: true });
+    snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: error.artifact || ".planning/phases", field: "artifact names", expected: "bounded repository directory", actual: null, evidence: error.message, incomplete: true });
   }
   snapshot.mirror = collectMirror(resolvedRoot, settings, snapshot);
   snapshot.corroboration = collectGsdCorroboration(resolvedRoot, settings);
@@ -1178,6 +1251,7 @@ module.exports = {
   parseWorktreeList,
   renderHuman,
   renderJson,
+  readBoundedRepositoryFile,
   readPackageVersion,
   resolveActiveScope,
   validateCompletionProof,
