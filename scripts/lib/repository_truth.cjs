@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -870,11 +871,13 @@ function resolveActiveScope(snapshot) {
 }
 
 function identityFor(stat) {
-  return { dev: String(stat.dev), ino: String(stat.ino), size: stat.size, mtimeMs: stat.mtimeMs };
+  return { dev: String(stat.dev), ino: String(stat.ino), size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs };
 }
 
 function sameIdentity(left, right) {
-  return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeMs === right.mtimeMs;
+  return left.dev === right.dev && left.ino === right.ino && left.size === right.size
+    && left.mtimeMs === right.mtimeMs && left.ctimeMs === right.ctimeMs
+    && (left.digest === undefined || right.digest === undefined || left.digest === right.digest);
 }
 
 function sourceBoundaryError(message, artifact) {
@@ -937,17 +940,26 @@ function readBoundedRepositoryFile(root, relativeOrAbsolutePath, options = {}) {
       options.afterOpen(candidate.artifact, candidate.absolute, descriptor, options.context);
     }
 
-    const content = fs.readFileSync(descriptor, options.encoding === null ? undefined : (options.encoding || "utf8"));
+    const bytes = fs.readFileSync(descriptor);
+    const content = options.encoding === null ? bytes : bytes.toString(options.encoding || "utf8");
     if (typeof options.afterRead === "function") {
       options.afterRead(candidate.artifact, candidate.absolute, options.context);
     }
 
+    const descriptorAfterRead = fs.fstatSync(descriptor);
+    if (!sameIdentity(openedIdentity, identityFor(descriptorAfterRead))) {
+      throw sourceBoundaryError(`opened source identity changed during descriptor read at ${candidate.artifact}`, candidate.artifact);
+    }
     const currentAfterRead = boundedPath(candidate.resolvedRoot, candidate.absolute, "file");
     const afterRead = fs.lstatSync(currentAfterRead.absolute);
     if (!sameIdentity(openedIdentity, identityFor(afterRead))) {
       throw sourceBoundaryError(`source identity changed during descriptor read at ${candidate.artifact}`, candidate.artifact);
     }
-    return { content, identity: openedIdentity, resolvedPath: candidate.resolvedCandidate };
+    return {
+      content,
+      identity: { ...openedIdentity, digest: crypto.createHash("sha256").update(bytes).digest("hex") },
+      resolvedPath: candidate.resolvedCandidate,
+    };
   } finally {
     if (descriptor !== undefined) fs.closeSync(descriptor);
   }

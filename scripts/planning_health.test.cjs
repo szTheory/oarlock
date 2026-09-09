@@ -318,6 +318,27 @@ test("concurrent snapshot: injected source change exits 2 instead of returning m
   }
 });
 
+test("concurrent snapshot: same-length rewrite with restored mtime is detected", () => {
+  const root = writeFixture();
+  try {
+    const roadmap = path.join(root, ".planning/ROADMAP.md");
+    const original = fs.readFileSync(roadmap, "utf8");
+    const originalStat = fs.statSync(roadmap);
+    const snapshot = collectPlanningSnapshot(root, {
+      collectCorroboration: false,
+      beforeConsistencyCheck() {
+        const changed = original.replace("Repository Truth", "Repository Fable");
+        assert.equal(Buffer.byteLength(changed), Buffer.byteLength(original));
+        fs.writeFileSync(roadmap, changed);
+        fs.utimesSync(roadmap, originalStat.atime, originalStat.mtime);
+      },
+    });
+    assert.ok(snapshot.collectionErrors.some(({ code, artifact }) => code === "PSCOPE_SNAPSHOT_CHANGED" && artifact === ".planning/ROADMAP.md"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("source boundary: intermediate planning symlink exits 2 without reading external content", (t) => {
   const root = writeFixture();
   const container = path.dirname(root);
