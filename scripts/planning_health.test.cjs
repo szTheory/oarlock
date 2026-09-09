@@ -334,3 +334,23 @@ test("milestone diagnostics: five identities preserve unknowns and renderer conc
   assert.deepEqual(json.diagnostics.map(({ code }) => code), result.diagnostics.map(({ code }) => code));
   for (const code of healthyCodes) assert.match(renderHuman(result), new RegExp(code));
 });
+
+test("current repository milestone history is reconciled and archive bytes stay immutable", () => {
+  const root = path.resolve(__dirname, "..");
+  const archiveRoot = path.join(root, ".planning/milestones");
+  const captureArchives = () => Object.fromEntries(fs.readdirSync(archiveRoot, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => [entry.name, fs.readFileSync(path.join(archiveRoot, entry.name)).toString("base64")])
+    .sort(([left], [right]) => left.localeCompare(right)));
+  const before = captureArchives();
+  const snapshot = collectPlanningSnapshot(root, { collectCorroboration: false });
+  const result = evaluatePlanningHealth(snapshot);
+  const historyErrors = result.diagnostics.filter(({ code, severity }) => /^(?:PHIST|PARCHIVE|PIDENT)_/.test(code) && severity === "error");
+  assert.deepEqual(historyErrors, []);
+  assert.deepEqual(captureArchives(), before);
+  const index = snapshot.documents[".planning/MILESTONES.md"].content;
+  assert.match(index, /## v1\.2 Production Surface/);
+  assert.match(index, /## v1\.4 Catalog & Events/);
+  assert.match(index, /## v2\.1[\s\S]*?Declared Hex package version:\*\* `0\.1\.1`/);
+  assert.match(index, /## v2\.1[\s\S]*?Publication status:\*\* Unknown/);
+});
