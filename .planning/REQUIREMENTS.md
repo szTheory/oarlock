@@ -26,10 +26,10 @@ in the linked research files.
 
 **Source basis:** USER-2026-09-09, RES-SUMMARY, RES-ARCH, RES-PITFALLS
 
-- [x] **REPO-01**: Maintainer can run a read-only inventory that reports every dirty path, branch divergence, linked worktree, lock state, owner, and proposed disposition before cleanup occurs.
-- [x] **REPO-02**: Maintainer and GSD tooling use one documented authority chain for active scope; archives, caches, summaries, and directory presence cannot independently make shipped work appear active.
-- [x] **REPO-03**: Maintainer can navigate a complete milestone history whose shipped status, requirements, archive links, planning identifiers, and package-version semantics agree.
-- [x] **REPO-04**: Maintainer can run a planning-health check that detects stale active artifacts, broken references, archive contradictions, and unproven completion claims without mutating files.
+- [ ] **REPO-01**: Maintainer can run a read-only inventory that reports every dirty path, branch divergence, linked worktree, lock state, owner, and proposed disposition before cleanup occurs.
+- [ ] **REPO-02**: Maintainer and GSD tooling use one documented authority chain for active scope; archives, caches, summaries, and directory presence cannot independently make shipped work appear active.
+- [ ] **REPO-03**: Maintainer can navigate a complete milestone history whose shipped status, requirements, archive links, planning identifiers, and package-version semantics agree.
+- [ ] **REPO-04**: Maintainer can run a planning-health check that detects stale active artifacts, broken references, archive contradictions, and unproven completion claims without mutating files.
 
 ### Dependency and SDK Trust
 
@@ -126,10 +126,10 @@ promotes them through the provenance rules above.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REPO-01 | Phase 31 | Complete |
-| REPO-02 | Phase 31 | Complete |
-| REPO-03 | Phase 31 | Complete |
-| REPO-04 | Phase 31 | Complete |
+| REPO-01 | Phase 31 | Gaps Found |
+| REPO-02 | Phase 31 | Gaps Found |
+| REPO-03 | Phase 31 | Gaps Found |
+| REPO-04 | Phase 31 | Gaps Found |
 | SAFE-01 | Phase 32 | Pending |
 | SAFE-02 | Phase 32 | Pending |
 | SAFE-03 | Phase 32 | Pending |
