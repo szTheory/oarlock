@@ -15,6 +15,7 @@ const {
   renderHuman,
   renderJson,
   readPackageVersion,
+  resolveCanonicalPhaseDirectory,
   validateCompletionProof,
   validateMilestoneHistory,
 } = require("./lib/repository_truth.cjs");
@@ -172,6 +173,62 @@ test("completion: every declared proof link is required and a filename alone pro
     "PCOMP_SUMMARY_UNPROVEN",
     "PCOMP_VERIFICATION_UNPROVEN",
   ]);
+});
+
+test("canonical completion: same-basename decoys and body-only status remain inert", () => {
+  const snapshot = completedSnapshot();
+  snapshot.phaseArtifacts = [
+    ".planning/phases/31-repository-truth/31-01-PLAN.md",
+    ".planning/phases/31-repository-truth/31-02-PLAN.md",
+    ".planning/phases/99-decoy/31-01-SUMMARY.md",
+    ".planning/phases/99-decoy/31-02-SUMMARY.md",
+    ".planning/phases/99-decoy/31-VERIFICATION.md",
+  ];
+  snapshot.artifactContents = {
+    ".planning/phases/99-decoy/31-01-SUMMARY.md": "---\nstatus: complete\n---\n",
+    ".planning/phases/99-decoy/31-02-SUMMARY.md": "---\nstatus: complete\n---\n",
+    ".planning/phases/99-decoy/31-VERIFICATION.md": "---\nstatus: passed\n---\nREPO-01 REPO-02\n",
+  };
+  assert.deepEqual(resolveCanonicalPhaseDirectory(snapshot, "31"), {
+    status: "resolved",
+    directory: ".planning/phases/31-repository-truth",
+    matches: [".planning/phases/31-repository-truth"],
+  });
+  assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_SUMMARY_MISSING",
+    "PCOMP_SUMMARY_MISSING",
+    "PCOMP_VERIFICATION_MISSING",
+  ]);
+
+  const bodyOnly = completedSnapshot();
+  for (const artifact of Object.keys(bodyOnly.artifactContents)) {
+    bodyOnly.artifactContents[artifact] = artifact.endsWith("VERIFICATION.md")
+      ? "# Verification\n\nstatus: passed\n\nREPO-01 REPO-02\n"
+      : "# Summary\n\nstatus: complete\n";
+  }
+  assert.deepEqual(validateCompletionProof(bodyOnly, "31").map(({ code }) => code), [
+    "PCOMP_SUMMARY_UNPROVEN",
+    "PCOMP_SUMMARY_UNPROVEN",
+    "PCOMP_VERIFICATION_UNPROVEN",
+  ]);
+});
+
+test("canonical completion: missing or ambiguous phase directory is incomplete", () => {
+  const missing = completedSnapshot();
+  missing.phaseArtifacts = [".planning/phases/99-decoy/31-01-SUMMARY.md"];
+  assert.equal(resolveCanonicalPhaseDirectory(missing, "31").status, "missing");
+  let result = evaluatePlanningHealth(missing);
+  assert.equal(result.conclusion.exitCode, 2);
+  assert.ok(result.diagnostics.some(({ code, incomplete }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING" && incomplete));
+
+  const ambiguous = completedSnapshot();
+  ambiguous.phaseArtifacts.push(".planning/phases/31-copy/31-01-PLAN.md");
+  assert.equal(resolveCanonicalPhaseDirectory(ambiguous, "31").status, "ambiguous");
+  result = evaluatePlanningHealth(ambiguous);
+  assert.equal(result.conclusion.exitCode, 2);
+  assert.ok(result.diagnostics.some(({ code, incomplete }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_AMBIGUOUS" && incomplete));
 });
 
 test("diagnostic completion: unsupported completion links produce distinct blocking records", () => {
