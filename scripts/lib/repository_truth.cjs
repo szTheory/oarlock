@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
@@ -25,8 +26,8 @@ function makeDiagnostic(fields) {
   if (!DIAGNOSTIC_SEVERITIES.has(fields.severity)) {
     throw new TypeError(`unsupported diagnostic severity: ${fields.severity}`);
   }
-  if (!/^RINV_[A-Z0-9_]+$/.test(fields.code)) {
-    throw new TypeError(`invalid repository inventory diagnostic code: ${fields.code}`);
+  if (!/^(?:RINV|PAUTH|PSCOPE|PCOMP|PMIRROR)_[A-Z0-9_]+$/.test(fields.code)) {
+    throw new TypeError(`invalid repository truth diagnostic code: ${fields.code}`);
   }
 
   return {
@@ -509,11 +510,287 @@ function exitCodeFor(result) {
   return 0;
 }
 
+const PLANNING_DOCUMENTS = Object.freeze([
+  ".planning/PROJECT.md",
+  ".planning/REQUIREMENTS.md",
+  ".planning/ROADMAP.md",
+  ".planning/STATE.md",
+  ".planning/MILESTONES.md",
+  ".planning/EVIDENCE.md",
+  ".planning/config.json",
+]);
+
+function markdownSection(markdown, heading) {
+  const pattern = new RegExp(`^## ${heading}\\s*$`, "mi");
+  const match = pattern.exec(markdown);
+  if (!match) return "";
+  const start = match.index + match[0].length;
+  const remainder = markdown.slice(start);
+  const next = /^##\s+/m.exec(remainder);
+  return next ? remainder.slice(0, next.index) : remainder;
+}
+
+function parseCommittedRequirements(markdown) {
+  const committed = markdownSection(String(markdown || ""), "v[^\\n]+ Requirements");
+  const requirements = [];
+  const checkbox = /^\s*[-*]\s+\[([ xX])\]\s+\*\*([A-Z][A-Z0-9]*-\d+)\*\*\s*:\s*(.+)$/gm;
+  let match;
+  while ((match = checkbox.exec(committed)) !== null) {
+    requirements.push({ id: match[2], complete: match[1].toLowerCase() === "x", description: match[3].trim() });
+  }
+  requirements.sort((left, right) => compareText(left.id, right.id));
+
+  const traceability = [];
+  const traceSection = markdownSection(String(markdown || ""), "Traceability");
+  for (const line of traceSection.split(/\r?\n/)) {
+    const row = /^\|\s*([A-Z][A-Z0-9]*-\d+)\s*\|\s*Phase\s+([0-9.]+)\s*\|\s*([^|]+?)\s*\|$/.exec(line);
+    if (row) traceability.push({ id: row[1], phase: row[2], status: row[3].trim() });
+  }
+  traceability.sort((left, right) => compareText(left.id, right.id));
+  return { requirements, traceability };
+}
+
+function parseFrontmatter(markdown) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(String(markdown || ""));
+  const values = {};
+  if (!match) return values;
+  for (const line of match[1].split(/\r?\n/)) {
+    const field = /^([a-zA-Z0-9_]+):\s*(.*?)\s*$/.exec(line);
+    if (field) values[field[1]] = field[2].replace(/^['"]|['"]$/g, "");
+  }
+  return values;
+}
+
+function parseRoadmap(markdown) {
+  const content = String(markdown || "");
+  const milestones = markdownSection(content, "Milestones");
+  const activeMilestones = [];
+  for (const line of milestones.split(/\r?\n/)) {
+    const row = /^\s*[-*]\s+🚧\s+\*\*([^\s*]+)(?:\s+[^*]*)?\*\*/.exec(line);
+    if (row) activeMilestones.push(row[1]);
+  }
+
+  const phases = [];
+  const phaseSection = markdownSection(content, "Phases");
+  const phasePattern = /^\s*[-*]\s+\[([ xX])\]\s+\*\*Phase\s+([0-9.]+)\s*:\s*([^*]+)\*\*/gm;
+  let phaseMatch;
+  while ((phaseMatch = phasePattern.exec(phaseSection)) !== null) {
+    phases.push({ number: phaseMatch[2], name: phaseMatch[3].trim(), complete: phaseMatch[1].toLowerCase() === "x", requirements: [], plans: [] });
+  }
+
+  for (const phase of phases) {
+    const escaped = phase.number.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const heading = new RegExp(`^### Phase ${escaped}(?::[^\\n]*)?\\s*$`, "m");
+    const headingMatch = heading.exec(content);
+    if (!headingMatch) continue;
+    const remainder = content.slice(headingMatch.index + headingMatch[0].length);
+    const next = /^###\s+/m.exec(remainder);
+    const details = next ? remainder.slice(0, next.index) : remainder;
+    const requirements = /^\*\*Requirements\*\*:\s*(.+)$/m.exec(details);
+    if (requirements) phase.requirements = requirements[1].split(",").map((value) => value.trim()).filter(Boolean).sort(compareText);
+    const planPattern = /^\s*[-*]\s+\[([ xX])\]\s+([0-9]+-[0-9]+-PLAN\.md)\b/gm;
+    let planMatch;
+    while ((planMatch = planPattern.exec(details)) !== null) phase.plans.push({ file: planMatch[2], complete: planMatch[1].toLowerCase() === "x" });
+  }
+  return { activeMilestones, phases };
+}
+
+function diagnostic(fields) {
+  return makeDiagnostic(fields);
+}
+
+function planningDocument(snapshot, relativePath) {
+  return snapshot && snapshot.documents && snapshot.documents[relativePath]
+    ? snapshot.documents[relativePath].content
+    : "";
+}
+
+function resolveActiveScope(snapshot) {
+  const diagnostics = [];
+  const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
+  const state = parseFrontmatter(planningDocument(snapshot, ".planning/STATE.md"));
+  const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
+  const roadmapMilestone = roadmap.activeMilestones.length === 1 ? roadmap.activeMilestones[0] : null;
+  const stateMilestone = state.milestone || null;
+
+  if (roadmap.activeMilestones.length !== 1) {
+    diagnostics.push(diagnostic({
+      code: "PAUTH_ACTIVE_MILESTONE_AMBIGUOUS", severity: "error", artifact: ".planning/ROADMAP.md", field: "active milestone",
+      expected: "exactly one active milestone", actual: roadmap.activeMilestones,
+      authority: ".planning/ROADMAP.md", evidence: "ROADMAP milestone list must identify one active graph",
+      repair: "Propose a ROADMAP.md patch that marks exactly one milestone active; do not apply it here.",
+    }));
+  } else if (!stateMilestone || stateMilestone !== roadmapMilestone) {
+    diagnostics.push(diagnostic({
+      code: "PAUTH_MILESTONE_CONFLICT", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "active milestone",
+      expected: roadmapMilestone, actual: stateMilestone,
+      authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `ROADMAP=${roadmapMilestone}; STATE=${stateMilestone}`,
+      repair: "Review the canonical documents and propose a supported state/roadmap patch; no winner was selected.",
+    }));
+  }
+
+  const phase = roadmap.phases.find(({ number }) => number === state.current_phase);
+  if (!state.current_phase || !phase) {
+    diagnostics.push(diagnostic({
+      code: "PSCOPE_PHASE_NOT_IN_ROADMAP", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "current phase",
+      expected: roadmap.phases.map(({ number }) => number), actual: state.current_phase || null,
+      authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `STATE pointer ${state.current_phase || "missing"} is not a member of the ROADMAP graph`,
+      repair: "Propose a supported state pointer or ROADMAP graph patch after maintainer review; do not infer from directories.",
+    }));
+  } else if (phase.complete && state.status !== "complete") {
+    diagnostics.push(diagnostic({
+      code: "PSCOPE_PHASE_STATUS_CONFLICT", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "phase status",
+      expected: "STATE complete when ROADMAP phase is complete", actual: { roadmap: "complete", state: state.status || null },
+      authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `Phase ${phase.number} status disagrees across canonical documents`,
+      repair: "Propose a supported state/roadmap status patch after reviewing completion proof.",
+    }));
+  }
+
+  const committedIds = new Set(committed.requirements.map(({ id }) => id));
+  if (phase) {
+    for (const requirement of phase.requirements) {
+      if (!committedIds.has(requirement)) diagnostics.push(diagnostic({
+        code: "PAUTH_REQUIREMENT_NOT_COMMITTED", severity: "error", artifact: ".planning/ROADMAP.md", field: "phase requirements",
+        expected: [...committedIds].sort(compareText), actual: requirement,
+        authority: ".planning/REQUIREMENTS.md", evidence: `Phase ${phase.number} maps ${requirement}, which is absent from the bounded committed section`,
+        repair: "Propose a REQUIREMENTS.md promotion or ROADMAP.md mapping correction with provenance.",
+      }));
+    }
+  }
+
+  diagnostics.sort((left, right) => compareText(left.code, right.code) || compareText(left.artifact, right.artifact));
+  const active = diagnostics.some(({ severity }) => severity === "error") || !phase || !roadmapMilestone
+    ? null
+    : { milestone: roadmapMilestone, phase: state.current_phase };
+  return { active, phase: phase || null, roadmap, state, committedRequirements: committed, diagnostics };
+}
+
+function identityFor(stat) {
+  return { dev: String(stat.dev), ino: String(stat.ino), size: stat.size, mtimeMs: stat.mtimeMs };
+}
+
+function sameIdentity(left, right) {
+  return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeMs === right.mtimeMs;
+}
+
+function readPlanningFile(root, relativePath, options, snapshot) {
+  const absolute = path.resolve(root, relativePath);
+  if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`)) throw new Error("planning path escapes repository root");
+  const before = fs.lstatSync(absolute);
+  if (before.isSymbolicLink() || !before.isFile()) throw new Error("canonical planning source must be a regular in-repository file");
+  if (before.size > options.maximumBytes) throw new Error(`planning source exceeds ${options.maximumBytes} bytes`);
+  const content = fs.readFileSync(absolute, "utf8");
+  if (typeof options.afterRead === "function") options.afterRead(relativePath, absolute, snapshot);
+  const after = fs.lstatSync(absolute);
+  const initialIdentity = identityFor(before);
+  const finalIdentity = identityFor(after);
+  if (!sameIdentity(initialIdentity, finalIdentity)) {
+    snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: finalIdentity, evidence: "source identity changed during bounded collection", incomplete: true });
+  }
+  return { content, identity: finalIdentity };
+}
+
+function listPhaseArtifacts(root) {
+  const base = path.join(root, ".planning", "phases");
+  if (!fs.existsSync(base)) return [];
+  const artifacts = [];
+  for (const phase of fs.readdirSync(base, { withFileTypes: true })) {
+    if (!phase.isDirectory() || phase.isSymbolicLink()) continue;
+    for (const entry of fs.readdirSync(path.join(base, phase.name), { withFileTypes: true })) {
+      if (entry.isFile()) artifacts.push(path.posix.join(".planning/phases", phase.name, entry.name));
+    }
+  }
+  return artifacts.sort(compareText);
+}
+
+function collectGsdCorroboration(root, options) {
+  if (options.collectCorroboration === false) return [];
+  if (Array.isArray(options.corroboration)) return structuredClone(options.corroboration);
+  const tool = options.gsdTools || process.env.GSD_TOOLS || path.join(os.homedir(), ".codex", "gsd-core", "bin", "gsd-tools.cjs");
+  if (!fs.existsSync(tool)) return [{ query: "runtime", status: "unavailable", output: null }];
+  const entries = [];
+  for (const query of ["planning.inspect", "drift-guard.phase-status"]) {
+    const args = [tool, "query", query];
+    if (query === "drift-guard.phase-status") args.push("31");
+    const result = (options.runner || spawnSync)(process.execPath, args, { cwd: root, encoding: "utf8", shell: false, maxBuffer: options.maximumBytes });
+    entries.push({ query, status: result.status, output: result.status === 0 ? String(result.stdout || "").trim() : String(result.stderr || "").trim() });
+  }
+  return entries;
+}
+
+function collectPlanningSnapshot(root, options = {}) {
+  const resolvedRoot = path.resolve(root || process.cwd());
+  const settings = { maximumBytes: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options };
+  const snapshot = {
+    schemaVersion: SCHEMA_VERSION,
+    root: resolvedRoot,
+    generatedAt: (settings.now ? settings.now() : new Date()).toISOString(),
+    documents: {},
+    phaseArtifacts: [],
+    corroboration: [],
+    mirror: { exists: false, content: null, identity: null, consumerEvidence: [] },
+    collectionErrors: [],
+  };
+  for (const relativePath of PLANNING_DOCUMENTS) {
+    try {
+      snapshot.documents[relativePath] = readPlanningFile(resolvedRoot, relativePath, settings, snapshot);
+    } catch (error) {
+      snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: relativePath, field: "content", expected: "bounded regular in-repository file", actual: null, evidence: error.message, incomplete: true });
+    }
+  }
+  try {
+    snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
+  } catch (error) {
+    snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: ".planning/phases", field: "artifact names", expected: "readable directory", actual: null, evidence: error.message, incomplete: true });
+  }
+  snapshot.corroboration = collectGsdCorroboration(resolvedRoot, settings);
+  return snapshot;
+}
+
+function evaluatePlanningHealth(snapshot) {
+  const activeScope = resolveActiveScope(snapshot);
+  const diagnostics = [...activeScope.diagnostics];
+  for (const error of Array.isArray(snapshot && snapshot.collectionErrors) ? snapshot.collectionErrors : []) {
+    diagnostics.push(diagnostic({
+      code: error.code, severity: "error", artifact: error.artifact, field: error.field,
+      expected: error.expected, actual: error.actual, authority: error.artifact,
+      evidence: error.evidence, repair: "Restore a stable readable canonical source, then re-run planning health.", incomplete: true,
+    }));
+  }
+  diagnostics.sort((left, right) => compareText(left.artifact, right.artifact) || compareText(left.code, right.code));
+  const result = { schemaVersion: SCHEMA_VERSION, reportType: "planning-health", generatedAt: snapshot && snapshot.generatedAt, activeScope, diagnostics, conclusion: null };
+  const code = exitCodeFor(result);
+  result.conclusion = {
+    status: code === 0 ? "healthy" : code === 1 ? "policy-error" : "incomplete",
+    exitCode: code,
+    errorCount: diagnostics.filter(({ severity }) => severity === "error").length,
+    warningCount: diagnostics.filter(({ severity }) => severity === "warning").length,
+    infoCount: diagnostics.filter(({ severity }) => severity === "info").length,
+    diagnosticCodes: diagnostics.map(({ code: diagnosticCode }) => diagnosticCode),
+  };
+  return result;
+}
+
 function escapeTerminal(value) {
   return String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (character) => `\\u${character.codePointAt(0).toString(16).padStart(4, "0")}`);
 }
 
 function renderHuman(result) {
+  if (result && result.reportType === "planning-health") {
+    const active = result.activeScope && result.activeScope.active;
+    const lines = [
+      "Planning health (read-only)",
+      `Active milestone: ${escapeTerminal(active ? active.milestone : "unresolved")}`,
+      `Active phase: ${escapeTerminal(active ? active.phase : "unresolved")}`,
+      "Diagnostics:",
+    ];
+    if (result.diagnostics.length === 0) lines.push("- none");
+    for (const item of result.diagnostics) {
+      lines.push(`- [${item.severity}] ${item.code} ${escapeTerminal(item.artifact)}.${escapeTerminal(item.field)} expected=${escapeTerminal(JSON.stringify(item.expected))} actual=${escapeTerminal(JSON.stringify(item.actual))} authority=${escapeTerminal(item.authority)} evidence=${escapeTerminal(item.evidence)}; repair=${escapeTerminal(item.repair)}`);
+    }
+    lines.push(`Conclusion: ${result.conclusion.status} (exit ${result.conclusion.exitCode}; codes=${result.conclusion.diagnosticCodes.join(",") || "none"})`);
+    return `${lines.join("\n")}\n`;
+  }
   const lines = [
     "Repository inventory (read-only)",
     `Repository: ${escapeTerminal(result.repository && result.repository.root)}`,
@@ -537,12 +814,16 @@ function renderJson(result) {
 }
 
 module.exports = {
+  collectPlanningSnapshot,
   collectRepositorySnapshot,
+  evaluatePlanningHealth,
   evaluateRepositoryInventory,
   exitCodeFor,
   makeDiagnostic,
+  parseCommittedRequirements,
   parseStatus,
   parseWorktreeList,
   renderHuman,
   renderJson,
+  resolveActiveScope,
 };

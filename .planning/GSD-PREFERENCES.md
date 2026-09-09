@@ -39,3 +39,33 @@ Use those when invoking GSD if they match the current operator's intent, but do 
 ## Scope Boundary
 
 This file describes GSD planning behavior only. It does not change oarlock runtime scope, Paddle Billing API support, Accrue-side responsibilities, or release proof requirements.
+
+## Repository and planning truth authority
+
+Before routing repository work or asserting that a phase is complete, maintainers
+and repository-operating GSD agents run:
+
+```sh
+node scripts/planning_health.cjs
+```
+
+The command is report-only: it has no apply or repair flag, and every reported
+repair is an inert proposed patch or supported GSD action for separate review.
+Exit 1 blocks on a policy conflict; exit 2 blocks on an incomplete or changing
+snapshot. `--json` renders the same diagnostic codes, severities, and conclusion.
+
+Authority is assigned per datum:
+
+| Datum | Canonical owner | Role of other artifacts |
+|---|---|---|
+| Committed milestone requirements | `.planning/REQUIREMENTS.md` bounded current-milestone section | Source anchors, future requirements, caches, and generated files are not committed IDs |
+| Active phase graph and requirement mapping | `.planning/ROADMAP.md` | Phase directories, plans, summaries, research, and archives are inert evidence |
+| Current execution pointer and session | `.planning/STATE.md` | A pointer must name a member of the ROADMAP graph; disagreement blocks with no selected winner |
+| Durable project scope and constraints | `.planning/PROJECT.md` | It supplies context but does not override the execution pointer |
+| Shipped-history navigation | `.planning/MILESTONES.md` plus immutable milestone archives | Current ledgers may add dated corrections; frozen snapshots are not rewritten |
+| Proof classification and corrections | `.planning/EVIDENCE.md` | A filename alone does not prove acceptance or completion |
+| Disposable machine mirror | `.planning/state.json` when published by the installed GSD runtime | Versioned corroboration only; never routing or completion authority |
+
+Installed GSD read-only queries corroborate this repository-local chain. They do
+not supersede it, and generated/cached/archived artifact presence never activates
+or completes work.
