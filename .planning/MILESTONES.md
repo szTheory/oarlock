@@ -27,6 +27,14 @@ Chronological record of shipped milestones. Newest first.
 - Hosted GitHub Actions exact-SHA proof is unavailable for local HEAD until the branch is pushed or opened as a PR.
 - Phase 28 validation artifact remains stale/partial even though local implementation and proof commands passed.
 
+### Release Identity
+
+- **Planning milestone:** `v2.1`
+- **Git tag:** `v2.1`
+- **Source SHA:** `80e22f5a9846ed00bf93c82c6c1c4c376121c7fe`
+- **Declared Hex package version:** `0.1.1`
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
 ### Archive
 
 - Roadmap: `.planning/milestones/v2.1-ROADMAP.md`
@@ -51,6 +59,14 @@ Chronological record of shipped milestones. Newest first.
 
 - Selected Bandit for the `Paddle.MockServer` foundation.
 - Recorded Phase 25 validation in `VALIDATION.md`; the absent standard `VERIFICATION.md` filename is an artifact-standard caveat, not missing ADV-01 proof.
+
+### Release Identity
+
+- **Planning milestone:** `v2.0`
+- **Git tag:** `v2.0`
+- **Source SHA:** `0bc15ae77de0c9137ab0766ef040dbe2ca067e9c`
+- **Declared Hex package version:** `0.1.1`
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
 
 ### Correction - 2026-06-24
 
@@ -85,12 +101,47 @@ Earlier v2.0 wording implied Phase 26 provider-state verification. The canonical
 - Persisted webhooks prior to evaluation (`webhook_events` schema) in accordance with the industry-standard event inbox strategy.
 - Adopted the "Second Processor" standard by exclusively wrapping frontend components around server-side SDK execution instead of allowing purely frontend initialization.
 
+### Release Identity
+
+- **Planning milestone:** `v1.5`
+- **Git tag:** Unknown — no local `v1.5` ref exists in the inspected repository.
+- **Source SHA:** Unknown — no local tag target is available.
+- **Declared Hex package version:** Unknown — no tagged `mix.exs` is available locally.
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
 ### Archive
 
-- Roadmap: `.planning/ROADMAP.md`
-- Requirements: `.planning/REQUIREMENTS.md`
+- Roadmap: `.planning/milestones/v1.5-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.5-REQUIREMENTS.md`
 - Audit: `.planning/v1.5-MILESTONE-AUDIT.md`
 - Tag: `v1.5`
+
+---
+
+## v1.4 Catalog & Events — 2026-06-10
+
+**Status:** ✅ Shipped
+**Phases:** 17-19 (3 phases, 5 plans)
+**Test suite at tag:** Local milestone proof recorded in the frozen roadmap; hosted publication proof is not recorded.
+
+### Delivered
+
+1. **Catalog read surface** - Typed product and price list/get APIs with the established pagination helpers.
+2. **Events API** - Historical event list/get operations producing the same typed event surface used by webhooks.
+3. **Notification Settings** - Full read and mutation coverage for webhook destination configuration.
+
+### Release Identity
+
+- **Planning milestone:** `v1.4`
+- **Git tag:** `v1.4`
+- **Source SHA:** `0876613656dc1bdb41e9d83ad635b962eb076605`
+- **Declared Hex package version:** `0.1.1`
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v1.4-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.4-REQUIREMENTS.md`
 
 ---
 
@@ -117,11 +168,46 @@ Earlier v2.0 wording implied Phase 26 provider-state verification. The canonical
 
 - **No formal milestone audit (`v1.3-MILESTONE-AUDIT.md`) was produced before close.** Proceeded with archival accepting gaps as tech debt.
 
+### Release Identity
+
+- **Planning milestone:** `v1.3`
+- **Git tag:** `v1.3`
+- **Source SHA:** `5220bfe0185d28b653bf95528753154889dd680c`
+- **Declared Hex package version:** `0.1.1`
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
 ### Archive
 
 - Roadmap: `.planning/milestones/v1.3-ROADMAP.md`
 - Requirements: `.planning/milestones/v1.3-REQUIREMENTS.md`
 - Tag: `v1.3`
+
+---
+
+## v1.2 Production Surface — 2026-06-09
+
+**Status:** ✅ Shipped
+**Phases:** 8-13 (6 phases, 21 plans)
+**Test suite at tag:** Local milestone audit recorded 16/16 requirements met; publication proof is not recorded.
+
+### Delivered
+
+1. **Reliability and pagination** - Idempotency keys, bounded retries, transport normalization, and auto-pagination helpers.
+2. **Subscription lifecycle** - Transaction-driven recurring starts plus pause and resume operations.
+3. **Type, documentation, and process gates** - Public specs, Dialyzer, adopter guides, and SUMMARY drift enforcement.
+
+### Release Identity
+
+- **Planning milestone:** `v1.2`
+- **Git tag:** `v1.2`
+- **Source SHA:** `fb3d9a185f104194e85987541519a6168e0b568c`
+- **Declared Hex package version:** `0.1.1`
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
+### Archive
+
+- Roadmap: `.planning/milestones/v1.2-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.2-REQUIREMENTS.md`
 
 ---
 
@@ -150,6 +236,14 @@ Closed the consumer-contract gaps Accrue needs to consume oarlock as its Paddle 
 - **No formal milestone audit (`v1.1-MILESTONE-AUDIT.md`) was produced before close.** Pre-flight `mix test` against HEAD initially failed 6 tests because the TXN-03 implementation was discovered uncommitted (Phase 6 SUMMARY had incorrectly claimed `lib/paddle/transactions.ex` was already in place). Remediation: implementation, README pointer, and `mix.exs` `:ex_doc` dep + docs config landed retroactively in commit `813438d` (`fix(06-01): commit Paddle.Transactions.get/2 implementation`); accumulated formatter reflows committed separately as `65cc23b` (`chore: mix format reflows…`); SUMMARY drift annotated retroactively in commit `4470053` (`docs(retro): correct SUMMARY drift…`). Post-remediation: 111 tests, 0 failures.
 - Future phase execution should run `git status` before writing SUMMARY.md to prevent this drift category.
 
+### Release Identity
+
+- **Planning milestone:** `v1.1`
+- **Git tag:** `v1.1`
+- **Source SHA:** `4a6d25daf0fbd571fc0b2dae5ad1d99ec399f146`
+- **Declared Hex package version:** Unknown — the tagged source does not contain a parseable `@version` declaration.
+- **Publication status:** Unknown — no independent Hex registry evidence is recorded in the repository.
+
 ### Archive
 
 - Roadmap: `.planning/milestones/v1.1-ROADMAP.md`
@@ -174,5 +268,13 @@ Foundational SDK surface:
 5. **Phase 5 — Subscriptions Management** (SUB-01..03): `Paddle.Subscriptions` get/list/cancel/cancel_immediately with hydrated `%ScheduledChange{}` and `%ManagementUrls{}`.
 
 No archive files were generated for v1.0 at the time. Phase artifacts retained under `.planning/phases/01..05`.
+
+### Release Identity
+
+- **Planning milestone:** `v1.0`
+- **Git tag:** Unknown — explicit pre-archive exception.
+- **Source SHA:** Unknown — explicit pre-archive exception.
+- **Declared Hex package version:** Unknown — explicit pre-archive exception.
+- **Publication status:** Unknown — explicit pre-archive exception.
 
 ---

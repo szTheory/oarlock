@@ -28,5 +28,22 @@ Canonical proof ledger for v2.0 and v2.1 planning evidence. This file classifies
 - Sandbox/live provider-state proof requires real credentials, isolated provider state, and a separately recorded command or run artifact.
 - Planning reconciliation evidence proves repository memory and release posture, not new SDK runtime behavior.
 
+## Milestone History Corrections — 2026-09-09
+
+These entries correct only the current navigation and interpretation. The cited milestone snapshots remain byte-unchanged.
+
+| Date | Milestone | Corrected current record | Preserved source artifact | Evidence Class | Evidence | Caveat |
+|------|-----------|--------------------------|---------------------------|----------------|----------|--------|
+| 2026-09-09 | v1.2 | Added the missing shipped-history index entry with phases 8-13 and immutable roadmap/requirements navigation | `.planning/milestones/v1.2-ROADMAP.md`; `.planning/milestones/v1.2-REQUIREMENTS.md` | Additive archive-status correction | Frozen roadmap records the completed 8-13 phase set; local `v1.2` resolves to `fb3d9a185f104194e85987541519a6168e0b568c`, whose `mix.exs` declares `0.1.1` | The frozen requirements heading still says `IN PROGRESS`; preserve that wording. A planning/tag identity and declared package version do not prove Hex publication. |
+| 2026-09-09 | v1.4 | Added the missing shipped-history index entry with phases 17-19 and immutable roadmap/requirements navigation | `.planning/milestones/v1.4-ROADMAP.md`; `.planning/milestones/v1.4-REQUIREMENTS.md` | Additive navigation correction | Both frozen artifacts record completed requirements/phases; local `v1.4` resolves to `0876613656dc1bdb41e9d83ad635b962eb076605`, whose `mix.exs` declares `0.1.1` | Local tag and source proof do not establish a Hex publication event. |
+| 2026-09-09 | v1.5 | Replaced mutable root ROADMAP/REQUIREMENTS links with the frozen v1.5 archive paths | `.planning/milestones/v1.5-ROADMAP.md`; `.planning/milestones/v1.5-REQUIREMENTS.md` | Additive archive-status and navigation correction | Frozen roadmap records phases 20-24 complete; current history and later milestone archives classify v1.5 as shipped | The frozen requirements file retains unchecked/Pending wording, and no local `v1.5` tag exists. Preserve both facts; package version and publication status remain unknown. |
+
+## Milestone Identity Rules
+
+- Planning milestone, local Git tag, peeled source SHA, declared package version from that ref, and publication status are independent fields.
+- Missing local refs or package declarations stay `Unknown`; history tooling does not fetch or create tags.
+- Publication remains `Unknown` unless independent package-registry evidence is recorded. A planning name, tag, source SHA, local tests, or `mix.exs` declaration alone is insufficient.
+- Archive contradictions are corrected by a dated row here and a mutable-index repair, never by rewriting the preserved snapshot.
+
 ---
 *Created: 2026-06-24 during Phase 29 plan 02.*

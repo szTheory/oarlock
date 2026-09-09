@@ -289,7 +289,7 @@ function historySnapshot(overrides = {}) {
 
 test("milestone identity: tag, peeled SHA, package version, and publication remain separate", () => {
   const runner = (_command, args) => {
-    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\0abc123\0\0\0") };
+    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\0abc123\0\n") };
     if (args[0] === "show") return { status: 0, stdout: Buffer.from('defmodule Paddle.MixProject do\n  @version "0.1.1"\nend\n') };
     throw new Error(`unexpected git args: ${args.join(" ")}`);
   };

@@ -644,12 +644,11 @@ function collectTagIdentities(root, options = {}) {
   } catch (error) {
     return [];
   }
-  const tokens = splitNul(output).map(decode).filter((value) => value !== "");
   const identities = [];
-  for (let index = 0; index + 1 < tokens.length; index += 3) {
-    const tag = tokens[index];
-    const objectSha = tokens[index + 1];
-    const peeledSha = tokens[index + 2] || objectSha;
+  for (const record of decode(output).split(/\r?\n/).filter(Boolean)) {
+    const [tag, objectSha, peeled] = record.split("\0");
+    if (!tag || !objectSha) continue;
+    const peeledSha = peeled || objectSha;
     const version = readPackageVersion(root, tag, options);
     identities.push({ tag, sourceSha: peeledSha, declaredPackageVersion: version.value, publicationStatus: "unknown" });
   }
@@ -668,8 +667,9 @@ function fieldFromBlock(block, label) {
 
 function inlineValue(value) {
   if (!value) return null;
+  if (/^unknown\b/i.test(value)) return null;
   const code = /`([^`]+)`/.exec(value);
-  return code ? code[1] : /^unknown\b/i.test(value) ? null : value.replace(/[.;]$/, "").trim();
+  return code ? code[1] : value.replace(/[.;]$/, "").trim();
 }
 
 function correctionRecorded(evidence, milestone) {
