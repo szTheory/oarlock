@@ -186,7 +186,7 @@ test("tracer: collector observes the dirty main worktree", (t) => {
   fs.writeFileSync(path.join(root, "untracked with space.txt"), "dirty\n");
   const snapshot = collectRepositorySnapshot({ cwd: root, now: () => new Date("2026-09-09T00:00:00.000Z") });
 
-  assert.equal(snapshot.repository.root, root);
+  assert.equal(snapshot.repository.root, fs.realpathSync(root));
   assert.equal(snapshot.worktrees.length, 1);
   assert.equal(snapshot.worktrees[0].role, "main");
   assert.ok(snapshot.worktrees[0].dirty.some(({ path: dirtyPath }) => dirtyPath === "untracked with space.txt"));
