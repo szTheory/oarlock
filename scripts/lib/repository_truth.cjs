@@ -26,7 +26,7 @@ function makeDiagnostic(fields) {
   if (!DIAGNOSTIC_SEVERITIES.has(fields.severity)) {
     throw new TypeError(`unsupported diagnostic severity: ${fields.severity}`);
   }
-  if (!/^(?:RINV|PAUTH|PSCOPE|PCOMP|PMIRROR)_[A-Z0-9_]+$/.test(fields.code)) {
+  if (!/^(?:RINV|PAUTH|PSCOPE|PCOMP|PMIRROR|PHIST|PARCHIVE|PIDENT)_[A-Z0-9_]+$/.test(fields.code)) {
     throw new TypeError(`invalid repository truth diagnostic code: ${fields.code}`);
   }
 
@@ -52,6 +52,8 @@ function allowedGitArguments(args) {
   if (args.length === 4 && args[0] === "worktree" && args[1] === "list" && args[2] === "--porcelain" && args[3] === "-z") return true;
   if (args.length === 4 && args[0] === "worktree" && args[1] === "prune" && args[2] === "--dry-run" && args[3] === "--verbose") return true;
   if (args.length === 2 && args[0] === "rev-parse" && ["--show-toplevel", "--git-common-dir", "--git-dir"].includes(args[1])) return true;
+  if (args.length === 3 && args[0] === "for-each-ref" && args[1] === "--format=%(refname:short)%00%(objectname)%00%(*objectname)%00" && args[2] === "refs/tags") return true;
+  if (args.length === 2 && args[0] === "show" && /^[^:\0]+:mix\.exs$/.test(args[1])) return true;
   if (args.length >= 3 && args[0] === "-C") {
     const command = args.slice(2);
     if (command.length === 3 && command[0] === "status" && command[1] === "--porcelain=v2" && command[2] === "--branch") return true;
@@ -595,6 +597,147 @@ function parseRoadmap(markdown) {
   return { activeMilestones, phases };
 }
 
+function parseShippedMilestones(markdown) {
+  const shipped = [];
+  for (const line of markdownSection(String(markdown || ""), "Milestones").split(/\r?\n/)) {
+    const match = /^\s*[-*]\s+✅\s+\*\*(v[^\s*]+)\s+([^*]+)\*\*\s+—\s+Phases\s+([0-9.]+)-([0-9.]+)\s+\(shipped\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\)(?:\s+—\s+\[archive\]\(([^)]+)\))?/.exec(line);
+    if (match) shipped.push({ planningMilestone: match[1], name: match[2].trim(), phases: `${match[3]}-${match[4]}`, shipped: match[5], roadmapLink: match[6] || null, preArchive: false });
+    const exception = /^\s*[-*]\s+✅\s+\*\*(v[^\s*]+)\s+([^*]+)\*\*\s+—\s+Phases\s+([0-9.]+)-([0-9.]+)\s+\(shipped pre-archival;/.exec(line);
+    if (exception) shipped.push({ planningMilestone: exception[1], name: exception[2].trim(), phases: `${exception[3]}-${exception[4]}`, shipped: "pre-archival", roadmapLink: null, preArchive: true });
+  }
+  return shipped.sort((left, right) => compareText(left.planningMilestone, right.planningMilestone));
+}
+
+function milestoneBlocks(markdown) {
+  const blocks = new Map();
+  const pattern = /^##\s+(v[^\s]+)\s+([^\n]*)$/gm;
+  const matches = [...String(markdown || "").matchAll(pattern)];
+  for (let index = 0; index < matches.length; index += 1) {
+    const start = matches[index].index;
+    const end = index + 1 < matches.length ? matches[index + 1].index : String(markdown || "").length;
+    blocks.set(matches[index][1], String(markdown || "").slice(start, end));
+  }
+  return blocks;
+}
+
+function readPackageVersion(root, ref = null, options = {}) {
+  const evidence = ref ? `git show ${ref}:mix.exs` : "mix.exs";
+  try {
+    let content;
+    if (ref) content = decode(runGit(["show", `${ref}:mix.exs`], { cwd: root, maxBuffer: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options }));
+    else content = fs.readFileSync(path.join(path.resolve(root), "mix.exs"), "utf8");
+    const match = /^\s*@version\s+"([^"]+)"\s*$/m.exec(content);
+    return match
+      ? { value: match[1], evidence, status: "known" }
+      : { value: null, evidence: `${evidence}: @version declaration absent`, status: "unknown" };
+  } catch (error) {
+    return { value: null, evidence: `${evidence}: ${error.message}`, status: "unknown" };
+  }
+}
+
+function collectTagIdentities(root, options = {}) {
+  let output;
+  try {
+    output = runGit(["for-each-ref", "--format=%(refname:short)%00%(objectname)%00%(*objectname)%00", "refs/tags"], {
+      cwd: root, maxBuffer: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options,
+    });
+  } catch (error) {
+    return [];
+  }
+  const tokens = splitNul(output).map(decode).filter((value) => value !== "");
+  const identities = [];
+  for (let index = 0; index + 1 < tokens.length; index += 3) {
+    const tag = tokens[index];
+    const objectSha = tokens[index + 1];
+    const peeledSha = tokens[index + 2] || objectSha;
+    const version = readPackageVersion(root, tag, options);
+    identities.push({ tag, sourceSha: peeledSha, declaredPackageVersion: version.value, publicationStatus: "unknown" });
+  }
+  return identities.sort((left, right) => compareText(left.tag, right.tag));
+}
+
+function historyDiagnostic(fields) {
+  return diagnostic(fields);
+}
+
+function fieldFromBlock(block, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`^(?:-\\s+)?(?:\\*\\*)?${escaped}:(?:\\*\\*)?\\s*(.+)$`, "mi").exec(block || "");
+  return match ? match[1].trim() : null;
+}
+
+function inlineValue(value) {
+  if (!value) return null;
+  const code = /`([^`]+)`/.exec(value);
+  return code ? code[1] : /^unknown\b/i.test(value) ? null : value.replace(/[.;]$/, "").trim();
+}
+
+function correctionRecorded(evidence, milestone) {
+  return new RegExp(`${milestone.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:archive|status|correction|erratum)`, "i").test(evidence || "");
+}
+
+function validateMilestoneHistory(snapshot) {
+  if (!snapshot || !snapshot.milestoneArchives || !Array.isArray(snapshot.tagIdentities)) return [];
+  const diagnostics = [];
+  const roadmap = parseShippedMilestones(planningDocument(snapshot, ".planning/ROADMAP.md"));
+  const blocks = milestoneBlocks(planningDocument(snapshot, ".planning/MILESTONES.md"));
+  const evidence = planningDocument(snapshot, ".planning/EVIDENCE.md");
+  const tags = new Map(snapshot.tagIdentities.map((identity) => [identity.tag, identity]));
+  const archivePaths = new Set(Object.keys(snapshot.milestoneArchives));
+  const warningFields = { owner: "maintainer", revisit_at: "before the next milestone close" };
+
+  for (const expected of roadmap) {
+    const block = blocks.get(expected.planningMilestone);
+    if (!block) {
+      diagnostics.push(historyDiagnostic({ code: "PHIST_INDEX_ENTRY_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "shipped milestone index entry", actual: null, authority: ".planning/ROADMAP.md + .planning/MILESTONES.md", evidence: `ROADMAP advertises ${expected.planningMilestone} as shipped`, repair: `Propose adding ${expected.planningMilestone} to the mutable .planning/MILESTONES.md index from preserved archives.` }));
+      continue;
+    }
+    const actualPhases = fieldFromBlock(block, "Phases");
+    if (!actualPhases || !actualPhases.includes(expected.phases)) diagnostics.push(historyDiagnostic({ code: "PHIST_PHASE_RANGE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.phases`, expected: expected.phases, actual: actualPhases, authority: ".planning/ROADMAP.md", evidence: `ROADMAP shipped range is ${expected.phases}`, repair: "Propose correcting only the mutable milestone index after reviewing the archived roadmap." }));
+    if (!/\*\*Status:\*\*\s*✅\s*Shipped/i.test(block)) diagnostics.push(historyDiagnostic({ code: "PHIST_SHIPPED_STATUS_CONTRADICTION", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.status`, expected: "Shipped", actual: fieldFromBlock(block, "Status"), authority: ".planning/ROADMAP.md", evidence: `${expected.planningMilestone} is advertised as shipped`, repair: "Propose correcting only the mutable current index; preserve archived wording and cite it in EVIDENCE.md." }));
+
+    if (expected.preArchive) {
+      diagnostics.push(historyDiagnostic({ code: "PHIST_PREARCHIVE_EXCEPTION", severity: "info", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "explicit pre-archive exception", actual: "phase artifacts retained; archive absent", authority: ".planning/MILESTONES.md", evidence: "v1.0 predates formal milestone archiving", repair: "No repair; retain this visible historical exception." }));
+      continue;
+    }
+
+    for (const kind of ["Roadmap", "Requirements"]) {
+      const raw = fieldFromBlock(block, kind);
+      const target = inlineValue(raw);
+      const field = `${expected.planningMilestone}.${kind.toLowerCase()}Link`;
+      if (!target) {
+        diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: `.planning/milestones/${expected.planningMilestone}-${kind.toUpperCase()}.md`, actual: null, authority: ".planning/MILESTONES.md + immutable archives", evidence: `${kind} navigation is absent`, repair: "Propose adding the tracked immutable archive link to the mutable index." }));
+      } else {
+        const resolved = path.resolve(snapshot.root, target);
+        const root = path.resolve(snapshot.root);
+        if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_ESCAPE", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: "repository-bounded immutable archive", actual: target, authority: ".planning/MILESTONES.md", evidence: "normalized link target escapes the repository root", repair: "Propose a repository-relative immutable archive link; do not follow the escaped target." }));
+        else if (!target.startsWith(".planning/milestones/")) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_MUTABLE_LINK", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: ".planning/milestones/* immutable snapshot", actual: target, authority: ".planning/MILESTONES.md", evidence: "root planning authorities are mutable", repair: "Propose redirecting the mutable index to its tracked frozen archive; do not edit the archive." }));
+        else if (!archivePaths.has(target)) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_BROKEN", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: "existing tracked archive", actual: target, authority: ".planning/MILESTONES.md + immutable archives", evidence: "archive target is absent from the bounded snapshot", repair: "Propose correcting the mutable index to an existing tracked archive." }));
+      }
+    }
+
+    const archiveRequirement = snapshot.milestoneArchives[`.planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md`] || "";
+    if (/\b(?:IN PROGRESS|Pending)\b/i.test(archiveRequirement)) {
+      diagnostics.push(historyDiagnostic({ code: "PHIST_ARCHIVE_STATUS_CONTRADICTION", severity: "warning", artifact: `.planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md`, field: "historical status wording", expected: "preserve byte-for-byte and correct additively", actual: "archive wording conflicts with shipped history", authority: ".planning/EVIDENCE.md", evidence: "frozen requirements snapshot retains its original incomplete wording", repair: `Append a dated ${expected.planningMilestone} correction to .planning/EVIDENCE.md while preserving the archive bytes.`, ...warningFields }));
+      if (!correctionRecorded(evidence, expected.planningMilestone)) diagnostics.push(historyDiagnostic({ code: "PHIST_CORRECTION_REFERENCE_MISSING", severity: "error", artifact: ".planning/EVIDENCE.md", field: expected.planningMilestone, expected: "dated additive archive-status correction", actual: null, authority: ".planning/EVIDENCE.md", evidence: "contradictory frozen wording has no current-ledger correction", repair: `Append a dated correction citing .planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md without changing it.` }));
+    }
+
+    const statedTag = inlineValue(fieldFromBlock(block, "Git tag"));
+    const statedSha = inlineValue(fieldFromBlock(block, "Source SHA"));
+    const statedVersion = inlineValue(fieldFromBlock(block, "Declared Hex package version"));
+    const publication = fieldFromBlock(block, "Publication status");
+    if (!statedTag) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_UNKNOWN", severity: "warning", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.gitTag`, expected: "local tag or explicit unknown", actual: fieldFromBlock(block, "Git tag"), authority: "local Git refs", evidence: "no local tag identity is asserted", repair: "Revisit when independent tag evidence is available; do not create or fetch refs from health tooling.", ...warningFields }));
+    else {
+      const identity = tags.get(statedTag);
+      if (!identity || identity.sourceSha !== statedSha) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_SHA_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.sourceSha`, expected: identity ? identity.sourceSha : "existing local tag", actual: statedSha, authority: "local Git refs", evidence: identity ? `peeled ${statedTag} target` : `${statedTag} is absent locally`, repair: "Propose updating only the mutable identity record from local refs; never fetch or mutate refs here." }));
+      if (identity && identity.declaredPackageVersion !== statedVersion) diagnostics.push(historyDiagnostic({ code: "PIDENT_PACKAGE_VERSION_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.declaredPackageVersion`, expected: identity.declaredPackageVersion, actual: statedVersion, authority: `${statedTag}:mix.exs`, evidence: "package version is parsed independently from the tagged source", repair: "Propose correcting the mutable identity record; do not infer it from the milestone or tag name." }));
+    }
+    if (!publication || /^unknown\b/i.test(publication)) diagnostics.push(historyDiagnostic({ code: "PIDENT_PUBLICATION_UNKNOWN", severity: "info", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.publicationStatus`, expected: "independent registry evidence or explicit unknown", actual: publication || null, authority: "publication registry evidence", evidence: "a local tag and package declaration do not prove publication", repair: "No repair unless independent publication evidence becomes available." }));
+  }
+  diagnostics.sort((left, right) => compareText(left.artifact, right.artifact) || compareText(left.code, right.code));
+  return diagnostics;
+}
+
 function diagnostic(fields) {
   return makeDiagnostic(fields);
 }
@@ -703,6 +846,24 @@ function listPhaseArtifacts(root) {
   return artifacts.sort(compareText);
 }
 
+function collectMilestoneArchives(root, options, snapshot) {
+  const base = path.join(root, ".planning", "milestones");
+  const archives = {};
+  if (!fs.existsSync(base)) return archives;
+  for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+    if (!entry.isFile() || entry.isSymbolicLink() || !/^v[^/]+-(?:ROADMAP|REQUIREMENTS)\.md$/.test(entry.name)) continue;
+    const relativePath = path.posix.join(".planning/milestones", entry.name);
+    try {
+      const record = readPlanningFile(root, relativePath, options, snapshot);
+      archives[relativePath] = record.content;
+      snapshot.artifactIdentities[relativePath] = record.identity;
+    } catch (error) {
+      snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: relativePath, field: "content", expected: "bounded immutable archive", actual: null, evidence: error.message, incomplete: true });
+    }
+  }
+  return archives;
+}
+
 function phaseArtifactContents(root, artifacts, options, snapshot) {
   const contents = {};
   for (const relativePath of artifacts) {
@@ -783,6 +944,8 @@ function collectPlanningSnapshot(root, options = {}) {
     artifactIdentities: {},
     corroboration: [],
     mirror: { exists: false, content: null, identity: null, consumerEvidence: [] },
+    milestoneArchives: {},
+    tagIdentities: [],
     collectionErrors: [],
   };
   for (const relativePath of PLANNING_DOCUMENTS) {
@@ -792,6 +955,8 @@ function collectPlanningSnapshot(root, options = {}) {
       snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: relativePath, field: "content", expected: "bounded regular in-repository file", actual: null, evidence: error.message, incomplete: true });
     }
   }
+  snapshot.milestoneArchives = collectMilestoneArchives(resolvedRoot, settings, snapshot);
+  snapshot.tagIdentities = collectTagIdentities(resolvedRoot, settings);
   try {
     snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
     snapshot.artifactContents = phaseArtifactContents(resolvedRoot, snapshot.phaseArtifacts, settings, snapshot);
@@ -934,7 +1099,7 @@ function mirrorDiagnostics(snapshot, activeScope) {
 
 function evaluatePlanningHealth(snapshot) {
   const activeScope = resolveActiveScope(snapshot);
-  const diagnostics = [...activeScope.diagnostics, ...activeArtifactDiagnostics(snapshot, activeScope), ...mirrorDiagnostics(snapshot, activeScope)];
+  const diagnostics = [...activeScope.diagnostics, ...activeArtifactDiagnostics(snapshot, activeScope), ...mirrorDiagnostics(snapshot, activeScope), ...validateMilestoneHistory(snapshot)];
   const completionClaimed = activeScope.phase && (activeScope.phase.complete || activeScope.state.status === "complete");
   if (completionClaimed) diagnostics.push(...validateCompletionProof(snapshot, activeScope.phase.number));
   for (const error of Array.isArray(snapshot && snapshot.collectionErrors) ? snapshot.collectionErrors : []) {
@@ -1001,6 +1166,7 @@ function renderJson(result) {
 }
 
 module.exports = {
+  collectTagIdentities,
   collectPlanningSnapshot,
   collectRepositorySnapshot,
   evaluatePlanningHealth,
@@ -1012,6 +1178,8 @@ module.exports = {
   parseWorktreeList,
   renderHuman,
   renderJson,
+  readPackageVersion,
   resolveActiveScope,
   validateCompletionProof,
+  validateMilestoneHistory,
 };

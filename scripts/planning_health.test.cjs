@@ -275,7 +275,7 @@ function historySnapshot(overrides = {}) {
     documents: {
       ".planning/ROADMAP.md": { content: roadmap },
       ".planning/MILESTONES.md": { content: milestones },
-      ".planning/EVIDENCE.md": { content: "# Evidence\n" },
+      ".planning/EVIDENCE.md": { content: "# Evidence\n\n| 2026-09-09 | v1.2 archive status correction | preserved archive wording |\n" },
     },
     milestoneArchives: {
       ".planning/milestones/v1.2-ROADMAP.md": "# Milestone v1.2\n\n**Status:** ✅ SHIPPED\n**Phases:** 8-13\n",
@@ -289,7 +289,7 @@ function historySnapshot(overrides = {}) {
 
 test("milestone identity: tag, peeled SHA, package version, and publication remain separate", () => {
   const runner = (_command, args) => {
-    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\\0abc123\\0\\0\\0") };
+    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\0abc123\0\0\0") };
     if (args[0] === "show") return { status: 0, stdout: Buffer.from('defmodule Paddle.MixProject do\n  @version "0.1.1"\nend\n') };
     throw new Error(`unexpected git args: ${args.join(" ")}`);
   };
@@ -324,7 +324,7 @@ test("milestone archive: missing, mutable, contradictory, and escaped history ed
 test("milestone diagnostics: five identities preserve unknowns and renderer conclusions stay identical", () => {
   const snapshot = historySnapshot();
   const healthyCodes = validateMilestoneHistory(snapshot).map(({ code }) => code);
-  assert.deepEqual(healthyCodes, ["PHIST_ARCHIVE_STATUS_CONTRADICTION", "PIDENT_PUBLICATION_UNKNOWN", "PHIST_PREARCHIVE_EXCEPTION"]);
+  assert.deepEqual(healthyCodes, ["PHIST_PREARCHIVE_EXCEPTION", "PIDENT_PUBLICATION_UNKNOWN", "PHIST_ARCHIVE_STATUS_CONTRADICTION"]);
   const planning = snapshotFrom();
   Object.assign(planning, snapshot);
   planning.documents = { ...snapshotFrom().documents, ...snapshot.documents };
