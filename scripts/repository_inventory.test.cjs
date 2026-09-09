@@ -10,6 +10,7 @@ const test = require("node:test");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const CLI = path.join(__dirname, "repository_inventory.cjs");
+const { main: inventoryMain } = require("./repository_inventory.cjs");
 const {
   collectRepositorySnapshot,
   evaluateRepositoryInventory,
@@ -50,9 +51,23 @@ function makeRepository(t) {
   t.after(() => fs.rmSync(container, { recursive: true, force: true }));
   run("git", ["init", "-b", "main", root]);
   fs.writeFileSync(path.join(root, "tracked.txt"), "baseline\n");
-  run("git", ["add", "tracked.txt"], { cwd: root });
+  fs.mkdirSync(path.join(root, ".planning"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".planning/repository-ownership.json"), JSON.stringify(registryFor([])));
+  run("git", ["add", "tracked.txt", ".planning/repository-ownership.json"], { cwd: root });
   run("git", ["commit", "-m", "fixture"], { cwd: root });
   return root;
+}
+
+function invokeInventory(root, argv, options = {}) {
+  let stdout = "";
+  let stderr = "";
+  const status = inventoryMain(argv, {
+    cwd: root,
+    stdout: { write(value) { stdout += value; } },
+    stderr: { write(value) { stderr += value; } },
+    ...options,
+  });
+  return { status, stdout, stderr };
 }
 
 function normalizeGeneratedAt(result) {
@@ -186,6 +201,72 @@ test("read-only: both CLI formats preserve repository bytes", (t) => {
   assert.deepEqual(between, before);
   assert.deepEqual(after, before);
   assert.equal(JSON.parse(json.stdout).conclusion.exitCode, 1);
+});
+
+test("ownership registry: symlinked external JSON exits 2 without disclosure", (t) => {
+  for (const intermediate of [false, true]) {
+    const root = makeRepository(t);
+    const external = path.join(path.dirname(root), intermediate ? "external-policy" : "external-registry.json");
+    const registryPath = intermediate
+      ? path.join(root, ".planning/policy/repository-ownership.json")
+      : path.join(root, ".planning/repository-ownership.json");
+    const sentinel = intermediate ? "INTERMEDIATE-REGISTRY-SECRET" : "DIRECT-REGISTRY-SECRET";
+    const externalRegistry = registryFor([".planning/repository-ownership.json"]);
+    externalRegistry.claims[0].owner = sentinel;
+
+    if (intermediate) {
+      fs.mkdirSync(external, { recursive: true });
+      fs.writeFileSync(path.join(external, "repository-ownership.json"), JSON.stringify(externalRegistry));
+      fs.symlinkSync(external, path.join(root, ".planning/policy"), "dir");
+    } else {
+      fs.rmSync(registryPath);
+      fs.writeFileSync(external, JSON.stringify(externalRegistry));
+      fs.symlinkSync(external, registryPath);
+    }
+
+    const before = fs.readFileSync(intermediate ? path.join(external, "repository-ownership.json") : external, "utf8");
+    for (const argv of [[], ["--json"]]) {
+      const invocation = invokeInventory(root, argv, { registryPath });
+      assert.equal(invocation.status, 2);
+      assert.match(invocation.stdout, /RINV_REGISTRY_UNREADABLE/);
+      assert.doesNotMatch(invocation.stdout, new RegExp(sentinel));
+      assert.doesNotMatch(invocation.stderr, new RegExp(sentinel));
+      if (argv.includes("--json")) {
+        const result = JSON.parse(invocation.stdout);
+        assert.equal(result.conclusion.status, "incomplete");
+        assert.equal(result.dispositions.every(({ owner }) => owner === "unknown"), true);
+      }
+    }
+    assert.equal(fs.readFileSync(intermediate ? path.join(external, "repository-ownership.json") : external, "utf8"), before);
+  }
+});
+
+test("ownership registry: non-regular, oversized, and replaced sources fail incomplete", (t) => {
+  const root = makeRepository(t);
+  const directory = path.join(root, ".planning/registry-directory");
+  fs.mkdirSync(directory);
+  const nonRegular = invokeInventory(root, ["--json"], { registryPath: directory });
+  assert.equal(nonRegular.status, 2);
+  assert.match(nonRegular.stdout, /RINV_REGISTRY_UNREADABLE/);
+
+  const registryPath = path.join(root, ".planning/repository-ownership.json");
+  const oversized = invokeInventory(root, ["--json"], { registryPath, maximumRegistryBytes: 8 });
+  assert.equal(oversized.status, 2);
+  assert.match(oversized.stdout, /RINV_REGISTRY_UNREADABLE/);
+
+  const replacement = path.join(root, ".planning/replacement.json");
+  fs.writeFileSync(replacement, JSON.stringify({ ...registryFor([]), secret: "REPLACEMENT-SECRET" }));
+  const replaced = invokeInventory(root, ["--json"], {
+    registryPath,
+    registryReadOptions: {
+      afterOpen() {
+        fs.renameSync(replacement, registryPath);
+      },
+    },
+  });
+  assert.equal(replaced.status, 2);
+  assert.match(replaced.stdout, /RINV_REGISTRY_UNREADABLE/);
+  assert.doesNotMatch(replaced.stdout, /REPLACEMENT-SECRET/);
 });
 
 test("tracer: collector observes the dirty main worktree", (t) => {
