@@ -120,47 +120,49 @@ coherent SDK surface, an owner, and a proof contract.
 
 ## Traceability
 
-Phase mapping is populated during roadmap creation. Each committed requirement
-must map to exactly one phase.
+Each committed requirement maps to exactly one v2.2 phase. Future candidate and
+conditional requirements remain intentionally unmapped until a later milestone
+promotes them through the provenance rules above.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REPO-01 | TBD | Pending |
-| REPO-02 | TBD | Pending |
-| REPO-03 | TBD | Pending |
-| REPO-04 | TBD | Pending |
-| SAFE-01 | TBD | Pending |
-| SAFE-02 | TBD | Pending |
-| SAFE-03 | TBD | Pending |
-| SAFE-04 | TBD | Pending |
-| SAFE-05 | TBD | Pending |
-| SAFE-06 | TBD | Pending |
-| CI-01 | TBD | Pending |
-| CI-02 | TBD | Pending |
-| CI-03 | TBD | Pending |
-| CI-04 | TBD | Pending |
-| CI-05 | TBD | Pending |
-| SHIP-01 | TBD | Pending |
-| SHIP-02 | TBD | Pending |
-| SHIP-03 | TBD | Pending |
-| SHIP-04 | TBD | Pending |
-| OPS-01 | TBD | Pending |
-| OPS-02 | TBD | Pending |
-| OPS-03 | TBD | Pending |
-| OPS-04 | TBD | Pending |
-| ORIENT-01 | TBD | Pending |
-| ORIENT-02 | TBD | Pending |
-| ORIENT-03 | TBD | Pending |
-| ORIENT-04 | TBD | Pending |
-| ORIENT-05 | TBD | Pending |
-| ORIENT-06 | TBD | Pending |
+| REPO-01 | Phase 31 | Pending |
+| REPO-02 | Phase 31 | Pending |
+| REPO-03 | Phase 31 | Pending |
+| REPO-04 | Phase 31 | Pending |
+| SAFE-01 | Phase 32 | Pending |
+| SAFE-02 | Phase 32 | Pending |
+| SAFE-03 | Phase 32 | Pending |
+| SAFE-04 | Phase 32 | Pending |
+| SAFE-05 | Phase 32 | Pending |
+| SAFE-06 | Phase 32 | Pending |
+| CI-01 | Phase 33 | Pending |
+| CI-02 | Phase 33 | Pending |
+| CI-03 | Phase 33 | Pending |
+| CI-04 | Phase 33 | Pending |
+| CI-05 | Phase 33 | Pending |
+| SHIP-01 | Phase 34 | Pending |
+| SHIP-02 | Phase 34 | Pending |
+| SHIP-03 | Phase 34 | Pending |
+| SHIP-04 | Phase 34 | Pending |
+| OPS-01 | Phase 35 | Pending |
+| OPS-02 | Phase 35 | Pending |
+| OPS-03 | Phase 35 | Pending |
+| OPS-04 | Phase 35 | Pending |
+| ORIENT-01 | Phase 36 | Pending |
+| ORIENT-02 | Phase 36 | Pending |
+| ORIENT-03 | Phase 36 | Pending |
+| ORIENT-04 | Phase 36 | Pending |
+| ORIENT-05 | Phase 36 | Pending |
+| ORIENT-06 | Phase 36 | Pending |
 
 **Coverage:**
 
 - v2.2 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 (roadmap pending)
+- Mapped to phases: 29
+- Unmapped committed requirements: 0
+- Future candidate/conditional requirements: 11 discoverable, intentionally unmapped
 
 ---
 *Requirements defined: 2026-09-09*
-*Last updated: 2026-09-09 after milestone requirements approval*
+*Last updated: 2026-09-09 after v2.2 roadmap creation*
