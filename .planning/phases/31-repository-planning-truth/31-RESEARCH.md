@@ -357,22 +357,13 @@ The helper details are planner-selected, but a before/after mutation sentinel is
 | A3 | Use exit codes 0/1/2 for clean-or-warning / policy error / incomplete collection. | Architecture Patterns | Downstream CI/GSD consumers may require a different nonzero taxonomy. |
 | A4 | Temporary real Git repositories are practical in Node tests. | Don't Hand-Roll / Validation | Platform-specific worktree or path behavior may require injected fixtures in addition. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Where should ownership/exception claims live?**
-   - What we know: D-03 requires durable claim, provenance, confidence, and revisit date, and D-04 requires intentional state to remain visible without failing. [VERIFIED: .planning/phases/31-repository-planning-truth/31-CONTEXT.md:18-20]
-   - What's unclear: No existing canonical file owns these repository-local exception claims. [VERIFIED: repository file inventory and canonical ownership table in .planning/research/ARCHITECTURE.md:68-84]
-   - Recommendation: Use a narrow committed JSON registry beside planning policy, with exact selectors and no observed facts cached in it. [ASSUMED]
+1. **Ownership/exception registry — RESOLVED:** Store repository-local claims in the committed `.planning/repository-ownership.json` registry selected by Plan 31-01. The registry is versioned policy data beside the planning authorities, uses exact selectors, and records `owner`, `provenance`, `confidence`, `revisit_at`, and `proposed_disposition`. It never caches or overrides observed Git/process facts; absent, stale, or ambiguous evidence resolves to `unknown` and a nonzero diagnostic as required by D-03/D-04. [ASSUMED; planned in 31-01]
 
-2. **What exact proof chain closes a phase?**
-   - What we know: directory/artifact presence is insufficient, and GSD's planning snapshot already separates verification, roadmap acceptance, UAT, plans, and summaries. [VERIFIED: .planning/phases/31-repository-planning-truth/31-CONTEXT.md:24-28; VERIFIED: /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs:106-113]
-   - What's unclear: D-08 leaves the final invariant catalog to planning. [VERIFIED: .planning/phases/31-repository-planning-truth/31-CONTEXT.md:37-40]
-   - Recommendation: Require roadmap acceptance, all planned summaries, successful phase verification or an explicit acknowledged caveat, and requirement/evidence linkage; encode each missing link as its own stable diagnostic. [ASSUMED]
+2. **Phase-completion proof chain — RESOLVED:** Plan 31-02 implements four mandatory links for every completion claim: (a) the current ROADMAP marks the phase accepted/complete, (b) every plan declared for that phase has its corresponding summary, (c) phase verification/evidence records success or an explicitly classified acknowledged caveat, and (d) every phase requirement is linked to that proof/evidence. Presence of a directory, plan, summary, verification filename, cache, research artifact, or archive satisfies none of these links by itself. `validateCompletionProof(snapshot, phase)` emits a distinct stable `PCOMP_*` diagnostic for each missing or contradictory link, and any error blocks completion/routing. [ASSUMED; planned in 31-02]
 
-3. **Should Phase 31 integrate directly into GSD routing?**
-   - What we know: repository-local tools cannot safely patch the installed global runtime, while GSD already has read-only inspection and drift handlers. [VERIFIED: /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs:93-113; VERIFIED: .planning/phases/31-repository-planning-truth/31-CONTEXT.md:27-29]
-   - What's unclear: whether a supported project hook exists for routing-time enforcement. [ASSUMED]
-   - Recommendation: make the repository CLI independently runnable and add it to existing repository/CI guards; document the authority chain for GSD agents. Do not modify global GSD runtime in this phase. [ASSUMED]
+3. **GSD routing integration — RESOLVED:** Keep enforcement repository-local. Plan 31-02 adds `node scripts/planning_health.cjs` as the shared read-only entry and documents in `.planning/GSD-PREFERENCES.md` that maintainers and repository-operating GSD agents run it before routing or asserting completion. Exit 1 policy/authority errors and exit 2 incomplete/unsafe snapshots block those actions; warnings and info remain visible but non-blocking according to D-13. Existing installed GSD read-only queries are corroborating evidence only, and Phase 31 does not patch or replace the installed global GSD runtime. [ASSUMED; planned in 31-02]
 
 ## Environment Availability
 
