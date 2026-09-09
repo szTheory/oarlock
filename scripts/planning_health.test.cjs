@@ -486,7 +486,7 @@ function historySnapshot(overrides = {}) {
     documents: {
       ".planning/ROADMAP.md": { content: roadmap },
       ".planning/MILESTONES.md": { content: milestones },
-      ".planning/EVIDENCE.md": { content: "# Evidence\n\n| 2026-09-09 | v1.2 archive status correction | preserved archive wording |\n" },
+      ".planning/EVIDENCE.md": { content: "# Evidence\n\n| 2026-09-09 | v1.2 | `.planning/milestones/v1.2-REQUIREMENTS.md` | archive status correction | Frozen archive preserves contradictory IN PROGRESS wording |\n" },
     },
     milestoneArchives: {
       ".planning/milestones/v1.2-ROADMAP.md": "# Milestone v1.2\n\n**Status:** ✅ SHIPPED\n**Phases:** 8-13\n",
@@ -610,6 +610,12 @@ test("milestone archive: shipped ROADMAP links are independently bounded and ver
   const broken = historySnapshot();
   broken.documents[".planning/ROADMAP.md"].content = broken.documents[".planning/ROADMAP.md"].content.replace("milestones/v1.2-ROADMAP.md", "milestones/v1.2-MISSING.md");
   assert.ok(validateMilestoneHistory(broken).some(({ code, artifact }) => code === "PARCHIVE_LINK_BROKEN" && artifact === ".planning/ROADMAP.md"));
+});
+
+test("milestone archive: generic undated correction mentions do not satisfy evidence", () => {
+  const snapshot = historySnapshot();
+  snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\nv1.2 archive status correction\n";
+  assert.ok(validateMilestoneHistory(snapshot).some(({ code }) => code === "PHIST_CORRECTION_REFERENCE_MISSING"));
 });
 
 test("exact phase range: 8-13 does not match 18-130", () => {

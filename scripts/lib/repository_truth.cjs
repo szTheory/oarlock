@@ -738,8 +738,22 @@ function inlineValue(value) {
   return code ? code[1] : value.replace(/[.;]$/, "").trim();
 }
 
-function correctionRecorded(evidence, milestone) {
-  return new RegExp(`${milestone.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:archive|status|correction|erratum)`, "i").test(evidence || "");
+function correctionRecorded(evidence, milestone, archiveTarget) {
+  const targetPattern = new RegExp(`(?:^|[\\s\`;])${archiveTarget.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[\\s\`;]|$)`);
+  return String(evidence || "").split(/\r?\n/).some((line) => {
+    if (!/^\s*\|.*\|\s*$/.test(line)) return false;
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    const date = cells[0];
+    const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(date || "")
+      && Number.isFinite(Date.parse(`${date}T00:00:00.000Z`))
+      && new Date(`${date}T00:00:00.000Z`).toISOString().slice(0, 10) === date;
+    const milestoneExact = cells[1] === milestone;
+    const targetIndex = cells.findIndex((cell) => targetPattern.test(cell));
+    const classificationIndex = cells.findIndex((cell) => /\b(?:correction|erratum)\b/i.test(cell));
+    const substantive = cells.some((cell, index) => index > 1 && index !== targetIndex && index !== classificationIndex
+      && cell.replace(/[`*_]/g, "").trim().length >= 20);
+    return dateValid && milestoneExact && targetIndex >= 0 && classificationIndex >= 0 && substantive;
+  });
 }
 
 function parsePhaseRange(value) {
@@ -844,7 +858,8 @@ function validateMilestoneHistory(snapshot) {
     const archiveRequirement = snapshot.milestoneArchives[`.planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md`] || "";
     if (/\b(?:IN PROGRESS|Pending)\b/i.test(archiveRequirement)) {
       diagnostics.push(historyDiagnostic({ code: "PHIST_ARCHIVE_STATUS_CONTRADICTION", severity: "warning", artifact: `.planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md`, field: "historical status wording", expected: "preserve byte-for-byte and correct additively", actual: "archive wording conflicts with shipped history", authority: ".planning/EVIDENCE.md", evidence: "frozen requirements snapshot retains its original incomplete wording", repair: `Append a dated ${expected.planningMilestone} correction to .planning/EVIDENCE.md while preserving the archive bytes.`, ...warningFields }));
-      if (!correctionRecorded(evidence, expected.planningMilestone)) diagnostics.push(historyDiagnostic({ code: "PHIST_CORRECTION_REFERENCE_MISSING", severity: "error", artifact: ".planning/EVIDENCE.md", field: expected.planningMilestone, expected: "dated additive archive-status correction", actual: null, authority: ".planning/EVIDENCE.md", evidence: "contradictory frozen wording has no current-ledger correction", repair: `Append a dated correction citing .planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md without changing it.` }));
+      const archiveTarget = `.planning/milestones/${expected.planningMilestone}-REQUIREMENTS.md`;
+      if (!correctionRecorded(evidence, expected.planningMilestone, archiveTarget)) diagnostics.push(historyDiagnostic({ code: "PHIST_CORRECTION_REFERENCE_MISSING", severity: "error", artifact: ".planning/EVIDENCE.md", field: expected.planningMilestone, expected: "dated additive archive-status correction", actual: null, authority: ".planning/EVIDENCE.md", evidence: "contradictory frozen wording has no current-ledger correction", repair: `Append a dated correction citing ${archiveTarget} without changing it.` }));
     }
 
     const statedTag = inlineValue(fieldFromBlock(block, "Git tag"));
