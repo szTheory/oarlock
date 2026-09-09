@@ -1320,9 +1320,12 @@ function mirrorDiagnostics(snapshot, activeScope) {
       evidence: error.message, repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
     })];
   }
-  if (value.contract !== "1.0.0" || value.flavor !== "core" || !Array.isArray(value.phases)) return [diagnostic({
+  if (!value || typeof value !== "object" || Array.isArray(value)
+    || value.contract !== "1.0.0" || value.flavor !== "core" || !Array.isArray(value.phases)) return [diagnostic({
     code: "PMIRROR_METADATA_INVALID", severity: "error", artifact: ".planning/state.json", field: "schema",
-    expected: { contract: "1.0.0", flavor: "core", phases: "array" }, actual: { contract: value.contract, flavor: value.flavor, phases: Array.isArray(value.phases) ? "array" : typeof value.phases },
+    expected: { contract: "1.0.0", flavor: "core", phases: "array" }, actual: value && typeof value === "object" && !Array.isArray(value)
+      ? { contract: value.contract, flavor: value.flavor, phases: Array.isArray(value.phases) ? "array" : typeof value.phases }
+      : value,
     authority: "installed GSD state contract", evidence: mirror.consumerEvidence.join("; "),
     repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
   })];

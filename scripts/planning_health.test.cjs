@@ -298,6 +298,14 @@ test("state.json diagnostic: demonstrated consumer requires versioned disposable
   assert.equal(result.conclusion.exitCode, 1);
 });
 
+test("state.json diagnostic: JSON null is controlled invalid metadata", () => {
+  const snapshot = snapshotFrom();
+  snapshot.mirror = { exists: true, content: "null", identity: { size: 4 }, consumerEvidence: ["fixture consumer"] };
+  const result = evaluatePlanningHealth(snapshot);
+  assert.ok(result.diagnostics.some(({ code }) => code === "PMIRROR_METADATA_INVALID"));
+  assert.equal(result.conclusion.exitCode, 1);
+});
+
 test("concurrent snapshot: injected source change exits 2 instead of returning mixed truth", () => {
   const root = writeFixture();
   try {
