@@ -1011,6 +1011,27 @@ function listPhaseArtifacts(root) {
   return artifacts.sort(compareText);
 }
 
+function phaseNamespaceIdentity(root) {
+  const base = path.join(root, ".planning", "phases");
+  if (!fs.existsSync(base)) return { exists: false, directories: [] };
+  boundedPath(root, base, "directory");
+  const directories = [];
+  for (const entry of fs.readdirSync(base, { withFileTypes: true }).sort((left, right) => compareText(left.name, right.name))) {
+    if (entry.isSymbolicLink()) throw sourceBoundaryError(`symbolic link component rejected at .planning/phases/${entry.name}`, `.planning/phases/${entry.name}`);
+    const record = { name: entry.name, type: entry.isDirectory() ? "directory" : entry.isFile() ? "file" : "other", entries: [] };
+    if (entry.isDirectory()) {
+      const directory = path.join(base, entry.name);
+      boundedPath(root, directory, "directory");
+      record.identity = identityFor(fs.lstatSync(directory));
+      record.entries = fs.readdirSync(directory, { withFileTypes: true })
+        .map((child) => ({ name: child.name, type: child.isDirectory() ? "directory" : child.isFile() ? "file" : child.isSymbolicLink() ? "symlink" : "other" }))
+        .sort((left, right) => compareText(left.name, right.name));
+    }
+    directories.push(record);
+  }
+  return { exists: true, identity: identityFor(fs.lstatSync(base)), directories };
+}
+
 function collectMilestoneArchives(root, options, snapshot) {
   const base = path.join(root, ".planning", "milestones");
   const archives = {};
@@ -1069,6 +1090,18 @@ function verifyPlanningConsistency(root, snapshot, options) {
       snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: finalIdentity, evidence: "source identity changed before the whole-snapshot consistency check", incomplete: true });
     }
   }
+  try {
+    const finalNamespace = phaseNamespaceIdentity(root);
+    if (JSON.stringify(finalNamespace) !== JSON.stringify(snapshot.phaseNamespaceIdentity)) {
+      snapshot.collectionErrors.push({
+        code: "PSCOPE_SNAPSHOT_CHANGED", artifact: ".planning/phases", field: "artifact namespace",
+        expected: snapshot.phaseNamespaceIdentity, actual: finalNamespace,
+        evidence: "phase directory identity or exact artifact-name set changed before the whole-snapshot consistency check", incomplete: true,
+      });
+    }
+  } catch (error) {
+    snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: ".planning/phases", field: "artifact namespace", expected: snapshot.phaseNamespaceIdentity, actual: null, evidence: error.message, incomplete: true });
+  }
 }
 
 function collectMirror(root, options, snapshot) {
@@ -1110,6 +1143,7 @@ function collectPlanningSnapshot(root, options = {}) {
     phaseArtifacts: [],
     artifactContents: {},
     artifactIdentities: {},
+    phaseNamespaceIdentity: { exists: false, directories: [] },
     corroboration: [],
     mirror: { exists: false, content: null, identity: null, consumerEvidence: [] },
     milestoneArchives: {},
@@ -1129,6 +1163,7 @@ function collectPlanningSnapshot(root, options = {}) {
   snapshot.collectionErrors.push(...tagObservation.collectionErrors);
   try {
     snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
+    snapshot.phaseNamespaceIdentity = phaseNamespaceIdentity(resolvedRoot);
     snapshot.artifactContents = phaseArtifactContents(resolvedRoot, snapshot.phaseArtifacts, settings, snapshot);
   } catch (error) {
     snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: error.artifact || ".planning/phases", field: "artifact names", expected: "bounded repository directory", actual: null, evidence: error.message, incomplete: true });

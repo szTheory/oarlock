@@ -382,6 +382,24 @@ test("concurrent snapshot: same-length rewrite with restored mtime is detected",
   }
 });
 
+test("concurrent snapshot: phase namespace additions are detected", () => {
+  const root = writeFixture();
+  try {
+    const snapshot = collectPlanningSnapshot(root, {
+      collectCorroboration: false,
+      beforeConsistencyCheck() {
+        const duplicate = path.join(root, ".planning/phases/31-duplicate");
+        fs.mkdirSync(duplicate);
+        fs.writeFileSync(path.join(duplicate, "31-99-PLAN.md"), "# late plan\n");
+      },
+    });
+    assert.ok(snapshot.collectionErrors.some(({ code, artifact, field }) => code === "PSCOPE_SNAPSHOT_CHANGED"
+      && artifact === ".planning/phases" && field === "artifact namespace"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("source boundary: intermediate planning symlink exits 2 without reading external content", (t) => {
   const root = writeFixture();
   const container = path.dirname(root);
