@@ -467,6 +467,7 @@ test("milestone archive: missing, mutable, contradictory, and escaped history ed
 test("exact phase range: 8-13 does not match 18-130", () => {
   assert.deepEqual(parsePhaseRange("8-13"), { start: "8", end: "13", normalized: "8-13" });
   assert.deepEqual(parsePhaseRange("8.1 - 13.20"), { start: "8.1", end: "13.20", normalized: "8.1-13.20" });
+  assert.deepEqual(parsePhaseRange("8-13 (6 phases, 21 plans)"), { start: "8", end: "13", normalized: "8-13" });
   for (const invalid of [null, "", "18-130 trailing", "prefix 8-13", "8-13-14", "13-8", "8..1-13", "8-"]) {
     assert.equal(parsePhaseRange(invalid), null, String(invalid));
   }

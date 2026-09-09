@@ -608,6 +608,24 @@ function parseShippedMilestones(markdown) {
   return shipped.sort((left, right) => compareText(left.planningMilestone, right.planningMilestone));
 }
 
+function boundedCommandFailure(code, artifact, field, command, error, maximumBytes) {
+  const limit = Math.min(Number(maximumBytes) || DEFAULT_MAX_BUFFER, 2048);
+  const cause = String(error && error.message ? error.message : "Git inspection failed")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "?")
+    .slice(0, limit)
+    .trim();
+  const status = Number.isInteger(error && error.status) ? error.status : null;
+  return {
+    code,
+    artifact,
+    field,
+    expected: "successful read-only Git observation",
+    actual: { command: `git ${command.join(" ")}`, status, stderr: cause, cause },
+    evidence: `git ${command.join(" ")} failed${status === null ? "" : ` with status ${status}`}: ${cause}`,
+    incomplete: true,
+  };
+}
+
 function milestoneBlocks(markdown) {
   const blocks = new Map();
   const pattern = /^##\s+(v[^\s]+)\s+([^\n]*)$/gm;
@@ -622,37 +640,51 @@ function milestoneBlocks(markdown) {
 
 function readPackageVersion(root, ref = null, options = {}) {
   const evidence = ref ? `git show ${ref}:mix.exs` : "mix.exs";
+  const command = ref ? ["show", `${ref}:mix.exs`] : null;
   try {
     let content;
-    if (ref) content = decode(runGit(["show", `${ref}:mix.exs`], { cwd: root, maxBuffer: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options }));
+    if (ref) content = decode(runGit(command, { cwd: root, maxBuffer: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options }));
     else content = fs.readFileSync(path.join(path.resolve(root), "mix.exs"), "utf8");
     const match = /^\s*@version\s+"([^"]+)"\s*$/m.exec(content);
     return match
       ? { value: match[1], evidence, status: "known" }
       : { value: null, evidence: `${evidence}: @version declaration absent`, status: "unknown" };
   } catch (error) {
-    return { value: null, evidence: `${evidence}: ${error.message}`, status: "unknown" };
+    if (!ref && error && error.code === "ENOENT") return { value: null, evidence: `${evidence}: file absent`, status: "absent" };
+    const collectionError = boundedCommandFailure(
+      "PIDENT_PACKAGE_COLLECTION_FAILED", evidence, "declared package version", command || ["read", "mix.exs"], error, options.maximumBytes,
+    );
+    return { value: null, evidence: collectionError.evidence, status: "collection-error", collectionError };
   }
 }
 
 function collectTagIdentities(root, options = {}) {
+  const command = ["for-each-ref", "--format=%(refname:short)%00%(objectname)%00%(*objectname)%00", "refs/tags"];
   let output;
   try {
-    output = runGit(["for-each-ref", "--format=%(refname:short)%00%(objectname)%00%(*objectname)%00", "refs/tags"], {
+    output = runGit(command, {
       cwd: root, maxBuffer: options.maximumBytes || DEFAULT_MAX_BUFFER, ...options,
     });
   } catch (error) {
-    return [];
+    return {
+      identities: [],
+      collectionErrors: [boundedCommandFailure("PIDENT_TAG_COLLECTION_FAILED", "local Git refs", "tag identities", command, error, options.maximumBytes)],
+    };
   }
   const identities = [];
+  const collectionErrors = [];
   for (const record of decode(output).split(/\r?\n/).filter(Boolean)) {
     const [tag, objectSha, peeled] = record.split("\0");
     if (!tag || !objectSha) continue;
     const peeledSha = peeled || objectSha;
     const version = readPackageVersion(root, tag, options);
-    identities.push({ tag, sourceSha: peeledSha, declaredPackageVersion: version.value, publicationStatus: "unknown" });
+    identities.push({
+      tag, sourceSha: peeledSha, declaredPackageVersion: version.value, publicationStatus: "unknown",
+      ...(version.status === "collection-error" ? { packageVersionStatus: "collection-error" } : {}),
+    });
+    if (version.collectionError) collectionErrors.push(version.collectionError);
   }
-  return identities.sort((left, right) => compareText(left.tag, right.tag));
+  return { identities: identities.sort((left, right) => compareText(left.tag, right.tag)), collectionErrors };
 }
 
 function historyDiagnostic(fields) {
@@ -677,7 +709,7 @@ function correctionRecorded(evidence, milestone) {
 }
 
 function parsePhaseRange(value) {
-  const match = /^\s*([0-9]+(?:\.[0-9]+)?)\s*-\s*([0-9]+(?:\.[0-9]+)?)\s*$/.exec(String(value ?? ""));
+  const match = /^\s*([0-9]+(?:\.[0-9]+)?)\s*-\s*([0-9]+(?:\.[0-9]+)?)(?:\s+\([^)\r\n]+\))?\s*$/.exec(String(value ?? ""));
   if (!match) return null;
   const start = match[1];
   const end = match[2];
@@ -694,6 +726,7 @@ function validateMilestoneHistory(snapshot) {
   const tags = new Map(snapshot.tagIdentities.map((identity) => [identity.tag, identity]));
   const archivePaths = new Set(Object.keys(snapshot.milestoneArchives));
   const warningFields = { owner: "maintainer", revisit_at: "before the next milestone close" };
+  const tagCollectionFailed = (snapshot.collectionErrors || []).some(({ code }) => code === "PIDENT_TAG_COLLECTION_FAILED");
 
   for (const expected of roadmap) {
     const block = blocks.get(expected.planningMilestone);
@@ -746,8 +779,8 @@ function validateMilestoneHistory(snapshot) {
     if (!statedTag) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_UNKNOWN", severity: "warning", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.gitTag`, expected: "local tag or explicit unknown", actual: fieldFromBlock(block, "Git tag"), authority: "local Git refs", evidence: "no local tag identity is asserted", repair: "Revisit when independent tag evidence is available; do not create or fetch refs from health tooling.", ...warningFields }));
     else {
       const identity = tags.get(statedTag);
-      if (!identity || identity.sourceSha !== statedSha) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_SHA_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.sourceSha`, expected: identity ? identity.sourceSha : "existing local tag", actual: statedSha, authority: "local Git refs", evidence: identity ? `peeled ${statedTag} target` : `${statedTag} is absent locally`, repair: "Propose updating only the mutable identity record from local refs; never fetch or mutate refs here." }));
-      if (identity && identity.declaredPackageVersion !== statedVersion) diagnostics.push(historyDiagnostic({ code: "PIDENT_PACKAGE_VERSION_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.declaredPackageVersion`, expected: identity.declaredPackageVersion, actual: statedVersion, authority: `${statedTag}:mix.exs`, evidence: "package version is parsed independently from the tagged source", repair: "Propose correcting the mutable identity record; do not infer it from the milestone or tag name." }));
+      if (!tagCollectionFailed && (!identity || identity.sourceSha !== statedSha)) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_SHA_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.sourceSha`, expected: identity ? identity.sourceSha : "existing local tag", actual: statedSha, authority: "local Git refs", evidence: identity ? `peeled ${statedTag} target` : `${statedTag} is absent locally`, repair: "Propose updating only the mutable identity record from local refs; never fetch or mutate refs here." }));
+      if (identity && identity.packageVersionStatus !== "collection-error" && identity.declaredPackageVersion !== statedVersion) diagnostics.push(historyDiagnostic({ code: "PIDENT_PACKAGE_VERSION_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.declaredPackageVersion`, expected: identity.declaredPackageVersion, actual: statedVersion, authority: `${statedTag}:mix.exs`, evidence: "package version is parsed independently from the tagged source", repair: "Propose correcting the mutable identity record; do not infer it from the milestone or tag name." }));
     }
     if (!publication || /^unknown\b/i.test(publication)) diagnostics.push(historyDiagnostic({ code: "PIDENT_PUBLICATION_UNKNOWN", severity: "info", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.publicationStatus`, expected: "independent registry evidence or explicit unknown", actual: publication || null, authority: "publication registry evidence", evidence: "a local tag and package declaration do not prove publication", repair: "No repair unless independent publication evidence becomes available." }));
   }
@@ -1012,9 +1045,8 @@ function collectGsdCorroboration(root, options) {
   const tool = options.gsdTools || process.env.GSD_TOOLS || path.join(os.homedir(), ".codex", "gsd-core", "bin", "gsd-tools.cjs");
   if (!fs.existsSync(tool)) return [{ query: "runtime", status: "unavailable", output: null }];
   const entries = [];
-  for (const query of ["planning.inspect", "drift-guard.phase-status"]) {
+  for (const query of ["planning.inspect"]) {
     const args = [tool, "query", query];
-    if (query === "drift-guard.phase-status") args.push("31");
     const result = (options.runner || spawnSync)(process.execPath, args, { cwd: root, encoding: "utf8", shell: false, maxBuffer: options.maximumBytes });
     entries.push({ query, status: result.status, output: result.status === 0 ? String(result.stdout || "").trim() : String(result.stderr || "").trim() });
   }
@@ -1046,7 +1078,9 @@ function collectPlanningSnapshot(root, options = {}) {
     }
   }
   snapshot.milestoneArchives = collectMilestoneArchives(resolvedRoot, settings, snapshot);
-  snapshot.tagIdentities = collectTagIdentities(resolvedRoot, settings);
+  const tagObservation = collectTagIdentities(resolvedRoot, settings);
+  snapshot.tagIdentities = tagObservation.identities;
+  snapshot.collectionErrors.push(...tagObservation.collectionErrors);
   try {
     snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
     snapshot.artifactContents = phaseArtifactContents(resolvedRoot, snapshot.phaseArtifacts, settings, snapshot);
