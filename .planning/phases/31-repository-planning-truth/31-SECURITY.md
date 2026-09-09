@@ -38,6 +38,16 @@ created: "2026-09-09"
 | T-31-12 | Spoofing / Repudiation | Milestone/package/publication identity | high | mitigate | Milestone, tag, peeled SHA, tagged package version, and publication status are sourced independently and retain unknowns | closed |
 | T-31-13 | Information Disclosure | Archive/link resolver | medium | mitigate | Archive targets are repository-bounded; escaped targets are diagnosed without traversal | closed |
 | T-31-14 | Denial of Service | History enumeration | low | accept | Enumeration is limited to the small tracked milestone set with bounded reads and collection-error diagnostics | closed |
+| T-31-15 | Tampering / Elevation of Privilege | Repository file reader and planning traversal | high | mitigate | Resolved-root containment, regular-file checks, no-follow descriptor reads, and pre-return identity validation reject symlink and swap attacks | closed |
+| T-31-16 | Information Disclosure | Ownership registry diagnostics and renderers | high | mitigate | Rejected registry payload bytes never enter evaluation or rendering; tests assert external secret sentinels are absent from human and JSON output | closed |
+| T-31-17 | Tampering / Repudiation | Registry-to-ownership classification | high | mitigate | Ownership claims are accepted only from the bounded versioned registry; any source-boundary failure leaves ownership unknown with an incomplete result | closed |
+| T-31-18 | Denial of Service | Bounded authoritative file reads | medium | mitigate | Size bounds are enforced before allocation and oversized or non-regular sources produce causal incomplete diagnostics | closed |
+| T-31-19 | Repudiation | Gap-closure report-only execution | low | accept | Before/after mutation sentinels and archive diffs prove the diagnostic paths remain read-only and expose no state-changing command | closed |
+| T-31-20 | Spoofing / Elevation of Privilege | Completion artifact selection | high | mitigate | Completion evidence is accepted only from exact paths beneath one bounded canonical phase directory and from leading YAML frontmatter | closed |
+| T-31-21 | Tampering / Repudiation | Milestone phase-range validation | high | mitigate | Complete normalized range endpoints are compared exactly, including adversarial integer and decimal regression cases | closed |
+| T-31-22 | Repudiation | Git identity collection | high | mitigate | Failed Git observations preserve command, status, and causal evidence, suppress dependent conclusions, and force incomplete exit 2 | closed |
+| T-31-23 | Information Disclosure | Git error diagnostics | medium | mitigate | Subprocess evidence is bounded and sanitized while retaining only the command, status, and cause required for repair | closed |
+| T-31-24 | Denial of Service | Artifact and frontmatter parsing | low | accept | Repository-bounded size limits constrain inputs and leading-frontmatter parsing is linear over the accepted bytes | closed |
 
 *Status: open · closed · open — below high threshold (non-blocking)*
 
@@ -47,12 +57,15 @@ created: "2026-09-09"
 |---------|------------|-----------|-------------|------|
 | AR-31-01 | T-31-05 | Complete local worktree visibility requires showing Git-registered paths; collection stays repository-scoped and read-only. | Phase 31 threat model | 2026-09-09 |
 | AR-31-02 | T-31-14 | The tracked milestone corpus is repository-bounded and small; existing read bounds and diagnostics limit malformed input. | Phase 31 threat model | 2026-09-09 |
+| AR-31-03 | T-31-19 | Read-only execution is continuously guarded by mutation sentinels and immutable-history diffs; no apply path exists. | Phase 31 gap-closure threat model | 2026-09-09 |
+| AR-31-04 | T-31-24 | Strict leading-frontmatter parsing runs only after repository-bounded reads constrain the accepted input size. | Phase 31 gap-closure threat model | 2026-09-09 |
 
 ## Security Audit Trail
 
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-09-09 | 14 | 14 | 0 | GSD secure-phase L1 evidence audit |
+| 2026-09-09 | 24 | 24 | 0 | GSD secure-phase gap-closure L1 evidence refresh |
 
 ## Sign-Off
 
