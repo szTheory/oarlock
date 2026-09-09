@@ -7,13 +7,16 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+  collectTagIdentities,
   collectPlanningSnapshot,
   evaluatePlanningHealth,
   parseCommittedRequirements,
   resolveActiveScope,
   renderHuman,
   renderJson,
+  readPackageVersion,
   validateCompletionProof,
+  validateMilestoneHistory,
 } = require("./lib/repository_truth.cjs");
 const { main } = require("./planning_health.cjs");
 
@@ -262,4 +265,72 @@ test("read-only interrupted CLI: both formats preserve every planning byte", () 
   }
   assert.deepEqual(capture(), before);
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+function historySnapshot(overrides = {}) {
+  const roadmap = `# Roadmap\n\n## Milestones\n\n- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09) — [archive](milestones/v1.2-ROADMAP.md)\n- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; phase artifacts retained)\n`;
+  const milestones = `# Milestones Log\n\n## v1.2 Production Surface (Shipped: 2026-06-09)\n\n**Status:** ✅ Shipped\n**Phases:** 8-13\n\n### Release Identity\n\n- **Planning milestone:** \`v1.2\`\n- **Git tag:** \`v1.2\`\n- **Source SHA:** \`abc123\`\n- **Declared Hex package version:** \`0.1.1\`\n- **Publication status:** Unknown — no independent registry evidence is recorded.\n\n### Archive\n\n- Roadmap: \`.planning/milestones/v1.2-ROADMAP.md\`\n- Requirements: \`.planning/milestones/v1.2-REQUIREMENTS.md\`\n\n## v1.0 MVP — pre-archival\n\n**Status:** ✅ Shipped (not formally archived through \`/gsd-complete-milestone\`)\n**Phases:** 1-5\n\n### Release Identity\n\n- **Planning milestone:** \`v1.0\`\n- **Git tag:** Unknown — pre-archive exception.\n- **Source SHA:** Unknown — pre-archive exception.\n- **Declared Hex package version:** Unknown — pre-archive exception.\n- **Publication status:** Unknown — pre-archive exception.\n`;
+  return {
+    root: "/fixture",
+    documents: {
+      ".planning/ROADMAP.md": { content: roadmap },
+      ".planning/MILESTONES.md": { content: milestones },
+      ".planning/EVIDENCE.md": { content: "# Evidence\n" },
+    },
+    milestoneArchives: {
+      ".planning/milestones/v1.2-ROADMAP.md": "# Milestone v1.2\n\n**Status:** ✅ SHIPPED\n**Phases:** 8-13\n",
+      ".planning/milestones/v1.2-REQUIREMENTS.md": "# Requirements v1.2\n\n**Status:** 🚧 IN PROGRESS\n",
+    },
+    tagIdentities: [{ tag: "v1.2", sourceSha: "abc123", declaredPackageVersion: "0.1.1", publicationStatus: "unknown" }],
+    collectionErrors: [],
+    ...overrides,
+  };
+}
+
+test("milestone identity: tag, peeled SHA, package version, and publication remain separate", () => {
+  const runner = (_command, args) => {
+    if (args[0] === "for-each-ref") return { status: 0, stdout: Buffer.from("v1.2\\0abc123\\0\\0\\0") };
+    if (args[0] === "show") return { status: 0, stdout: Buffer.from('defmodule Paddle.MixProject do\n  @version "0.1.1"\nend\n') };
+    throw new Error(`unexpected git args: ${args.join(" ")}`);
+  };
+  assert.deepEqual(collectTagIdentities("/fixture", { runner }), [{
+    tag: "v1.2", sourceSha: "abc123", declaredPackageVersion: "0.1.1", publicationStatus: "unknown",
+  }]);
+  assert.deepEqual(readPackageVersion("/fixture", "v1.2", { runner }), {
+    value: "0.1.1", evidence: "git show v1.2:mix.exs", status: "known",
+  });
+});
+
+test("milestone archive: missing, mutable, contradictory, and escaped history edges diagnose separately", () => {
+  const missing = historySnapshot();
+  missing.documents[".planning/MILESTONES.md"].content = missing.documents[".planning/MILESTONES.md"].content.replace(/## v1\.2[\s\S]*?(?=## v1\.0)/, "");
+  assert.equal(validateMilestoneHistory(missing).some(({ code }) => code === "PHIST_INDEX_ENTRY_MISSING"), true);
+
+  const mutable = historySnapshot();
+  mutable.documents[".planning/MILESTONES.md"].content = mutable.documents[".planning/MILESTONES.md"].content.replace(".planning/milestones/v1.2-ROADMAP.md", ".planning/ROADMAP.md");
+  assert.equal(validateMilestoneHistory(mutable).some(({ code }) => code === "PARCHIVE_MUTABLE_LINK"), true);
+
+  const escaped = historySnapshot();
+  escaped.documents[".planning/MILESTONES.md"].content = escaped.documents[".planning/MILESTONES.md"].content.replace(".planning/milestones/v1.2-ROADMAP.md", "../outside.md");
+  assert.equal(validateMilestoneHistory(escaped).some(({ code }) => code === "PARCHIVE_LINK_ESCAPE"), true);
+
+  const contradiction = historySnapshot();
+  const diagnostic = validateMilestoneHistory(contradiction).find(({ code }) => code === "PHIST_ARCHIVE_STATUS_CONTRADICTION");
+  assert.equal(diagnostic.severity, "warning");
+  assert.match(diagnostic.repair, /EVIDENCE\.md/);
+  assert.doesNotMatch(diagnostic.repair, /edit.*archive/i);
+});
+
+test("milestone diagnostics: five identities preserve unknowns and renderer conclusions stay identical", () => {
+  const snapshot = historySnapshot();
+  const healthyCodes = validateMilestoneHistory(snapshot).map(({ code }) => code);
+  assert.deepEqual(healthyCodes, ["PHIST_ARCHIVE_STATUS_CONTRADICTION", "PIDENT_PUBLICATION_UNKNOWN", "PHIST_PREARCHIVE_EXCEPTION"]);
+  const planning = snapshotFrom();
+  Object.assign(planning, snapshot);
+  planning.documents = { ...snapshotFrom().documents, ...snapshot.documents };
+  const result = evaluatePlanningHealth(planning);
+  const json = JSON.parse(renderJson(result));
+  assert.deepEqual(json.conclusion.diagnosticCodes, result.conclusion.diagnosticCodes);
+  assert.deepEqual(json.diagnostics.map(({ code }) => code), result.diagnostics.map(({ code }) => code));
+  for (const code of healthyCodes) assert.match(renderHuman(result), new RegExp(code));
 });
