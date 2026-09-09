@@ -788,6 +788,14 @@ function validateMilestoneHistory(snapshot) {
       diagnostics.push(historyDiagnostic({ code: "PHIST_INDEX_ENTRY_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "shipped milestone index entry", actual: null, authority: ".planning/ROADMAP.md + .planning/MILESTONES.md", evidence: `ROADMAP advertises ${expected.planningMilestone} as shipped`, repair: `Propose adding ${expected.planningMilestone} to the mutable .planning/MILESTONES.md index from preserved archives.` }));
       continue;
     }
+    const statedPlanningMilestone = inlineValue(fieldFromBlock(block, "Planning milestone"));
+    if (statedPlanningMilestone !== expected.planningMilestone) diagnostics.push(historyDiagnostic({
+      code: "PIDENT_PLANNING_MILESTONE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md",
+      field: `${expected.planningMilestone}.planningMilestone`, expected: expected.planningMilestone,
+      actual: statedPlanningMilestone, authority: ".planning/ROADMAP.md + .planning/MILESTONES.md",
+      evidence: statedPlanningMilestone ? "milestone index identity contradicts its ROADMAP milestone" : "milestone index identity is missing",
+      repair: "Propose correcting the mutable planning-milestone identity after reviewing the ROADMAP and immutable archive.",
+    }));
     const actualPhases = fieldFromBlock(block, "Phases");
     const expectedRange = parsePhaseRange(expected.phases);
     const actualRange = parsePhaseRange(actualPhases);

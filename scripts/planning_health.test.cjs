@@ -501,6 +501,14 @@ test("milestone identity: tag, peeled SHA, package version, and publication rema
   });
 });
 
+test("milestone identity: planning milestone must match the ROADMAP identity", () => {
+  const snapshot = historySnapshot();
+  snapshot.documents[".planning/MILESTONES.md"].content = snapshot.documents[".planning/MILESTONES.md"].content.replace("Planning milestone:** `v1.2`", "Planning milestone:** `v9.9`");
+  const mismatch = validateMilestoneHistory(snapshot).find(({ code }) => code === "PIDENT_PLANNING_MILESTONE_MISMATCH");
+  assert.equal(mismatch.expected, "v1.2");
+  assert.equal(mismatch.actual, "v9.9");
+});
+
 test("git identity collection: for-each-ref failure exits 2 with cause", () => {
   const runner = (_command, args) => {
     assert.equal(args[0], "for-each-ref");
