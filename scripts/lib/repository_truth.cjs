@@ -12,6 +12,7 @@ const REQUIRED_DIAGNOSTIC_FIELDS = [
   "code", "severity", "artifact", "field", "expected", "actual",
   "authority", "evidence", "repair",
 ];
+const SUPPORTED_DISPOSITIONS = new Set(["preserve", "commit", "hand off", "ignore", "repair", "remove"]);
 
 function compareText(left, right) {
   return String(left ?? "").localeCompare(String(right ?? ""), "en", { sensitivity: "variant" });
@@ -304,7 +305,7 @@ function collectRepositorySnapshot(options = {}) {
   return snapshot;
 }
 
-function registryDiagnostics(registry) {
+function registryDiagnostics(registry, acceptedClaims = []) {
   const diagnostics = [];
   if (!registry || registry.schema_version !== SCHEMA_VERSION || !Array.isArray(registry.claims)) {
     diagnostics.push(makeDiagnostic({
@@ -320,22 +321,32 @@ function registryDiagnostics(registry) {
     const missing = required.filter((field) => !claim || claim[field] === null || claim[field] === undefined || claim[field] === "");
     const selector = claim && claim.selector;
     const selectorKeys = selector && typeof selector === "object" ? Object.keys(selector).sort() : [];
-    const dirtySelector = selector && selector.kind === "dirty_path"
+    const dirtySelector = selector && !Array.isArray(selector) && selector.kind === "dirty_path"
       && ["main", "linked"].includes(selector.worktree_role)
       && typeof selector.path === "string" && selector.path.length > 0
       && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "path", "worktree_role"]);
-    const worktreeSelector = selector && ["worktree_lock", "worktree_prunable", "branch_divergence"].includes(selector.kind)
+    const worktreeSelector = selector && !Array.isArray(selector) && ["worktree_lock", "worktree_prunable", "branch_divergence"].includes(selector.kind)
       && typeof selector.worktree_path === "string" && path.isAbsolute(selector.worktree_path)
       && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "worktree_path"]);
     const selectorValid = dirtySelector || worktreeSelector;
-    if (missing.length || !selectorValid || !["low", "medium", "high"].includes(claim && claim.confidence) || Number.isNaN(Date.parse(claim && claim.revisit_at))) {
+    const stringFieldsValid = ["owner", "provenance", "proposed_disposition"]
+      .every((field) => typeof (claim && claim[field]) === "string" && claim[field].trim().length > 0);
+    const date = claim && claim.revisit_at;
+    const dateValid = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      && Number.isFinite(Date.parse(`${date}T00:00:00.000Z`))
+      && new Date(`${date}T00:00:00.000Z`).toISOString().slice(0, 10) === date;
+    const valid = missing.length === 0 && selectorValid && stringFieldsValid
+      && ["low", "medium", "high"].includes(claim && claim.confidence)
+      && SUPPORTED_DISPOSITIONS.has(claim && claim.proposed_disposition)
+      && dateValid;
+    if (!valid) {
       diagnostics.push(makeDiagnostic({
         code: "RINV_CLAIM_INVALID", severity: "error", artifact: `.planning/repository-ownership.json#claims[${index}]`,
         field: "claim", expected: "complete exact selector and evidence metadata", actual: claim ?? null,
-        authority: ".planning/repository-ownership.json", evidence: missing.length ? `missing fields: ${missing.join(", ")}` : "invalid selector, confidence, or revisit date",
+        authority: ".planning/repository-ownership.json", evidence: missing.length ? `missing fields: ${missing.join(", ")}` : "invalid selector, metadata type, disposition, confidence, or revisit date",
         repair: "Replace the claim with a reviewed exact claim; do not broaden the selector.", incomplete: true,
       }));
-    }
+    } else acceptedClaims.push(claim);
   });
   return diagnostics;
 }
@@ -351,8 +362,8 @@ function selectorMatches(selector, observation) {
 function evaluateRepositoryInventory(snapshot, registry, options = {}) {
   const diagnostics = [];
   const dispositions = [];
-  const validRegistry = registry && registry.schema_version === SCHEMA_VERSION && Array.isArray(registry.claims);
-  diagnostics.push(...registryDiagnostics(registry));
+  const acceptedClaims = [];
+  diagnostics.push(...registryDiagnostics(registry, acceptedClaims));
   const observedAt = new Date(snapshot && snapshot.generatedAt ? snapshot.generatedAt : (options.now ? options.now() : new Date())).getTime();
 
   if (!snapshot || !snapshot.repository || !Array.isArray(snapshot.worktrees) || !Array.isArray(snapshot.collectionErrors)) {
@@ -372,7 +383,7 @@ function evaluateRepositoryInventory(snapshot, registry, options = {}) {
   }
 
   function classifyObservation(observation) {
-    const matching = validRegistry ? registry.claims.filter((claim) => selectorMatches(claim && claim.selector, observation)) : [];
+    const matching = acceptedClaims.filter((claim) => selectorMatches(claim.selector, observation));
     const { artifact } = observation;
     if (matching.length > 1) {
       dispositions.push({ artifact, kind: observation.kind, state: "ambiguous", proposed_disposition: null, claims: matching.map((claim) => structuredClone(claim)) });

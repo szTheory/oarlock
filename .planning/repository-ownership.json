@@ -23,7 +23,7 @@
       "provenance": "Phase 31 planning invocation on 2026-09-09 identified this contradictory planning mirror as pre-existing user-owned state",
       "confidence": "high",
       "revisit_at": "2026-10-09",
-      "proposed_disposition": "preserve pending consumer audit"
+      "proposed_disposition": "preserve"
     },
     {
       "selector": {

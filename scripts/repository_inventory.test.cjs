@@ -186,6 +186,29 @@ test("same result: unknown and overlapping ownership fail closed", () => {
   assert.ok(ambiguous.diagnostics.some(({ code }) => code === "RINV_AMBIGUOUS_CLAIM"));
 });
 
+test("ownership registry: invalid claims cannot classify observations", () => {
+  const snapshot = {
+    schemaVersion: 1,
+    generatedAt: "2026-09-09T00:00:00.000Z",
+    repository: { root: "/fixture", commonDir: "/fixture/.git" },
+    worktrees: [{
+      path: "/fixture", role: "main", head: "b".repeat(40), branch: "main",
+      upstream: null, ahead: null, behind: null, detached: false, bare: false,
+      lock: null, prunable: null, processEvidence: null,
+      dirty: [{ kind: "untracked", path: "unknown.txt", originalPath: null, index: "?", worktree: "?" }],
+      collectionErrors: [],
+    }],
+    collectionErrors: [],
+  };
+  const malformed = registryFor(["unknown.txt"]);
+  malformed.claims[0].owner = { name: "not a string" };
+  malformed.claims[0].proposed_disposition = { action: "preserve" };
+  const result = evaluateRepositoryInventory(snapshot, malformed);
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_CLAIM_INVALID"));
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_UNKNOWN_STATE"));
+  assert.equal(result.dispositions[0].state, "unknown");
+});
+
 test("read-only: both CLI formats preserve repository bytes", (t) => {
   const root = makeRepository(t);
   fs.appendFileSync(path.join(root, "tracked.txt"), "dirty\n");
