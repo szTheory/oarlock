@@ -26,8 +26,8 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 
 Phase: 31 of 36 (Repository & Planning Truth)
 Plan: Not planned
-Status: Roadmap created; awaiting approval
-Last activity: 2026-09-09 — Mapped all 29 committed v2.2 requirements to Phases 31-36
+Status: Roadmap approved; Phase 31 ready for discussion and planning
+Last activity: 2026-09-09 — Approved the 29-requirement v2.2 roadmap across Phases 31-36
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -51,7 +51,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Pending Todos
 
-- Approve or revise the v2.2 roadmap.
 - Plan Phase 31 after approval.
 
 ### Blockers/Concerns
@@ -73,9 +72,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 ## Session Continuity
 
 Last session: 2026-09-09
-Stopped at: v2.2 roadmap created and ready for user review
+Stopped at: v2.2 milestone initialized; Phase 31 ready for discussion or planning
 Resume file: None
 
 ## Operator Next Steps
 
-- Approve the roadmap, then run `$gsd-plan-phase 31`.
+- Run `$gsd-discuss-phase 31` to gather implementation context, or
+  `$gsd-plan-phase 31` to plan directly.
