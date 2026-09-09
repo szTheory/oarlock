@@ -703,6 +703,58 @@ function listPhaseArtifacts(root) {
   return artifacts.sort(compareText);
 }
 
+function phaseArtifactContents(root, artifacts, options, snapshot) {
+  const contents = {};
+  for (const relativePath of artifacts) {
+    if (!/(?:-PLAN|-SUMMARY|-VERIFICATION)\.md$|\/VALIDATION\.md$/.test(relativePath)) continue;
+    try {
+      const record = readPlanningFile(root, relativePath, options, snapshot);
+      contents[relativePath] = record.content;
+      snapshot.artifactIdentities[relativePath] = record.identity;
+    } catch (error) {
+      snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: relativePath, field: "content", expected: "bounded regular in-repository file", actual: null, evidence: error.message, incomplete: true });
+    }
+  }
+  return contents;
+}
+
+function verifyPlanningConsistency(root, snapshot, options) {
+  if (typeof options.beforeConsistencyCheck === "function") options.beforeConsistencyCheck(snapshot);
+  const identities = [
+    ...Object.entries(snapshot.documents).map(([relativePath, record]) => [relativePath, record.identity]),
+    ...Object.entries(snapshot.artifactIdentities),
+    ...(snapshot.mirror.exists && snapshot.mirror.identity ? [[".planning/state.json", snapshot.mirror.identity]] : []),
+  ];
+  for (const [relativePath, initialIdentity] of identities) {
+    let finalIdentity = null;
+    try {
+      const stat = fs.lstatSync(path.resolve(root, relativePath));
+      if (stat.isSymbolicLink() || !stat.isFile()) throw new Error("source is no longer a regular file");
+      finalIdentity = identityFor(stat);
+    } catch (error) {
+      snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: null, evidence: error.message, incomplete: true });
+      continue;
+    }
+    if (!sameIdentity(initialIdentity, finalIdentity) && !snapshot.collectionErrors.some((error) => error.code === "PSCOPE_SNAPSHOT_CHANGED" && error.artifact === relativePath)) {
+      snapshot.collectionErrors.push({ code: "PSCOPE_SNAPSHOT_CHANGED", artifact: relativePath, field: "identity", expected: initialIdentity, actual: finalIdentity, evidence: "source identity changed before the whole-snapshot consistency check", incomplete: true });
+    }
+  }
+}
+
+function collectMirror(root, options, snapshot) {
+  const relativePath = ".planning/state.json";
+  const absolute = path.join(root, relativePath);
+  const consumerEvidence = Array.isArray(options.mirrorConsumerEvidence) ? [...options.mirrorConsumerEvidence] : [];
+  if (!fs.existsSync(absolute)) return { exists: false, content: null, identity: null, consumerEvidence };
+  try {
+    const record = readPlanningFile(root, relativePath, options, snapshot);
+    return { exists: true, content: record.content, identity: record.identity, consumerEvidence };
+  } catch (error) {
+    snapshot.collectionErrors.push({ code: "PMIRROR_UNREADABLE", artifact: relativePath, field: "content", expected: "bounded regular disposable mirror", actual: null, evidence: error.message, incomplete: true });
+    return { exists: true, content: null, identity: null, consumerEvidence };
+  }
+}
+
 function collectGsdCorroboration(root, options) {
   if (options.collectCorroboration === false) return [];
   if (Array.isArray(options.corroboration)) return structuredClone(options.corroboration);
@@ -727,6 +779,8 @@ function collectPlanningSnapshot(root, options = {}) {
     generatedAt: (settings.now ? settings.now() : new Date()).toISOString(),
     documents: {},
     phaseArtifacts: [],
+    artifactContents: {},
+    artifactIdentities: {},
     corroboration: [],
     mirror: { exists: false, content: null, identity: null, consumerEvidence: [] },
     collectionErrors: [],
@@ -740,16 +794,149 @@ function collectPlanningSnapshot(root, options = {}) {
   }
   try {
     snapshot.phaseArtifacts = listPhaseArtifacts(resolvedRoot);
+    snapshot.artifactContents = phaseArtifactContents(resolvedRoot, snapshot.phaseArtifacts, settings, snapshot);
   } catch (error) {
     snapshot.collectionErrors.push({ code: "PAUTH_SOURCE_UNREADABLE", artifact: ".planning/phases", field: "artifact names", expected: "readable directory", actual: null, evidence: error.message, incomplete: true });
   }
+  snapshot.mirror = collectMirror(resolvedRoot, settings, snapshot);
   snapshot.corroboration = collectGsdCorroboration(resolvedRoot, settings);
+  verifyPlanningConsistency(resolvedRoot, snapshot, settings);
   return snapshot;
+}
+
+function artifactForPlan(snapshot, planFile, suffix) {
+  const target = planFile.replace(/-PLAN\.md$/, suffix);
+  return (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${target}`)) || null;
+}
+
+function completionDiagnostic(code, artifact, field, expected, actual, authority, evidence, repair) {
+  return diagnostic({ code, severity: "error", artifact, field, expected, actual, authority, evidence, repair });
+}
+
+function validateCompletionProof(snapshot, phaseNumber) {
+  const diagnostics = [];
+  const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
+  const requirements = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
+  const evidence = planningDocument(snapshot, ".planning/EVIDENCE.md");
+  const phase = roadmap.phases.find(({ number }) => number === String(phaseNumber));
+  if (!phase || !phase.complete) diagnostics.push(completionDiagnostic(
+    "PCOMP_ROADMAP_NOT_ACCEPTED", ".planning/ROADMAP.md", "phase acceptance", "checked accepted phase", phase ? "not accepted" : "missing phase",
+    ".planning/ROADMAP.md", `Phase ${phaseNumber} lacks explicit ROADMAP acceptance`, "Propose a ROADMAP acceptance patch only after all proof links pass.",
+  ));
+
+  for (const plan of phase ? phase.plans : []) {
+    const expectedSummary = plan.file.replace(/-PLAN\.md$/, "-SUMMARY.md");
+    const summaryArtifact = artifactForPlan(snapshot, plan.file, "-SUMMARY.md");
+    if (!summaryArtifact) {
+      const phaseDirectory = (snapshot.phaseArtifacts || []).find((artifact) => artifact.includes(`/phases/${phaseNumber}-`));
+      const expectedArtifact = phaseDirectory ? `${phaseDirectory.slice(0, phaseDirectory.lastIndexOf("/"))}/${expectedSummary}` : `.planning/phases/${phaseNumber}/${expectedSummary}`;
+      diagnostics.push(completionDiagnostic(
+        "PCOMP_SUMMARY_MISSING", `.planning/phases/${phaseNumber}`, "plan summary", expectedSummary, expectedArtifact,
+        ".planning/ROADMAP.md + phase plan set", `Declared plan ${plan.file} has no corresponding summary`, "Propose executing the declared plan and writing its canonical summary; presence is not synthesized.",
+      ));
+      continue;
+    }
+    const summaryContent = snapshot.artifactContents && snapshot.artifactContents[summaryArtifact];
+    if (!summaryContent || !/^status:\s*complete\s*$/mi.test(summaryContent)) diagnostics.push(completionDiagnostic(
+      "PCOMP_SUMMARY_UNPROVEN", summaryArtifact, "summary status", "frontmatter status: complete", summaryContent ? "missing complete status" : "unread content",
+      summaryArtifact, `Summary filename exists for ${plan.file} but does not carry substantive completion metadata`, "Propose correcting the summary only after re-running its verification.",
+    ));
+  }
+
+  const verificationArtifact = (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${phaseNumber}-VERIFICATION.md`))
+    || (snapshot.phaseArtifacts || []).find((artifact) => artifact.includes(`/phases/${phaseNumber}-`) && artifact.endsWith("/VALIDATION.md"));
+  const verificationContent = verificationArtifact && snapshot.artifactContents ? snapshot.artifactContents[verificationArtifact] : "";
+  const verificationPassed = /^(?:status|result|verdict):\s*(?:pass|passed|complete|verified)\s*$/mi.test(verificationContent || "");
+  const acknowledgedCaveat = new RegExp(`Phase\\s+${String(phaseNumber).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:accepted|acknowledged)[^\\n]*caveat`, "i").test(evidence);
+  if (!verificationArtifact) diagnostics.push(completionDiagnostic(
+    "PCOMP_VERIFICATION_MISSING", `.planning/phases/${phaseNumber}`, "phase verification", `${phaseNumber}-VERIFICATION.md or classified caveat`, null,
+    ".planning/EVIDENCE.md + phase verification", "No phase verification artifact or explicitly classified caveat was found", "Propose running phase verification and recording its result in EVIDENCE.md.",
+  ));
+  else if (!verificationPassed && !acknowledgedCaveat) diagnostics.push(completionDiagnostic(
+    "PCOMP_VERIFICATION_UNPROVEN", verificationArtifact, "verification status", "explicit pass or classified acknowledged caveat", "filename present without passing content",
+    ".planning/EVIDENCE.md + phase verification", "Verification artifact presence alone does not prove success", "Propose re-running verification and recording an explicit status or reviewed caveat.",
+  ));
+
+  const requirementById = new Map(requirements.requirements.map((entry) => [entry.id, entry]));
+  const traceById = new Map(requirements.traceability.map((entry) => [entry.id, entry]));
+  for (const requirementId of phase ? phase.requirements : []) {
+    const requirement = requirementById.get(requirementId);
+    const trace = traceById.get(requirementId);
+    const linked = new RegExp(`\\b${requirementId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(evidence)
+      && (new RegExp(`\\b${requirementId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(verificationContent || "") || acknowledgedCaveat);
+    if (!requirement || !requirement.complete || !trace || trace.phase !== String(phaseNumber) || !/^complete$/i.test(trace.status) || !linked) {
+      diagnostics.push(completionDiagnostic(
+        "PCOMP_REQUIREMENT_UNLINKED", ".planning/REQUIREMENTS.md + .planning/EVIDENCE.md", requirementId,
+        { committed: true, complete: true, phase: String(phaseNumber), evidence: true },
+        { committed: Boolean(requirement), complete: Boolean(requirement && requirement.complete), phase: trace && trace.phase, status: trace && trace.status, evidence: linked },
+        ".planning/REQUIREMENTS.md + .planning/EVIDENCE.md", `${requirementId} is not linked through committed scope, traceability, and proof`,
+        "Propose completing or correcting the requirement/evidence linkage after proof review.",
+      ));
+    }
+  }
+  return diagnostics.sort((left, right) => compareText(left.code, right.code) || compareText(left.field, right.field));
+}
+
+function activeArtifactDiagnostics(snapshot, activeScope) {
+  if (!activeScope.active || !activeScope.phase) return [];
+  const diagnostics = [];
+  for (const plan of activeScope.phase.plans) {
+    const planArtifact = (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${plan.file}`));
+    if (!planArtifact) diagnostics.push(diagnostic({
+      code: "PSCOPE_ACTIVE_PLAN_MISSING", severity: "error", artifact: `.planning/phases/${activeScope.phase.number}`, field: "declared plan",
+      expected: plan.file, actual: null, authority: ".planning/ROADMAP.md", evidence: `Active ROADMAP phase declares ${plan.file}, but the bounded phase inventory cannot find it`,
+      repair: "Propose restoring the referenced plan or correcting the ROADMAP declaration; do not route from other files.",
+    }));
+    const summary = artifactForPlan(snapshot, plan.file, "-SUMMARY.md");
+    if (!plan.complete && summary) diagnostics.push(diagnostic({
+      code: "PSCOPE_STALE_ACTIVE_SUMMARY", severity: "warning", artifact: summary, field: "plan status",
+      expected: "ROADMAP plan checked before summary contributes completion evidence", actual: "summary present for unchecked plan",
+      authority: ".planning/ROADMAP.md", evidence: "Summary presence is inert and cannot complete its plan",
+      repair: "Review the plan proof and propose a ROADMAP status patch or retire the stale summary.",
+    }));
+  }
+  return diagnostics;
+}
+
+function mirrorDiagnostics(snapshot, activeScope) {
+  const mirror = snapshot && snapshot.mirror;
+  if (!mirror || !mirror.exists) return [];
+  if (!Array.isArray(mirror.consumerEvidence) || mirror.consumerEvidence.length === 0) return [diagnostic({
+    code: "PMIRROR_NO_CONSUMER", severity: "warning", artifact: ".planning/state.json", field: "disposition",
+    expected: "demonstrated repository-file consumer or no mirror", actual: "mirror present without demonstrated consumer",
+    authority: ".planning/STATE.md + .planning/ROADMAP.md", evidence: "Repository and installed-runtime searches found no code path that reads this file as input",
+    repair: "Propose an explicit ignore or remove action for the disposable mirror; this command does not apply either action.",
+  })];
+  let value;
+  try {
+    value = JSON.parse(mirror.content);
+  } catch (error) {
+    return [diagnostic({
+      code: "PMIRROR_METADATA_INVALID", severity: "error", artifact: ".planning/state.json", field: "schema",
+      expected: { contract: "1.0.0", flavor: "core" }, actual: null, authority: "installed GSD state contract",
+      evidence: error.message, repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
+    })];
+  }
+  if (value.contract !== "1.0.0" || value.flavor !== "core" || !Array.isArray(value.phases)) return [diagnostic({
+    code: "PMIRROR_METADATA_INVALID", severity: "error", artifact: ".planning/state.json", field: "schema",
+    expected: { contract: "1.0.0", flavor: "core", phases: "array" }, actual: { contract: value.contract, flavor: value.flavor, phases: Array.isArray(value.phases) ? "array" : typeof value.phases },
+    authority: "installed GSD state contract", evidence: mirror.consumerEvidence.join("; "),
+    repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
+  })];
+  const expectedMilestone = activeScope.active && activeScope.active.milestone;
+  if (expectedMilestone && !String(value.milestone || "").startsWith(expectedMilestone)) return [diagnostic({
+    code: "PMIRROR_CONTENT_MISMATCH", severity: "error", artifact: ".planning/state.json", field: "milestone",
+    expected: expectedMilestone, actual: value.milestone || null, authority: ".planning/ROADMAP.md + .planning/STATE.md",
+    evidence: mirror.consumerEvidence.join("; "), repair: "Propose atomically regenerating the disposable mirror from canonical Markdown owners.",
+  })];
+  return [];
 }
 
 function evaluatePlanningHealth(snapshot) {
   const activeScope = resolveActiveScope(snapshot);
-  const diagnostics = [...activeScope.diagnostics];
+  const diagnostics = [...activeScope.diagnostics, ...activeArtifactDiagnostics(snapshot, activeScope), ...mirrorDiagnostics(snapshot, activeScope)];
+  const completionClaimed = activeScope.phase && (activeScope.phase.complete || activeScope.state.status === "complete");
+  if (completionClaimed) diagnostics.push(...validateCompletionProof(snapshot, activeScope.phase.number));
   for (const error of Array.isArray(snapshot && snapshot.collectionErrors) ? snapshot.collectionErrors : []) {
     diagnostics.push(diagnostic({
       code: error.code, severity: "error", artifact: error.artifact, field: error.field,
@@ -826,4 +1013,5 @@ module.exports = {
   renderHuman,
   renderJson,
   resolveActiveScope,
+  validateCompletionProof,
 };

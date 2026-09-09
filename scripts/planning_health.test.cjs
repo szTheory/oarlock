@@ -181,6 +181,21 @@ test("diagnostic completion: unsupported completion links produce distinct block
   assert.match(missing.repair, /propose/i);
 });
 
+test("diagnostic stale active artifacts and broken current references remain actionable", () => {
+  const snapshot = snapshotFrom();
+  snapshot.phaseArtifacts = snapshot.phaseArtifacts.filter((name) => !name.endsWith("31-02-PLAN.md"));
+  snapshot.phaseArtifacts.push(".planning/phases/31-repository-truth/31-02-SUMMARY.md");
+  snapshot.artifactContents = {
+    ".planning/phases/31-repository-truth/31-02-SUMMARY.md": "---\nstatus: complete\n---\n",
+  };
+  const result = evaluatePlanningHealth(snapshot);
+  const records = Object.fromEntries(result.diagnostics.map((item) => [item.code, item]));
+  assert.equal(records.PSCOPE_ACTIVE_PLAN_MISSING.severity, "error");
+  assert.equal(records.PSCOPE_STALE_ACTIVE_SUMMARY.severity, "warning");
+  assert.match(records.PSCOPE_ACTIVE_PLAN_MISSING.repair, /propose/i);
+  assert.equal(result.conclusion.exitCode, 1);
+});
+
 test("state.json: mirror never influences authority and no consumer yields proposal only", () => {
   const snapshot = snapshotFrom();
   snapshot.mirror = {
