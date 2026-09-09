@@ -32,10 +32,25 @@ oarlock now exposes a typed, documented, and resilient consumer surface includin
   MockServer-backed LiveView and PhoenixTest proof for checkout and customer
   portal handoffs.
 
-## Current Milestone
+## Current Milestone: v2.2 Trust, Coverage & Green Delivery
 
-No active milestone. The next milestone should be selected from the active
-backlog, evidence ledger, and Accrue consumption needs.
+**Goal:** Establish a trustworthy, secure, clean, and fast development
+foundation while creating a durable, provenance-backed map of the library's
+relevant personas, jobs, coverage, and future trajectory.
+
+**Target features:**
+- Repository and planning truth: classify existing dirty state, reconcile
+  archives and milestone history, and prevent stale artifacts from presenting
+  shipped work as active work.
+- Green delivery: exact-SHA main-branch proof, fast deterministic CI, release
+  gating, clean worktrees, reviewable PRs, ownership, and triage conventions.
+- Trustworthy SDK core: close known telemetry, secret-redaction,
+  retry/idempotency, client-validation, compatibility, and documentation-truth
+  gaps before expanding endpoint breadth.
+- Durable orientation: map personas and JTBD to capabilities, gaps,
+  requirements, evidence, provenance, ownership, and explicit non-goals; keep
+  short-, mid-, and long-term horizons discoverable as committed, candidate,
+  or conditional work.
 
 <details>
 <summary>v1.5 Demo App & DX Hardening (Shipped 2026-06-11)</summary>
@@ -80,9 +95,17 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ## Next Milestone Goals
 
-- Select the next consumer-driven slice with `$gsd-new-milestone`.
-- Prefer Accrue consumption or offline fidelity only where there is a real adopter job.
-- Keep broad Paddle endpoint expansion demand-driven rather than mirroring the API.
+- **Short term (committed in v2.2):** restore repository, planning, SDK safety,
+  CI/CD, PR, release, and worktree trust; establish the canonical JTBD and
+  provenance model.
+- **Mid term (candidate):** operational customer/transaction discovery,
+  quote-before-mutate workflows, and bounded causal MockServer/provider proof,
+  prioritized by adopter evidence.
+- **Long term (conditional):** real packaged Accrue adoption, demand-backed
+  B2B/manual-collection capabilities, and public-contract graduation with
+  explicit compatibility and release guarantees.
+- Future milestone discovery may revise these horizons, but must preserve the
+  source evidence, rationale, status changes, and reopen/promotion conditions.
 
 ## Requirements
 
@@ -130,8 +153,12 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ### Active
 
-- [ ] Next-milestone requirements definition.
-- [ ] Hosted GitHub Actions exact-SHA proof after push or PR, if release proof is required for the next external handoff.
+- [ ] Repository and planning state are reconciled without losing existing user work or historical evidence.
+- [ ] Remote `main` is green and synchronized through reviewable changes with exact-SHA evidence.
+- [ ] CI, release, PR, triage, and worktree workflows enforce fast, clean, reproducible delivery.
+- [ ] Known SDK safety and contract-truth gaps are fixed before adding broad endpoint surface.
+- [ ] Relevant personas and JTBD have a canonical coverage and provenance map.
+- [ ] Short-, mid-, and long-term development horizons remain discoverable without presenting candidates as commitments.
 
 ### Out of Scope
 - **Paddle Classic Support**: Must only support Paddle Billing API v1.
@@ -167,5 +194,22 @@ superseded, or historical backlog entries are preserved in
 classified in `.planning/EVIDENCE.md`, and recurring GSD planning preferences
 are documented in `.planning/GSD-PREFERENCES.md`.
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `$gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `$gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-06-25 after v2.1 milestone completion*
+*Last updated: 2026-09-09 after starting milestone v2.2*
