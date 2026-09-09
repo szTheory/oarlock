@@ -11,6 +11,7 @@ const {
   collectPlanningSnapshot,
   evaluatePlanningHealth,
   parseCommittedRequirements,
+  parsePhaseRange,
   resolveActiveScope,
   renderHuman,
   renderJson,
@@ -408,6 +409,37 @@ test("milestone archive: missing, mutable, contradictory, and escaped history ed
   assert.equal(diagnostic.severity, "warning");
   assert.match(diagnostic.repair, /EVIDENCE\.md/);
   assert.doesNotMatch(diagnostic.repair, /edit.*archive/i);
+});
+
+test("exact phase range: 8-13 does not match 18-130", () => {
+  assert.deepEqual(parsePhaseRange("8-13"), { start: "8", end: "13", normalized: "8-13" });
+  assert.deepEqual(parsePhaseRange("8.1 - 13.20"), { start: "8.1", end: "13.20", normalized: "8.1-13.20" });
+  for (const invalid of [null, "", "18-130 trailing", "prefix 8-13", "8-13-14", "13-8", "8..1-13", "8-"]) {
+    assert.equal(parsePhaseRange(invalid), null, String(invalid));
+  }
+
+  const mismatch = historySnapshot();
+  mismatch.documents[".planning/MILESTONES.md"].content = mismatch.documents[".planning/MILESTONES.md"].content.replace("**Phases:** 8-13", "**Phases:** 18-130");
+  const diagnostics = validateMilestoneHistory(mismatch).filter(({ code }) => code === "PHIST_PHASE_RANGE_MISMATCH");
+  assert.equal(diagnostics.length, 1);
+  assert.deepEqual(diagnostics[0].expected, { start: "8", end: "13" });
+  assert.deepEqual(diagnostics[0].actual, { start: "18", end: "130" });
+  assert.equal(diagnostics[0].authority, ".planning/ROADMAP.md");
+  assert.match(diagnostics[0].repair, /only the mutable milestone index/i);
+});
+
+test("exact phase range: equal decimal endpoints pass and malformed fields fail", () => {
+  const decimalRoadmap = `# Roadmap\n\n## Milestones\n\n- ✅ **v1.2 Production Surface** — Phases 8.1-13.20 (shipped 2026-06-09) — [archive](milestones/v1.2-ROADMAP.md)\n`;
+  const decimal = historySnapshot();
+  decimal.documents[".planning/ROADMAP.md"].content = decimalRoadmap;
+  decimal.documents[".planning/MILESTONES.md"].content = decimal.documents[".planning/MILESTONES.md"].content.replace("**Phases:** 8-13", "**Phases:** 8.1 - 13.20");
+  assert.equal(validateMilestoneHistory(decimal).some(({ code }) => code === "PHIST_PHASE_RANGE_MISMATCH"), false);
+
+  for (const invalid of ["prefix 8.1-13.20", "8.1-13.20 trailing", "8.1-13.20-14", "13.20-8.1"]) {
+    const snapshot = historySnapshot();
+    snapshot.documents[".planning/MILESTONES.md"].content = snapshot.documents[".planning/MILESTONES.md"].content.replace("**Phases:** 8-13", `**Phases:** ${invalid}`);
+    assert.equal(validateMilestoneHistory(snapshot).filter(({ code }) => code === "PHIST_PHASE_RANGE_MISMATCH").length, 1, invalid);
+  }
 });
 
 test("milestone diagnostics: five identities preserve unknowns and renderer conclusions stay identical", () => {
