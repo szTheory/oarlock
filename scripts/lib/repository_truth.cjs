@@ -750,6 +750,39 @@ function validateMilestoneHistory(snapshot) {
   const tagCollectionFailed = (snapshot.collectionErrors || []).some(({ code }) => code === "PIDENT_TAG_COLLECTION_FAILED");
 
   for (const expected of roadmap) {
+    if (!expected.preArchive) {
+      const field = `${expected.planningMilestone}.roadmapArchiveLink`;
+      const roadmapBase = path.join(snapshot.root, ".planning");
+      const resolved = expected.roadmapLink ? path.resolve(roadmapBase, expected.roadmapLink) : null;
+      const root = path.resolve(snapshot.root);
+      const target = resolved && (resolved === root || resolved.startsWith(`${root}${path.sep}`))
+        ? path.relative(root, resolved).split(path.sep).join("/")
+        : null;
+      if (!expected.roadmapLink) diagnostics.push(historyDiagnostic({
+        code: "PARCHIVE_LINK_MISSING", severity: "error", artifact: ".planning/ROADMAP.md", field,
+        expected: `milestones/${expected.planningMilestone}-ROADMAP.md`, actual: null,
+        authority: ".planning/ROADMAP.md + immutable archives", evidence: "shipped ROADMAP entry has no archive target",
+        repair: "Propose linking the shipped entry to its tracked immutable roadmap archive.",
+      }));
+      else if (!target) diagnostics.push(historyDiagnostic({
+        code: "PARCHIVE_LINK_ESCAPE", severity: "error", artifact: ".planning/ROADMAP.md", field,
+        expected: "repository-bounded immutable archive", actual: expected.roadmapLink,
+        authority: ".planning/ROADMAP.md", evidence: "normalized ROADMAP archive link escapes the repository root",
+        repair: "Propose a ROADMAP-relative immutable archive link; do not follow the escaped target.",
+      }));
+      else if (!target.startsWith(".planning/milestones/")) diagnostics.push(historyDiagnostic({
+        code: "PARCHIVE_MUTABLE_LINK", severity: "error", artifact: ".planning/ROADMAP.md", field,
+        expected: ".planning/milestones/* immutable snapshot", actual: target,
+        authority: ".planning/ROADMAP.md", evidence: "shipped ROADMAP navigation does not target the immutable milestone namespace",
+        repair: "Propose redirecting the shipped entry to its tracked frozen roadmap archive.",
+      }));
+      else if (!archivePaths.has(target)) diagnostics.push(historyDiagnostic({
+        code: "PARCHIVE_LINK_BROKEN", severity: "error", artifact: ".planning/ROADMAP.md", field,
+        expected: "existing tracked roadmap archive", actual: target,
+        authority: ".planning/ROADMAP.md + immutable archives", evidence: "ROADMAP archive target is absent from the bounded snapshot",
+        repair: "Propose correcting the shipped entry to an existing tracked archive.",
+      }));
+    }
     const block = blocks.get(expected.planningMilestone);
     if (!block) {
       diagnostics.push(historyDiagnostic({ code: "PHIST_INDEX_ENTRY_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "shipped milestone index entry", actual: null, authority: ".planning/ROADMAP.md + .planning/MILESTONES.md", evidence: `ROADMAP advertises ${expected.planningMilestone} as shipped`, repair: `Propose adding ${expected.planningMilestone} to the mutable .planning/MILESTONES.md index from preserved archives.` }));

@@ -573,6 +573,16 @@ test("milestone archive: missing, mutable, contradictory, and escaped history ed
   assert.doesNotMatch(diagnostic.repair, /edit.*archive/i);
 });
 
+test("milestone archive: shipped ROADMAP links are independently bounded and verified", () => {
+  const escaped = historySnapshot();
+  escaped.documents[".planning/ROADMAP.md"].content = escaped.documents[".planning/ROADMAP.md"].content.replace("milestones/v1.2-ROADMAP.md", "../../outside.md");
+  assert.ok(validateMilestoneHistory(escaped).some(({ code, artifact }) => code === "PARCHIVE_LINK_ESCAPE" && artifact === ".planning/ROADMAP.md"));
+
+  const broken = historySnapshot();
+  broken.documents[".planning/ROADMAP.md"].content = broken.documents[".planning/ROADMAP.md"].content.replace("milestones/v1.2-ROADMAP.md", "milestones/v1.2-MISSING.md");
+  assert.ok(validateMilestoneHistory(broken).some(({ code, artifact }) => code === "PARCHIVE_LINK_BROKEN" && artifact === ".planning/ROADMAP.md"));
+});
+
 test("exact phase range: 8-13 does not match 18-130", () => {
   assert.deepEqual(parsePhaseRange("8-13"), { start: "8", end: "13", normalized: "8-13" });
   assert.deepEqual(parsePhaseRange("8.1 - 13.20"), { start: "8.1", end: "13.20", normalized: "8.1-13.20" });
