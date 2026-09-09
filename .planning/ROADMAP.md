@@ -44,7 +44,7 @@ remain guidance and require explicit promotion through a later discovery cycle.
   3. Maintainer can navigate a continuous milestone history whose shipped status, phase range, archive links, planning identifiers, and package-version semantics agree.
   4. Maintainer can run a non-mutating planning-health check and receive actionable failures for stale active artifacts, broken references, archive contradictions, or completion claims without proof.
 
-**Plans**: 3/3 plans executed
+**Plans**: 5 plans (3 executed, 2 gap closure)
 
 Plans:
 **Wave 1**
@@ -58,6 +58,14 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 31-03-PLAN.md — Immutable milestone-history validation and additive reconciliation.
+
+**Wave 4** *(gap closure; blocked on Wave 3 completion)*
+
+- [ ] 31-04-PLAN.md — Repository-bounded planning and ownership source reads with fail-closed diagnostics.
+
+**Wave 5** *(gap closure; blocked on Wave 4 completion)*
+
+- [ ] 31-05-PLAN.md — Canonical completion proof, exact phase ranges, and causal Git identity collection failures.
 
 ### Phase 32: Dependency & SDK Trust Boundary
 
