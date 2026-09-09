@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
 status: executing
-stopped_at: Completed 31-03-PLAN.md
-last_updated: "2026-09-09T20:32:45.268Z"
+stopped_at: Completed 31-04-PLAN.md
+last_updated: "2026-09-09T20:54:27.253Z"
 last_activity: 2026-09-09
 last_activity_desc: Phase 31 execution started
-state_head: 55e909d514b00ef59a61261b172ff1b1368b22d9
+state_head: f2062249972082b43a523696a0871e3b003ee273
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 31 (Repository & Planning Truth) — READY TO EXECUTE
-Plan: 3 of 3
+Phase: 31 (Repository & Planning Truth) — EXECUTING
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-09-09 — Phase 31 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [░░░░░░░░░░] 0%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 0
+- Plans completed: 4
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 31 P01 | 18min | 2 tasks | 4 files |
 | Phase 31 P02 | 14min | 2 tasks | 4 files |
 | Phase 31 P03 | 12min | 2 tasks | 4 files |
+| Phase 31 P04 | 9min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 31]: Milestone, tag, peeled source SHA, tagged mix.exs package declaration, and publication status remain separately sourced identities; unknown is never inferred.
 - [Phase 31]: Frozen archive contradictions produce warnings and dated EVIDENCE corrections, while only the mutable MILESTONES index is repaired.
 - [Phase 31]: v1.0 remains an explicit pre-archive exception and v1.5 retains an explicit missing-local-tag caveat.
+- [Phase 31]: Every authoritative repository file is accepted only after resolved containment, regular-file checks, bounded same-descriptor reads, and stable identity agree.
+- [Phase 31]: Unsafe ownership sources remain unknown and emit redacted incomplete diagnostics without rejected payload bytes.
+- [Phase 31]: Phase and milestone traversal validates the repository boundary before enumerating candidate artifacts.
 
 ### Pending Todos
 
@@ -91,8 +95,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-09T19:41:22.268Z
-Stopped at: Completed 31-03-PLAN.md
+Last session: 2026-09-09T20:54:27.241Z
+Stopped at: Completed 31-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
