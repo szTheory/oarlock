@@ -1133,6 +1133,41 @@ function completionDiagnostic(code, artifact, field, expected, actual, authority
   return diagnostic({ code, severity: "error", artifact, field, expected, actual, authority, evidence, repair });
 }
 
+function tableRowsFor(markdown, id) {
+  return String(markdown || "").split(/\r?\n/).flatMap((line) => {
+    if (!/^\s*\|.*\|\s*$/.test(line)) return [];
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    return cells[0] === id ? [cells] : [];
+  });
+}
+
+function acceptedProofRow(markdown, id, verificationArtifact) {
+  const rows = tableRowsFor(markdown, id);
+  if (rows.length !== 1) return false;
+  const cells = rows[0].slice(1);
+  const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
+  const accepted = /^(?:pass(?:ed)?|complete(?:d)?|accepted|verified)$/i;
+  if (cells.some((cell) => negative.test(cell)) || !cells.some((cell) => accepted.test(cell))) return false;
+  const expectedBasename = path.posix.basename(verificationArtifact || "");
+  return cells.some((cell) => {
+    const candidates = [...cell.matchAll(/`([^`]+)`|\[[^\]]+\]\(([^)]+)\)|((?:\.?\.?\/)?[^\s;,|]+\.md)\b/g)]
+      .map((match) => match[1] || match[2] || match[3]);
+    return candidates.some((candidate) => {
+      if (!candidate || path.posix.isAbsolute(candidate) || candidate.split(/[\\/]/).includes("..")) return false;
+      return path.posix.basename(candidate) === expectedBasename;
+    });
+  });
+}
+
+function requirementPassedByVerification(markdown, id, verificationPassed) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const lines = String(markdown || "").split(/\r?\n/).filter((line) => new RegExp(`\\b${escaped}\\b`).test(line));
+  const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
+  const positive = /\b(?:pass(?:ed)?|complete(?:d)?|accepted|verified)\b/i;
+  return lines.length > 0 && lines.every((line) => !negative.test(line))
+    && lines.some((line) => positive.test(line) || verificationPassed);
+}
+
 function validateCompletionProof(snapshot, phaseNumber) {
   const diagnostics = [];
   const resolution = resolveCanonicalPhaseDirectory(snapshot, phaseNumber);
@@ -1189,8 +1224,8 @@ function validateCompletionProof(snapshot, phaseNumber) {
   for (const requirementId of phase ? phase.requirements : []) {
     const requirement = requirementById.get(requirementId);
     const trace = traceById.get(requirementId);
-    const linked = new RegExp(`\\b${requirementId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(evidence)
-      && (new RegExp(`\\b${requirementId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(verificationContent || "") || acknowledgedCaveat);
+    const linked = acceptedProofRow(evidence, requirementId, verificationArtifact)
+      && (requirementPassedByVerification(verificationContent, requirementId, verificationPassed) || acknowledgedCaveat);
     if (!requirement || !requirement.complete || !trace || trace.phase !== String(phaseNumber) || !/^complete$/i.test(trace.status) || !linked) {
       diagnostics.push(completionDiagnostic(
         "PCOMP_REQUIREMENT_UNLINKED", ".planning/REQUIREMENTS.md + .planning/EVIDENCE.md", requirementId,

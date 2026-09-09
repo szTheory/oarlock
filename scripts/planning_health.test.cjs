@@ -210,9 +210,21 @@ test("canonical completion: same-basename decoys and body-only status remain ine
       : "# Summary\n\nstatus: complete\n";
   }
   assert.deepEqual(validateCompletionProof(bodyOnly, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_REQUIREMENT_UNLINKED",
     "PCOMP_SUMMARY_UNPROVEN",
     "PCOMP_SUMMARY_UNPROVEN",
     "PCOMP_VERIFICATION_UNPROVEN",
+  ]);
+});
+
+test("completion: failed evidence and verification rows never satisfy requirement proof", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\n| REPO-01 | 31-VERIFICATION.md | failed |\n| REPO-02 | 31-VERIFICATION.md | pending |\n";
+  snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = "---\nstatus: passed\n---\n\n| REPO-01 | failed |\n| REPO-02 | pending |\n";
+  assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_REQUIREMENT_UNLINKED",
   ]);
 });
 
