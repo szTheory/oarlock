@@ -306,6 +306,23 @@ test("state.json diagnostic: JSON null is controlled invalid metadata", () => {
   assert.equal(result.conclusion.exitCode, 1);
 });
 
+test("state.json diagnostic: consumer mirror must exactly match canonical routing", () => {
+  const snapshot = snapshotFrom();
+  snapshot.mirror = {
+    exists: true,
+    content: JSON.stringify({
+      contract: "1.0.0", flavor: "core", milestone: "v2.20",
+      phases: [{ number: "31", name: "Wrong", status: "complete" }, { number: "99", name: "Extra", status: "pending" }],
+    }),
+    identity: { size: 100 },
+    consumerEvidence: ["fixture consumer"],
+  };
+  const mismatches = evaluatePlanningHealth(snapshot).diagnostics.filter(({ code }) => code === "PMIRROR_CONTENT_MISMATCH");
+  assert.deepEqual(mismatches.map(({ field }) => field), [
+    "milestone", "phases.31.name", "phases.31.status", "phases.32", "phases.99",
+  ]);
+});
+
 test("concurrent snapshot: injected source change exits 2 instead of returning mixed truth", () => {
   const root = writeFixture();
   try {

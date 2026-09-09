@@ -1320,8 +1320,15 @@ function mirrorDiagnostics(snapshot, activeScope) {
       evidence: error.message, repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
     })];
   }
+  const phasesValid = value && Array.isArray(value.phases) && value.phases.every((phase) => phase
+    && typeof phase === "object" && !Array.isArray(phase)
+    && JSON.stringify(Object.keys(phase).sort()) === JSON.stringify(["name", "number", "status"])
+    && typeof phase.number === "string" && /^\d+(?:\.\d+)?$/.test(phase.number)
+    && typeof phase.name === "string" && phase.name.trim().length > 0
+    && ["pending", "in_progress", "complete"].includes(phase.status));
   if (!value || typeof value !== "object" || Array.isArray(value)
-    || value.contract !== "1.0.0" || value.flavor !== "core" || !Array.isArray(value.phases)) return [diagnostic({
+    || value.contract !== "1.0.0" || value.flavor !== "core"
+    || typeof value.milestone !== "string" || value.milestone.length === 0 || !phasesValid) return [diagnostic({
     code: "PMIRROR_METADATA_INVALID", severity: "error", artifact: ".planning/state.json", field: "schema",
     expected: { contract: "1.0.0", flavor: "core", phases: "array" }, actual: value && typeof value === "object" && !Array.isArray(value)
       ? { contract: value.contract, flavor: value.flavor, phases: Array.isArray(value.phases) ? "array" : typeof value.phases }
@@ -1329,13 +1336,36 @@ function mirrorDiagnostics(snapshot, activeScope) {
     authority: "installed GSD state contract", evidence: mirror.consumerEvidence.join("; "),
     repair: "Propose an atomic regeneration through the supported GSD publisher; never repair inline.",
   })];
-  const expectedMilestone = activeScope.active && activeScope.active.milestone;
-  if (expectedMilestone && !String(value.milestone || "").startsWith(expectedMilestone)) return [diagnostic({
-    code: "PMIRROR_CONTENT_MISMATCH", severity: "error", artifact: ".planning/state.json", field: "milestone",
-    expected: expectedMilestone, actual: value.milestone || null, authority: ".planning/ROADMAP.md + .planning/STATE.md",
+  const diagnostics = [];
+  const mismatch = (field, expected, actual) => diagnostics.push(diagnostic({
+    code: "PMIRROR_CONTENT_MISMATCH", severity: "error", artifact: ".planning/state.json", field,
+    expected, actual, authority: ".planning/ROADMAP.md + .planning/STATE.md",
     evidence: mirror.consumerEvidence.join("; "), repair: "Propose atomically regenerating the disposable mirror from canonical Markdown owners.",
-  })];
-  return [];
+  }));
+  const expectedMilestone = activeScope.active && activeScope.active.milestone;
+  if (expectedMilestone && value.milestone !== expectedMilestone) mismatch("milestone", expectedMilestone, value.milestone);
+
+  const canonicalPhases = new Map(activeScope.roadmap.phases.map((phase) => [phase.number, {
+    number: phase.number,
+    name: phase.name,
+    status: phase.complete ? "complete" : phase.number === activeScope.state.current_phase ? "in_progress" : "pending",
+  }]));
+  const mirrorPhases = new Map();
+  for (const phase of value.phases) {
+    if (mirrorPhases.has(phase.number)) mismatch(`phases.${phase.number}`, "one unique phase record", "duplicate phase record");
+    else mirrorPhases.set(phase.number, phase);
+  }
+  for (const [number, expected] of canonicalPhases) {
+    const actual = mirrorPhases.get(number);
+    if (!actual) mismatch(`phases.${number}`, expected, null);
+    else for (const field of ["name", "status"]) {
+      if (actual[field] !== expected[field]) mismatch(`phases.${number}.${field}`, expected[field], actual[field]);
+    }
+  }
+  for (const [number, actual] of mirrorPhases) {
+    if (!canonicalPhases.has(number)) mismatch(`phases.${number}`, null, actual);
+  }
+  return diagnostics;
 }
 
 function evaluatePlanningHealth(snapshot) {
