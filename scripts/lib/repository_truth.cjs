@@ -845,6 +845,13 @@ function validateMilestoneHistory(snapshot) {
       if (identity && identity.packageVersionStatus !== "collection-error" && identity.declaredPackageVersion !== statedVersion) diagnostics.push(historyDiagnostic({ code: "PIDENT_PACKAGE_VERSION_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.declaredPackageVersion`, expected: identity.declaredPackageVersion, actual: statedVersion, authority: `${statedTag}:mix.exs`, evidence: "package version is parsed independently from the tagged source", repair: "Propose correcting the mutable identity record; do not infer it from the milestone or tag name." }));
     }
     if (!publication || /^unknown\b/i.test(publication)) diagnostics.push(historyDiagnostic({ code: "PIDENT_PUBLICATION_UNKNOWN", severity: "info", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.publicationStatus`, expected: "independent registry evidence or explicit unknown", actual: publication || null, authority: "publication registry evidence", evidence: "a local tag and package declaration do not prove publication", repair: "No repair unless independent publication evidence becomes available." }));
+    else diagnostics.push(historyDiagnostic({
+      code: "PIDENT_PUBLICATION_OVERCLAIM", severity: "error", artifact: ".planning/MILESTONES.md",
+      field: `${expected.planningMilestone}.publicationStatus`, expected: "Unknown — no independent registry evidence is recorded",
+      actual: publication, authority: "publication registry evidence",
+      evidence: "no independent publication-registry source was collected for this assertion",
+      repair: "Replace the assertion with explicit unknown unless a defined independent registry evidence source is added.",
+    }));
   }
   diagnostics.sort((left, right) => compareText(left.artifact, right.artifact) || compareText(left.code, right.code));
   return diagnostics;

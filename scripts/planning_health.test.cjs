@@ -509,6 +509,15 @@ test("milestone identity: planning milestone must match the ROADMAP identity", (
   assert.equal(mismatch.actual, "v9.9");
 });
 
+test("milestone identity: positive publication claims require independent evidence", () => {
+  const snapshot = historySnapshot();
+  snapshot.documents[".planning/MILESTONES.md"].content = snapshot.documents[".planning/MILESTONES.md"].content.replace(
+    "Publication status:** Unknown — no independent registry evidence is recorded.",
+    "Publication status:** Published to Hex",
+  );
+  assert.ok(validateMilestoneHistory(snapshot).some(({ code, severity }) => code === "PIDENT_PUBLICATION_OVERCLAIM" && severity === "error"));
+});
+
 test("git identity collection: for-each-ref failure exits 2 with cause", () => {
   const runner = (_command, args) => {
     assert.equal(args[0], "for-each-ref");
