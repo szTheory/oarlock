@@ -123,6 +123,18 @@ test("authority conflict: canonical disagreement blocks with both values and no 
   assert.equal(scope.diagnostics[0].authority, ".planning/ROADMAP.md + .planning/STATE.md");
 });
 
+test("authority: duplicate ROADMAP phase definitions refuse a guessed winner", () => {
+  const snapshot = snapshotFrom();
+  snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace(
+    "- [ ] **Phase 32: Later** - future",
+    "- [x] **Phase 31: Contradictory Duplicate**\n- [ ] **Phase 32: Later** - future",
+  );
+  const scope = resolveActiveScope(snapshot);
+  assert.equal(scope.phase, null);
+  assert.equal(scope.active, null);
+  assert.ok(scope.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_DEFINITION_AMBIGUOUS"));
+});
+
 test("phantom scope: archives, caches, summaries, and future phase directories are inert", () => {
   const baseline = resolveActiveScope(snapshotFrom());
   const withDecoys = snapshotFrom();

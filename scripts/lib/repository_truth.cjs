@@ -615,7 +615,20 @@ function parseRoadmap(markdown) {
     let planMatch;
     while ((planMatch = planPattern.exec(details)) !== null) phase.plans.push({ file: planMatch[2], complete: planMatch[1].toLowerCase() === "x" });
   }
-  return { activeMilestones, phases };
+  const phaseCounts = new Map();
+  for (const phase of phases) phaseCounts.set(phase.number, (phaseCounts.get(phase.number) || 0) + 1);
+  const duplicatePhaseNumbers = [...phaseCounts].filter(([, count]) => count > 1).map(([number]) => number).sort(compareText);
+  return { activeMilestones, phases, duplicatePhaseNumbers };
+}
+
+function roadmapPhaseAmbiguityDiagnostic(roadmap, phaseNumber) {
+  return diagnostic({
+    code: "PSCOPE_PHASE_DEFINITION_AMBIGUOUS", severity: "error", artifact: ".planning/ROADMAP.md",
+    field: `phase ${phaseNumber} definition`, expected: "exactly one canonical phase definition",
+    actual: roadmap.phases.filter(({ number }) => number === String(phaseNumber)).map(({ name, complete }) => ({ name, complete })),
+    authority: ".planning/ROADMAP.md", evidence: `ROADMAP defines Phase ${phaseNumber} more than once`,
+    repair: "Propose removing the duplicate canonical definition after reconciling its name, status, requirements, and plans.",
+  });
 }
 
 function parseShippedMilestones(markdown) {
@@ -891,8 +904,11 @@ function resolveActiveScope(snapshot) {
     }));
   }
 
-  const phase = roadmap.phases.find(({ number }) => number === state.current_phase);
-  if (!state.current_phase || !phase) {
+  const phaseMatches = roadmap.phases.filter(({ number }) => number === state.current_phase);
+  const phase = phaseMatches.length === 1 ? phaseMatches[0] : null;
+  if (state.current_phase && phaseMatches.length > 1) {
+    diagnostics.push(roadmapPhaseAmbiguityDiagnostic(roadmap, state.current_phase));
+  } else if (!state.current_phase || !phase) {
     diagnostics.push(diagnostic({
       code: "PSCOPE_PHASE_NOT_IN_ROADMAP", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "current phase",
       expected: roadmap.phases.map(({ number }) => number), actual: state.current_phase || null,
@@ -1305,7 +1321,9 @@ function validateCompletionProof(snapshot, phaseNumber) {
   const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
   const requirements = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
   const evidence = planningDocument(snapshot, ".planning/EVIDENCE.md");
-  const phase = roadmap.phases.find(({ number }) => number === String(phaseNumber));
+  const phaseMatches = roadmap.phases.filter(({ number }) => number === String(phaseNumber));
+  if (phaseMatches.length > 1) return [roadmapPhaseAmbiguityDiagnostic(roadmap, phaseNumber)];
+  const phase = phaseMatches.length === 1 ? phaseMatches[0] : null;
   if (!phase || !phase.complete) diagnostics.push(completionDiagnostic(
     "PCOMP_ROADMAP_NOT_ACCEPTED", ".planning/ROADMAP.md", "phase acceptance", "checked accepted phase", phase ? "not accepted" : "missing phase",
     ".planning/ROADMAP.md", `Phase ${phaseNumber} lacks explicit ROADMAP acceptance`, "Propose a ROADMAP acceptance patch only after all proof links pass.",
