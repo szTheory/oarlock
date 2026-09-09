@@ -1042,9 +1042,40 @@ function collectPlanningSnapshot(root, options = {}) {
   return snapshot;
 }
 
-function artifactForPlan(snapshot, planFile, suffix) {
+function resolveCanonicalPhaseDirectory(snapshot, phaseNumber) {
+  const prefix = `${String(phaseNumber)}-`;
+  const directories = new Set();
+  for (const artifact of snapshot && Array.isArray(snapshot.phaseArtifacts) ? snapshot.phaseArtifacts : []) {
+    const match = /^\.planning\/phases\/([^/]+)\//.exec(artifact);
+    if (match && match[1].startsWith(prefix)) directories.add(`.planning/phases/${match[1]}`);
+  }
+  const matches = [...directories].sort(compareText);
+  if (matches.length === 1) return { status: "resolved", directory: matches[0], matches };
+  return { status: matches.length === 0 ? "missing" : "ambiguous", directory: null, matches };
+}
+
+function canonicalPhaseDirectoryDiagnostic(resolution, phaseNumber) {
+  const missing = resolution.status === "missing";
+  return diagnostic({
+    code: missing ? "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING" : "PSCOPE_CANONICAL_PHASE_DIRECTORY_AMBIGUOUS",
+    severity: "error",
+    artifact: ".planning/phases",
+    field: `phase ${phaseNumber} directory`,
+    expected: `exactly one bounded ${phaseNumber}-* directory`,
+    actual: resolution.matches,
+    authority: ".planning/ROADMAP.md + bounded phase inventory",
+    evidence: missing
+      ? `No bounded phase directory matches active Phase ${phaseNumber}`
+      : `Multiple bounded phase directories match active Phase ${phaseNumber}`,
+    repair: "Propose restoring one unambiguous canonical phase directory; do not select proof from decoys.",
+    incomplete: true,
+  });
+}
+
+function artifactForPlan(snapshot, phaseDirectory, planFile, suffix) {
   const target = planFile.replace(/-PLAN\.md$/, suffix);
-  return (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${target}`)) || null;
+  const artifact = `${phaseDirectory}/${target}`;
+  return (snapshot.phaseArtifacts || []).includes(artifact) ? artifact : null;
 }
 
 function completionDiagnostic(code, artifact, field, expected, actual, authority, evidence, repair) {
@@ -1053,6 +1084,9 @@ function completionDiagnostic(code, artifact, field, expected, actual, authority
 
 function validateCompletionProof(snapshot, phaseNumber) {
   const diagnostics = [];
+  const resolution = resolveCanonicalPhaseDirectory(snapshot, phaseNumber);
+  if (resolution.status !== "resolved") return [canonicalPhaseDirectoryDiagnostic(resolution, phaseNumber)];
+  const phaseDirectory = resolution.directory;
   const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
   const requirements = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
   const evidence = planningDocument(snapshot, ".planning/EVIDENCE.md");
@@ -1064,10 +1098,9 @@ function validateCompletionProof(snapshot, phaseNumber) {
 
   for (const plan of phase ? phase.plans : []) {
     const expectedSummary = plan.file.replace(/-PLAN\.md$/, "-SUMMARY.md");
-    const summaryArtifact = artifactForPlan(snapshot, plan.file, "-SUMMARY.md");
+    const summaryArtifact = artifactForPlan(snapshot, phaseDirectory, plan.file, "-SUMMARY.md");
     if (!summaryArtifact) {
-      const phaseDirectory = (snapshot.phaseArtifacts || []).find((artifact) => artifact.includes(`/phases/${phaseNumber}-`));
-      const expectedArtifact = phaseDirectory ? `${phaseDirectory.slice(0, phaseDirectory.lastIndexOf("/"))}/${expectedSummary}` : `.planning/phases/${phaseNumber}/${expectedSummary}`;
+      const expectedArtifact = `${phaseDirectory}/${expectedSummary}`;
       diagnostics.push(completionDiagnostic(
         "PCOMP_SUMMARY_MISSING", `.planning/phases/${phaseNumber}`, "plan summary", expectedSummary, expectedArtifact,
         ".planning/ROADMAP.md + phase plan set", `Declared plan ${plan.file} has no corresponding summary`, "Propose executing the declared plan and writing its canonical summary; presence is not synthesized.",
@@ -1075,16 +1108,21 @@ function validateCompletionProof(snapshot, phaseNumber) {
       continue;
     }
     const summaryContent = snapshot.artifactContents && snapshot.artifactContents[summaryArtifact];
-    if (!summaryContent || !/^status:\s*complete\s*$/mi.test(summaryContent)) diagnostics.push(completionDiagnostic(
+    const summaryStatus = String(parseFrontmatter(summaryContent).status || "").trim().toLowerCase();
+    if (!summaryContent || summaryStatus !== "complete") diagnostics.push(completionDiagnostic(
       "PCOMP_SUMMARY_UNPROVEN", summaryArtifact, "summary status", "frontmatter status: complete", summaryContent ? "missing complete status" : "unread content",
       summaryArtifact, `Summary filename exists for ${plan.file} but does not carry substantive completion metadata`, "Propose correcting the summary only after re-running its verification.",
     ));
   }
 
-  const verificationArtifact = (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${phaseNumber}-VERIFICATION.md`))
-    || (snapshot.phaseArtifacts || []).find((artifact) => artifact.includes(`/phases/${phaseNumber}-`) && artifact.endsWith("/VALIDATION.md"));
+  const verificationPath = `${phaseDirectory}/${phaseNumber}-VERIFICATION.md`;
+  const validationPath = `${phaseDirectory}/VALIDATION.md`;
+  const verificationArtifact = (snapshot.phaseArtifacts || []).includes(verificationPath) ? verificationPath
+    : (snapshot.phaseArtifacts || []).includes(validationPath) ? validationPath : null;
   const verificationContent = verificationArtifact && snapshot.artifactContents ? snapshot.artifactContents[verificationArtifact] : "";
-  const verificationPassed = /^(?:status|result|verdict):\s*(?:pass|passed|complete|verified)\s*$/mi.test(verificationContent || "");
+  const verificationMetadata = parseFrontmatter(verificationContent);
+  const verificationStatus = String(verificationMetadata.status || verificationMetadata.result || verificationMetadata.verdict || "").trim().toLowerCase();
+  const verificationPassed = ["pass", "passed", "complete", "verified"].includes(verificationStatus);
   const acknowledgedCaveat = new RegExp(`Phase\\s+${String(phaseNumber).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:accepted|acknowledged)[^\\n]*caveat`, "i").test(evidence);
   if (!verificationArtifact) diagnostics.push(completionDiagnostic(
     "PCOMP_VERIFICATION_MISSING", `.planning/phases/${phaseNumber}`, "phase verification", `${phaseNumber}-VERIFICATION.md or classified caveat`, null,
@@ -1117,15 +1155,19 @@ function validateCompletionProof(snapshot, phaseNumber) {
 
 function activeArtifactDiagnostics(snapshot, activeScope) {
   if (!activeScope.active || !activeScope.phase) return [];
+  const resolution = resolveCanonicalPhaseDirectory(snapshot, activeScope.phase.number);
+  if (resolution.status !== "resolved") return [canonicalPhaseDirectoryDiagnostic(resolution, activeScope.phase.number)];
+  const phaseDirectory = resolution.directory;
   const diagnostics = [];
   for (const plan of activeScope.phase.plans) {
-    const planArtifact = (snapshot.phaseArtifacts || []).find((artifact) => artifact.endsWith(`/${plan.file}`));
-    if (!planArtifact) diagnostics.push(diagnostic({
+    const planArtifact = `${phaseDirectory}/${plan.file}`;
+    const planExists = (snapshot.phaseArtifacts || []).includes(planArtifact);
+    if (!planExists) diagnostics.push(diagnostic({
       code: "PSCOPE_ACTIVE_PLAN_MISSING", severity: "error", artifact: `.planning/phases/${activeScope.phase.number}`, field: "declared plan",
       expected: plan.file, actual: null, authority: ".planning/ROADMAP.md", evidence: `Active ROADMAP phase declares ${plan.file}, but the bounded phase inventory cannot find it`,
       repair: "Propose restoring the referenced plan or correcting the ROADMAP declaration; do not route from other files.",
     }));
-    const summary = artifactForPlan(snapshot, plan.file, "-SUMMARY.md");
+    const summary = artifactForPlan(snapshot, phaseDirectory, plan.file, "-SUMMARY.md");
     if (!plan.complete && summary) diagnostics.push(diagnostic({
       code: "PSCOPE_STALE_ACTIVE_SUMMARY", severity: "warning", artifact: summary, field: "plan status",
       expected: "ROADMAP plan checked before summary contributes completion evidence", actual: "summary present for unchecked plan",
@@ -1174,7 +1216,8 @@ function evaluatePlanningHealth(snapshot) {
   const activeScope = resolveActiveScope(snapshot);
   const diagnostics = [...activeScope.diagnostics, ...activeArtifactDiagnostics(snapshot, activeScope), ...mirrorDiagnostics(snapshot, activeScope), ...validateMilestoneHistory(snapshot)];
   const completionClaimed = activeScope.phase && (activeScope.phase.complete || activeScope.state.status === "complete");
-  if (completionClaimed) diagnostics.push(...validateCompletionProof(snapshot, activeScope.phase.number));
+  const canonicalPhase = activeScope.phase && resolveCanonicalPhaseDirectory(snapshot, activeScope.phase.number);
+  if (completionClaimed && canonicalPhase.status === "resolved") diagnostics.push(...validateCompletionProof(snapshot, activeScope.phase.number));
   for (const error of Array.isArray(snapshot && snapshot.collectionErrors) ? snapshot.collectionErrors : []) {
     diagnostics.push(diagnostic({
       code: error.code, severity: "error", artifact: error.artifact, field: error.field,
@@ -1254,6 +1297,7 @@ module.exports = {
   readBoundedRepositoryFile,
   readPackageVersion,
   resolveActiveScope,
+  resolveCanonicalPhaseDirectory,
   validateCompletionProof,
   validateMilestoneHistory,
 };
