@@ -676,6 +676,15 @@ function correctionRecorded(evidence, milestone) {
   return new RegExp(`${milestone.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:archive|status|correction|erratum)`, "i").test(evidence || "");
 }
 
+function parsePhaseRange(value) {
+  const match = /^\s*([0-9]+(?:\.[0-9]+)?)\s*-\s*([0-9]+(?:\.[0-9]+)?)\s*$/.exec(String(value ?? ""));
+  if (!match) return null;
+  const start = match[1];
+  const end = match[2];
+  if (Number(start) > Number(end)) return null;
+  return { start, end, normalized: `${start}-${end}` };
+}
+
 function validateMilestoneHistory(snapshot) {
   if (!snapshot || !snapshot.milestoneArchives || !Array.isArray(snapshot.tagIdentities)) return [];
   const diagnostics = [];
@@ -693,7 +702,15 @@ function validateMilestoneHistory(snapshot) {
       continue;
     }
     const actualPhases = fieldFromBlock(block, "Phases");
-    if (!actualPhases || !actualPhases.includes(expected.phases)) diagnostics.push(historyDiagnostic({ code: "PHIST_PHASE_RANGE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.phases`, expected: expected.phases, actual: actualPhases, authority: ".planning/ROADMAP.md", evidence: `ROADMAP shipped range is ${expected.phases}`, repair: "Propose correcting only the mutable milestone index after reviewing the archived roadmap." }));
+    const expectedRange = parsePhaseRange(expected.phases);
+    const actualRange = parsePhaseRange(actualPhases);
+    if (!expectedRange || !actualRange || actualRange.normalized !== expectedRange.normalized) diagnostics.push(historyDiagnostic({
+      code: "PHIST_PHASE_RANGE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.phases`,
+      expected: expectedRange ? { start: expectedRange.start, end: expectedRange.end } : expected.phases,
+      actual: actualRange ? { start: actualRange.start, end: actualRange.end } : actualPhases,
+      authority: ".planning/ROADMAP.md", evidence: `ROADMAP shipped range is ${expected.phases}; milestone index field is ${actualPhases || "missing"}`,
+      repair: "Propose correcting only the mutable milestone index after reviewing the archived roadmap.",
+    }));
     if (!/\*\*Status:\*\*\s*✅\s*Shipped/i.test(block)) diagnostics.push(historyDiagnostic({ code: "PHIST_SHIPPED_STATUS_CONTRADICTION", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.status`, expected: "Shipped", actual: fieldFromBlock(block, "Status"), authority: ".planning/ROADMAP.md", evidence: `${expected.planningMilestone} is advertised as shipped`, repair: "Propose correcting only the mutable current index; preserve archived wording and cite it in EVIDENCE.md." }));
 
     if (expected.preArchive) {
@@ -1290,6 +1307,7 @@ module.exports = {
   exitCodeFor,
   makeDiagnostic,
   parseCommittedRequirements,
+  parsePhaseRange,
   parseStatus,
   parseWorktreeList,
   renderHuman,
