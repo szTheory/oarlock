@@ -4,17 +4,17 @@ milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
-status: executing
-stopped_at: Completed 31-04-PLAN.md
-last_updated: "2026-09-09T20:54:27.253Z"
+status: verifying
+stopped_at: Completed 31-05-PLAN.md
+last_updated: "2026-09-09T21:10:16.922Z"
 last_activity: 2026-09-09
 last_activity_desc: Phase 31 execution started
-state_head: f2062249972082b43a523696a0871e3b003ee273
+state_head: 2f775664fc09dda1557b756f7cc02b985a422276
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 
 Phase: 31 (Repository & Planning Truth) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-09 — Phase 31 execution started
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [████████░░] 80%
 | Phase 31 P02 | 14min | 2 tasks | 4 files |
 | Phase 31 P03 | 12min | 2 tasks | 4 files |
 | Phase 31 P04 | 9min | 2 tasks | 4 files |
+| Phase 31 P05 | 8min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Progress: [████████░░] 80%
 - [Phase 31]: Every authoritative repository file is accepted only after resolved containment, regular-file checks, bounded same-descriptor reads, and stable identity agree.
 - [Phase 31]: Unsafe ownership sources remain unknown and emit redacted incomplete diagnostics without rejected payload bytes.
 - [Phase 31]: Phase and milestone traversal validates the repository boundary before enumerating candidate artifacts.
+- [Phase 31]: Completion proof is accepted only from exact paths beneath one resolved active-phase directory and leading YAML frontmatter.
+- [Phase 31]: Milestone ranges compare complete normalized endpoint identities while retaining documented parenthetical count annotations.
+- [Phase 31]: Git observation failure is incomplete evidence with bounded command/status/cause details, never successful absence or an inferred mismatch.
 
 ### Pending Todos
 
@@ -95,8 +99,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-09T20:54:27.241Z
-Stopped at: Completed 31-04-PLAN.md
+Last session: 2026-09-09T21:10:16.909Z
+Stopped at: Completed 31-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
