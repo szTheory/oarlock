@@ -919,6 +919,20 @@ function boundedPath(root, relativeOrAbsolutePath, expectedType) {
   return { artifact, resolvedRoot, absolute, resolvedCandidate };
 }
 
+function readDescriptorBounded(descriptor, maximumBytes, artifact) {
+  const chunks = [];
+  let total = 0;
+  while (total <= maximumBytes) {
+    const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, maximumBytes + 1 - total));
+    const count = fs.readSync(descriptor, buffer, 0, buffer.length, null);
+    if (count === 0) break;
+    chunks.push(buffer.subarray(0, count));
+    total += count;
+  }
+  if (total > maximumBytes) throw sourceBoundaryError(`source exceeds ${maximumBytes} bytes during read at ${artifact}`, artifact);
+  return Buffer.concat(chunks, total);
+}
+
 function readBoundedRepositoryFile(root, relativeOrAbsolutePath, options = {}) {
   const maximumBytes = options.maximumBytes || DEFAULT_MAX_BUFFER;
   const candidate = boundedPath(root, relativeOrAbsolutePath, "file");
@@ -940,7 +954,7 @@ function readBoundedRepositoryFile(root, relativeOrAbsolutePath, options = {}) {
       options.afterOpen(candidate.artifact, candidate.absolute, descriptor, options.context);
     }
 
-    const bytes = fs.readFileSync(descriptor);
+    const bytes = readDescriptorBounded(descriptor, maximumBytes, candidate.artifact);
     const content = options.encoding === null ? bytes : bytes.toString(options.encoding || "utf8");
     if (typeof options.afterRead === "function") {
       options.afterRead(candidate.artifact, candidate.absolute, options.context);

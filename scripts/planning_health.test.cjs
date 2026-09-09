@@ -15,6 +15,7 @@ const {
   resolveActiveScope,
   renderHuman,
   renderJson,
+  readBoundedRepositoryFile,
   readPackageVersion,
   resolveCanonicalPhaseDirectory,
   validateCompletionProof,
@@ -369,6 +370,21 @@ test("source boundary: intermediate planning symlink exits 2 without reading ext
   assert.equal(json.includes(sentinel), false);
   assert.deepEqual(JSON.parse(json).conclusion, result.conclusion);
   assert.equal(fs.readFileSync(path.join(externalPhase, "31-01-PLAN.md"), "utf8"), before);
+});
+
+test("source boundary: growth after open is bounded during the descriptor read", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "planning-bounded-read-"));
+  try {
+    fs.writeFileSync(path.join(root, "source.md"), "1234");
+    assert.throws(() => readBoundedRepositoryFile(root, "source.md", {
+      maximumBytes: 8,
+      afterOpen(_artifact, absolute) {
+        fs.appendFileSync(absolute, "56789");
+      },
+    }), /exceeds 8 bytes during read/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("read-only interrupted CLI: both formats preserve every planning byte", () => {
