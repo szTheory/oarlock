@@ -4,17 +4,17 @@ milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
-status: planning
-stopped_at: Phase 31 context gathered
-last_updated: "2026-09-09T18:25:14.017Z"
+status: executing
+stopped_at: Completed 31-01-PLAN.md
+last_updated: "2026-09-09T19:02:02.618Z"
 last_activity: 2026-09-09
-last_activity_desc: Approved the 29-requirement v2.2 roadmap across Phases 31-36
-state_head: 8b9f754e5bac252bde3ef9c9f6b490a3d7e04eeb
+last_activity_desc: Phase 31 execution started
+state_head: 26ebdbbafdf490627561904933e5fb885da29a37
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 31 (Repository & Planning Truth) — READY TO EXECUTE
-Plan: Not planned
-Status: Roadmap approved; Phase 31 ready for discussion and planning
-Last activity: 2026-09-09 — Approved the 29-requirement v2.2 roadmap across Phases 31-36
+Phase: 31 (Repository & Planning Truth) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-09-09 — Phase 31 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -44,6 +44,11 @@ Progress: [░░░░░░░░░░] 0%
 - Plans completed: 0
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 31 P01 | 18min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -53,6 +58,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v2.2]: Keep the six natural safety, CI, release, operations, and orientation boundaries despite coarse granularity; each boundary has an independently reviewable proof contract.
 - [v2.2]: Treat short/mid/long horizon separately from commitment status; only the 29 v2.2 requirements are committed.
 - [v2.2]: Preserve provenance through dated transitions; future discovery may revise direction but must not erase prior source, rationale, evidence, or promotion conditions.
+- [Phase 31]: Repository inventory separates immutable observed facts from exact evidence-backed ownership dispositions.
+- [Phase 31]: Repository inspection uses NUL-delimited Git porcelain, bounded buffers, optional locks disabled, and prune only in dry-run mode.
 
 ### Pending Todos
 
@@ -76,9 +83,9 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-09T17:14:23.507Z
-Stopped at: Phase 31 context gathered
-Resume file: .planning/phases/31-repository-planning-truth/31-CONTEXT.md
+Last session: 2026-09-09T19:02:02.606Z
+Stopped at: Completed 31-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
