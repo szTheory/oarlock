@@ -245,6 +245,17 @@ test("canonical completion: missing or ambiguous phase directory is incomplete",
   assert.ok(result.diagnostics.some(({ code, incomplete }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_AMBIGUOUS" && incomplete));
 });
 
+test("completion: authority conflict does not suppress missing proof diagnostics", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/STATE.md"].content = "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: executing\n---\n";
+  snapshot.phaseArtifacts = [];
+  snapshot.artifactContents = {};
+  const result = evaluatePlanningHealth(snapshot);
+  assert.ok(result.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
+  assert.ok(result.diagnostics.some(({ code, incomplete }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING" && incomplete));
+  assert.equal(result.conclusion.exitCode, 2);
+});
+
 test("diagnostic completion: unsupported completion links produce distinct blocking records", () => {
   const snapshot = completedSnapshot();
   snapshot.phaseArtifacts = snapshot.phaseArtifacts.filter((name) => !name.endsWith("31-02-SUMMARY.md"));

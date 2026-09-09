@@ -1371,9 +1371,13 @@ function mirrorDiagnostics(snapshot, activeScope) {
 function evaluatePlanningHealth(snapshot) {
   const activeScope = resolveActiveScope(snapshot);
   const diagnostics = [...activeScope.diagnostics, ...activeArtifactDiagnostics(snapshot, activeScope), ...mirrorDiagnostics(snapshot, activeScope), ...validateMilestoneHistory(snapshot)];
-  const completionClaimed = activeScope.phase && (activeScope.phase.complete || activeScope.state.status === "complete");
-  const canonicalPhase = activeScope.phase && resolveCanonicalPhaseDirectory(snapshot, activeScope.phase.number);
-  if (completionClaimed && canonicalPhase.status === "resolved") diagnostics.push(...validateCompletionProof(snapshot, activeScope.phase.number));
+  const completionPhase = activeScope.phase ? activeScope.phase.number : activeScope.state.current_phase;
+  const completionClaimed = (activeScope.phase && activeScope.phase.complete) || activeScope.state.status === "complete";
+  if (completionClaimed && completionPhase) {
+    for (const item of validateCompletionProof(snapshot, completionPhase)) {
+      if (!diagnostics.some(({ code, artifact, field }) => code === item.code && artifact === item.artifact && field === item.field)) diagnostics.push(item);
+    }
+  }
   for (const error of Array.isArray(snapshot && snapshot.collectionErrors) ? snapshot.collectionErrors : []) {
     diagnostics.push(diagnostic({
       code: error.code, severity: "error", artifact: error.artifact, field: error.field,
