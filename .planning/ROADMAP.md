@@ -42,7 +42,12 @@ remain guidance and require explicit promotion through a later discovery cycle.
   2. Maintainer and GSD routing identify the same active milestone from the documented authority chain; archives, caches, summaries, and old phase directories cannot create phantom active work.
   3. Maintainer can navigate a continuous milestone history whose shipped status, phase range, archive links, planning identifiers, and package-version semantics agree.
   4. Maintainer can run a non-mutating planning-health check and receive actionable failures for stale active artifacts, broken references, archive contradictions, or completion claims without proof.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 31-01-PLAN.md — Read-only all-worktree repository inventory with shared human/JSON truth.
+- [ ] 31-02-PLAN.md — Canonical active-scope and completion-proof planning health.
+- [ ] 31-03-PLAN.md — Immutable milestone-history validation and additive reconciliation.
 
 ### Phase 32: Dependency & SDK Trust Boundary
 
@@ -127,7 +132,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 31. Repository & Planning Truth | v2.2 | 0/TBD | Not started | - |
+| 31. Repository & Planning Truth | v2.2 | 0/3 | Not started | - |
 | 32. Dependency & SDK Trust Boundary | v2.2 | 0/TBD | Not started | - |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
