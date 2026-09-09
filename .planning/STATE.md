@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
 status: executing
-stopped_at: Completed 31-01-PLAN.md
-last_updated: "2026-09-09T19:02:02.618Z"
+stopped_at: Completed 31-02-PLAN.md
+last_updated: "2026-09-09T19:24:19.407Z"
 last_activity: 2026-09-09
 last_activity_desc: Phase 31 execution started
-state_head: 26ebdbbafdf490627561904933e5fb885da29a37
+state_head: 2b26760ca63bdaaba5e8178fb0a5496be4a36b00
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 ## Current Position
 
 Phase: 31 (Repository & Planning Truth) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-09-09 — Phase 31 execution started
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 31 P01 | 18min | 2 tasks | 4 files |
+| Phase 31 P02 | 14min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,9 @@ Progress: [░░░░░░░░░░] 0%
 - [v2.2]: Preserve provenance through dated transitions; future discovery may revise direction but must not erase prior source, rationale, evidence, or promotion conditions.
 - [Phase 31]: Repository inventory separates immutable observed facts from exact evidence-backed ownership dispositions.
 - [Phase 31]: Repository inspection uses NUL-delimited Git porcelain, bounded buffers, optional locks disabled, and prune only in dry-run mode.
+- [Phase 31]: ROADMAP supplies the active graph and STATE supplies its pointer; disagreement blocks without a selected active scope.
+- [Phase 31]: Completion requires roadmap acceptance, every declared summary, substantive verification, and requirement/evidence linkage.
+- [Phase 31]: The state.json mirror is non-authoritative and receives a proposal-only disposition unless a repository-file consumer is demonstrated.
 
 ### Pending Todos
 
@@ -83,8 +87,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-09T19:02:02.606Z
-Stopped at: Completed 31-01-PLAN.md
+Last session: 2026-09-09T19:24:19.392Z
+Stopped at: Completed 31-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
