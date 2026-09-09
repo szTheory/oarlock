@@ -248,6 +248,38 @@ test("concurrent snapshot: injected source change exits 2 instead of returning m
   }
 });
 
+test("source boundary: intermediate planning symlink exits 2 without reading external content", (t) => {
+  const root = writeFixture();
+  const container = path.dirname(root);
+  const externalPhases = path.join(container, "external-phases");
+  const externalPhase = path.join(externalPhases, "31-repository-truth");
+  const sentinel = "EXTERNAL-PLANNING-SECRET";
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(externalPhases, { recursive: true, force: true }));
+
+  fs.rmSync(path.join(root, ".planning/phases"), { recursive: true, force: true });
+  fs.mkdirSync(externalPhase, { recursive: true });
+  fs.writeFileSync(path.join(externalPhase, "31-01-PLAN.md"), `${sentinel}\n`);
+  fs.symlinkSync(externalPhases, path.join(root, ".planning/phases"), "dir");
+
+  const before = fs.readFileSync(path.join(externalPhase, "31-01-PLAN.md"), "utf8");
+  const snapshot = collectPlanningSnapshot(root, { collectCorroboration: false });
+  const result = evaluatePlanningHealth(snapshot);
+  const human = renderHuman(result);
+  const json = renderJson(result);
+
+  assert.equal(result.conclusion.exitCode, 2);
+  assert.equal(result.conclusion.status, "incomplete");
+  assert.ok(result.diagnostics.some(({ code, artifact, evidence }) => code === "PAUTH_SOURCE_UNREADABLE"
+    && artifact === ".planning/phases"
+    && /boundary|symlink|repository/i.test(evidence)));
+  assert.equal(JSON.stringify(snapshot).includes(sentinel), false);
+  assert.equal(human.includes(sentinel), false);
+  assert.equal(json.includes(sentinel), false);
+  assert.deepEqual(JSON.parse(json).conclusion, result.conclusion);
+  assert.equal(fs.readFileSync(path.join(externalPhase, "31-01-PLAN.md"), "utf8"), before);
+});
+
 test("read-only interrupted CLI: both formats preserve every planning byte", () => {
   const root = writeFixture();
   fs.writeFileSync(path.join(root, ".planning/state.json"), "{\"user\":\"owned\"}\n");
