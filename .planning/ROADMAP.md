@@ -86,7 +86,7 @@ Plans:
   4. Safe reads retry only within documented bounds; ambiguous mutations are not blindly replayed and instead return enough guidance for a consumer to reconcile provider state.
   5. Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer base URLs continue to work, and public docs/types/examples describe that tested behavior accurately.
 
-**Plans**: 11/11 plans executed
+**Plans**: 11/13 plans executed
 
 Plans:
 **Wave 1**
@@ -126,6 +126,14 @@ Plans:
 **Wave 9** *(blocked on Wave 8 completion)*
 
 - [x] 32-10-PLAN.md — Mechanically prove runtime/docs/types agreement, isolated concurrency, interruption rejection, and the final matrix.
+
+**Wave 10** *(gap closure; blocked on Wave 9 completion)*
+
+- [ ] 32-12-PLAN.md — Contain caller mutation options before they can replace validated client transport authority.
+
+**Wave 11** *(gap closure; blocked on Wave 10 completion)*
+
+- [ ] 32-13-PLAN.md — Normalize malformed errors, correct stream guidance, and add bounded verifier proof without weakening full acceptance.
 
 ### Phase 33: Deterministic Green CI
 
