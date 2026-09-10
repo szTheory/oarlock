@@ -4,6 +4,12 @@ defmodule Paddle.Customers do
 
   Customers are the entities that purchase your products.
 
+  Customer reads use bounded retries for documented transient failures.
+  Creates and updates always make one attempt; `retry: true` and
+  `idempotency_key` are unsupported. Ambiguous mutation failures return a
+  non-retryable `%Paddle.Error{}` with a static operation and, for updates,
+  the customer resource ID plus fixed consumer reconciliation actions.
+
   ## Example Pipeline
 
   ```elixir
@@ -28,13 +34,17 @@ defmodule Paddle.Customers do
   alias Paddle.Internal.Attrs
 
   @type customer_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+  @type request_opt :: {:retry, boolean()}
 
   @create_allowlist ~w(email name custom_data locale)
   @update_allowlist ~w(name email status custom_data locale)
 
   @doc """
   Creates a new customer.
+
+  This mutation makes one attempt. `retry: true` and `idempotency_key` are
+  rejected before dispatch. Ambiguous failures expose only the static
+  `:create_customer` operation and fixed reconciliation actions.
 
   ## Examples
 
@@ -76,13 +86,22 @@ defmodule Paddle.Customers do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/customers", Keyword.merge([json: body], opts)) do
+           Http.request(
+             client,
+             :post,
+             "/customers",
+             Keyword.merge([json: body, operation: :create_customer, route: "/customers"], opts)
+           ) do
       {:ok, Http.build_struct(Customer, data)}
     end
   end
 
   @doc """
   Retrieves a specific customer by ID.
+
+  This safe read uses bounded transient retries. The runtime customer ID is
+  encoded only into the dispatch path; telemetry uses the literal normalized
+  route `/customers/:customer_id`.
 
   ## Examples
 
@@ -114,13 +133,22 @@ defmodule Paddle.Customers do
   def get(%Client{} = client, customer_id) do
     with :ok <- validate_customer_id(customer_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, customer_path(customer_id)) do
+           Http.request(client, :get, customer_path(customer_id),
+             operation: :get_customer,
+             route: "/customers/:customer_id"
+           ) do
       {:ok, Http.build_struct(Customer, data)}
     end
   end
 
   @doc """
   Updates an existing customer.
+
+  This mutation makes one attempt. Ambiguous transport or terminal HTTP
+  408/5xx failures return a non-retryable `%Paddle.Error{}` with
+  `operation: :update_customer`, the validated customer resource ID, and the
+  fixed consumer reconciliation actions. Automatic replay and idempotency
+  keys are unsupported.
 
   ## Examples
 
@@ -169,7 +197,12 @@ defmodule Paddle.Customers do
          {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @update_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :patch, customer_path(customer_id), json: body) do
+           Http.request(client, :patch, customer_path(customer_id),
+             json: body,
+             operation: :update_customer,
+             route: "/customers/:customer_id",
+             resource_id: customer_id
+           ) do
       {:ok, Http.build_struct(Customer, data)}
     end
   end

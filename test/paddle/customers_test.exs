@@ -22,6 +22,7 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/customers"
+
           assert request_context(request) == %{
                    method: :post,
                    operation: :create_customer,
@@ -114,10 +115,8 @@ defmodule Paddle.CustomersTest do
 
       assert Agent.get(attempts, & &1) == 1
 
-      assert_raise ArgumentError, ~r/idempotency_key is unsupported/, fn ->
-        Customers.create(client, %{email: "ada@example.com"},
-          idempotency_key: "idem_forbidden"
-        )
+      assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+        Customers.create(client, %{email: "ada@example.com"}, idempotency_key: "idem_forbidden")
       end
 
       assert Agent.get(attempts, & &1) == 1
@@ -133,6 +132,7 @@ defmodule Paddle.CustomersTest do
           assert request.method == :get
           assert request.url.path == "/customers/ctm_01"
           assert request.body == nil
+
           assert request_context(request) == %{
                    method: :get,
                    operation: :get_customer,
@@ -202,6 +202,7 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/customers/ctm_01"
+
           assert request_context(request) == %{
                    method: :patch,
                    operation: :update_customer,

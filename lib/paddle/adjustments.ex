@@ -3,6 +3,12 @@ defmodule Paddle.Adjustments do
   Provides operations for managing Paddle Adjustments.
 
   Adjustments allow you to issue refunds and credits for a transaction.
+
+  Adjustment reads use bounded retries for documented transient failures.
+  Creation is always single-attempt: `retry: true` and `idempotency_key` are
+  unsupported. An ambiguous create returns `%Paddle.Error{ambiguous?: true}`
+  with `operation: :create_adjustment`, no request body, and the fixed
+  consumer reconciliation actions.
   """
 
   alias Paddle.Adjustment
@@ -13,6 +19,7 @@ defmodule Paddle.Adjustments do
   alias Paddle.Page
 
   @type adjustment_id :: String.t()
+  @type request_opt :: {:retry, boolean()}
 
   @type adjustment_item_attr :: %{
           required(:item_id) => String.t(),
@@ -33,6 +40,11 @@ defmodule Paddle.Adjustments do
   @doc """
   Creates a new adjustment.
 
+  This mutation makes one attempt. `retry: true` and `idempotency_key` are
+  rejected before dispatch. A transport failure or terminal HTTP 408/5xx
+  response returns a non-retryable ambiguous `%Paddle.Error{}` whose safe
+  context includes `operation: :create_adjustment`.
+
   ## Examples
 
       Paddle.Adjustments.create(client, %{
@@ -42,19 +54,31 @@ defmodule Paddle.Adjustments do
         items: [%{item_id: "txnitm_123", type: "partial", amount: "100"}]
       })
   """
-  @spec create(Paddle.Client.t(), create_attrs() | keyword(), keyword()) ::
+  @spec create(Paddle.Client.t(), create_attrs() | keyword(), [request_opt()]) ::
           {:ok, Paddle.Adjustment.t()} | {:error, Paddle.Error.t() | :invalid_attrs}
   def create(%Client{} = client, attrs, opts \\ []) do
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/adjustments", Keyword.merge([json: body], opts)) do
+           Http.request(
+             client,
+             :post,
+             "/adjustments",
+             Keyword.merge(
+               [json: body, operation: :create_adjustment, route: "/adjustments"],
+               opts
+             )
+           ) do
       {:ok, Http.build_struct(Adjustment, data)}
     end
   end
 
   @doc """
   Retrieves an adjustment by ID.
+
+  This safe read uses bounded transient retries. Its telemetry context uses
+  the literal route `/adjustments/:adjustment_id`; the runtime ID is used only
+  to construct the encoded dispatch path.
 
   ## Examples
 
@@ -65,13 +89,19 @@ defmodule Paddle.Adjustments do
   def get(%Client{} = client, adjustment_id) do
     with :ok <- validate_adjustment_id(adjustment_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, adjustment_path(adjustment_id)) do
+           Http.request(client, :get, adjustment_path(adjustment_id),
+             operation: :get_adjustment,
+             route: "/adjustments/:adjustment_id"
+           ) do
       {:ok, Http.build_struct(Adjustment, data)}
     end
   end
 
   @doc """
   Lists adjustments.
+
+  The initial request and every cursor continuation use bounded read retries
+  with the static operation `:list_adjustments` and route `/adjustments`.
 
   ## Examples
 
@@ -83,13 +113,20 @@ defmodule Paddle.Adjustments do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, "/adjustments", params: query) do
+           Http.request(client, :get, "/adjustments",
+             params: query,
+             operation: :list_adjustments,
+             route: "/adjustments"
+           ) do
       {:ok, build_page(data, meta)}
     end
   end
 
   @doc """
   Returns a stream of adjustments.
+
+  Every page retains the static `:list_adjustments` context while provider
+  cursor values remain dispatch-only.
   """
   @spec stream(Paddle.Client.t(), map() | keyword()) :: Enumerable.t()
   def stream(%Client{} = client, params \\ []) do
@@ -101,6 +138,9 @@ defmodule Paddle.Adjustments do
 
   @doc """
   Retrieves all adjustments, automatically handling pagination.
+
+  Every page retains the static `:list_adjustments` context while provider
+  cursor values remain dispatch-only.
   """
   @spec all(Paddle.Client.t(), map() | keyword()) ::
           {:ok, [Paddle.Adjustment.t()]} | {:error, Paddle.Error.t() | :invalid_params}
@@ -132,10 +172,10 @@ defmodule Paddle.Adjustments do
   defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 
   defp next_page(client, path) do
-    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, path) do
-      {:ok, build_page(data, meta)}
-    end
+    Pagination.next_page(client, Adjustment, path,
+      operation: :list_adjustments,
+      route: "/adjustments"
+    )
   end
 
   defp build_page(data, meta) do

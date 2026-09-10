@@ -24,6 +24,7 @@ defmodule Paddle.AdjustmentsTest do
           assert request.method == :get
           assert request.url.path == "/adjustments/adj_01"
           assert request.body == nil
+
           assert request_context(request) == %{
                    method: :get,
                    operation: :get_adjustment,
@@ -73,6 +74,7 @@ defmodule Paddle.AdjustmentsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/adjustments"
+
           assert request_context(request) == %{
                    method: :post,
                    operation: :create_adjustment,
@@ -131,7 +133,7 @@ defmodule Paddle.AdjustmentsTest do
 
       assert Agent.get(attempts, & &1) == 1
 
-      assert_raise ArgumentError, ~r/idempotency_key is unsupported/, fn ->
+      assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
         Adjustments.create(
           client,
           %{action: "refund", reason: "fraud", transaction_id: "txn_01"},
@@ -152,6 +154,7 @@ defmodule Paddle.AdjustmentsTest do
           assert request.method == :get
           assert request.url.path == "/adjustments"
           assert request.url.query == "action=refund&status=pending"
+
           assert request_context(request) == %{
                    method: :get,
                    operation: :list_adjustments,
