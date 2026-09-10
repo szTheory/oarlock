@@ -1,129 +1,132 @@
 ---
 phase: 31-repository-planning-truth
-reviewed: 2026-09-09T21:50:40Z
+reviewed: 2026-09-10T03:44:49Z
 depth: standard
-files_reviewed: 5
+files_reviewed: 24
 files_reviewed_list:
+  - .github/workflows/ci.yml
+  - scripts/ci_monitor.cjs
+  - scripts/ci_monitor.test.cjs
+  - scripts/fixtures/prohibitions/history_additive.json
+  - scripts/fixtures/prohibitions/history_rewrite.json
+  - scripts/fixtures/prohibitions/planning_conflict_repair.cjs
+  - scripts/fixtures/prohibitions/planning_identity_inference.cjs
+  - scripts/fixtures/prohibitions/planning_phantom_authority.cjs
+  - scripts/fixtures/prohibitions/repository_inventory_inference.cjs
+  - scripts/fixtures/prohibitions/repository_inventory_mutating.cjs
+  - scripts/history_integrity.cjs
+  - scripts/history_integrity.test.cjs
   - scripts/lib/repository_truth.cjs
   - scripts/planning_health.cjs
   - scripts/planning_health.test.cjs
+  - scripts/prohibitions/enforce_phase31.cjs
+  - scripts/prohibitions/enforce_phase31.test.cjs
+  - scripts/prohibitions/planning_authority.test.cjs
+  - scripts/prohibitions/planning_identity.test.cjs
+  - scripts/prohibitions/planning_repair_safety.test.cjs
+  - scripts/prohibitions/repository_inventory_report_only.test.cjs
+  - scripts/prohibitions/repository_inventory_transparency.test.cjs
   - scripts/repository_inventory.cjs
   - scripts/repository_inventory.test.cjs
 findings:
-  critical: 15
-  warning: 0
+  critical: 8
+  warning: 4
   info: 0
-  total: 15
+  total: 12
 status: issues_found
 ---
 
 # Phase 31: Code Review Report
 
-**Reviewed:** 2026-09-09T21:50:40Z
+**Reviewed:** 2026-09-10T03:44:49Z
 **Depth:** standard
-**Files Reviewed:** 5
+**Files Reviewed:** 24
 **Status:** issues_found
 
 ## Summary
 
-The five scoped CommonJS files were reviewed at standard depth. The combined 40-test suite passes, but focused adversarial probes demonstrate that the tools can still report healthy from contradictory completion data, malformed ownership metadata, incomplete Git porcelain, and unverified history identities. Snapshot race detection and mirror validation also contain fail-open or crash paths. These correctness and trust-boundary defects must be fixed before shipping.
+The 24 scoped workflow, implementation, fixture, and test files were reviewed at standard depth. The scoped Node suite passes (98 tests), but focused adversarial probes demonstrate multiple fail-open proof paths: ledger insertions and unreadable ledgers can pass history integrity, linked-worktree ownership claims bleed across worktrees, and completion can be accepted through non-canonical or failed evidence. CI monitoring also has documented-input and error-handling defects.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: Completion accepts failing evidence as proof (BLOCKER)
+### CR-01: Append-only history check accepts rows inserted into the existing ledger [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1192-1200
-**Issue:** Requirement linkage is only a word-boundary search for the requirement ID in EVIDENCE.md and the planning verification content. Rows saying that proof failed or is missing still satisfy both searches, so an explicitly failed requirement can be reported healthy.
-**Fix:** Parse the canonical evidence row for each requirement, require an accepted/pass classification and a repository-bounded proof target, and require the verification artifact to classify that requirement as passed. Treat failed, pending, missing, and malformed rows as PCOMP_REQUIREMENT_UNLINKED.
+**File:** `scripts/history_integrity.cjs:72-86`
+**Issue:** `compareEvidence` implements a subsequence check, so new rows may appear anywhere as long as every old line remains in order. A valid correction row inserted before an existing row returns `valid: true`, even though the ledger was rewritten rather than appended. This defeats the CI guard's append-only promise.
+**Fix:** Require the head bytes to begin with the complete base bytes (with an explicitly defined newline boundary), then validate only the suffix as new correction rows. Add a test that inserts a valid row before and between existing rows and expects `HIST_EVIDENCE_NOT_APPEND_ONLY`.
 
-### CR-02: Rejected ownership claims can still become intentional dispositions (BLOCKER)
+### CR-02: Evidence read failures are treated as absence and can produce a healthy result [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:318-375
-**Issue:** Registry validity is checked only at the envelope level before all claims are matched. A claim diagnosed as invalid can still populate an intentional disposition, and required metadata is not type-checked at all: object values for owner, provenance, and proposed_disposition pass validation and produce exit 0. This accepts non-evidence as ownership policy.
-**Fix:** Validate every claim into a separate accepted-claims collection. Require non-empty strings for owner/provenance/disposition, a strict supported disposition enum, a strict finite date, and exact selector types. Match observations only against accepted claims; invalid matches must remain unknown.
+**File:** `scripts/history_integrity.cjs:47-52`
+**Issue:** `readObject(..., required = false)` suppresses every Git failure, not just a missing path. If both base and head reads of `.planning/EVIDENCE.md` fail (for example from `maxBuffer`, timeout, or object corruption), both values become `null`; lines 112-126 then perform no ledger check and `inspectHistory` returns `healthy`. A focused runner probe reproduced this result with both `git show` calls failing.
+**Fix:** Distinguish “path absent” using a prior tree lookup or a narrowly recognized missing-path status. Propagate all other observation failures so the result is `incomplete`/exit 2. Add tests for base-only, head-only, and both-side read errors.
 
-### CR-03: Same-length in-place rewrites evade snapshot identity checks (BLOCKER)
+### CR-03: A linked-worktree claim silently classifies matching paths in every linked worktree [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:861-866
-**Issue:** Identity contains only device, inode, size, and mtimeMs. A same-length rewrite followed by restoring the original mtime preserves every compared field, allowing changed canonical planning or registry bytes to be accepted without PSCOPE_SNAPSHOT_CHANGED.
-**Fix:** Include ctime and descriptor identity checks, and compare a digest of the accepted bytes during the final consistency pass. Do not use mutable timestamps alone as content identity.
+**File:** `scripts/lib/repository_truth.cjs:334-369`
+**Issue:** A `dirty_path` selector contains only `worktree_role` and relative `path`. Because every non-main tree has role `linked`, one claim for `same.txt` matches that path in all linked worktrees. A focused two-worktree probe assigned one owner's evidence to both trees and returned exit 0, even though only one tree was reviewed.
+**Fix:** Include an exact normalized `worktree_path` (or another stable unique worktree identity) in linked dirty-path selectors and require it in `selectorMatches`. Reject legacy ambiguous linked selectors as invalid/incomplete, and test two linked worktrees with the same relative dirty path.
 
-### CR-04: The configured byte limit is not enforced during reads (BLOCKER)
+### CR-04: Evidence links are validated by basename rather than canonical artifact path [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:915-929
-**Issue:** File size is checked once before readFileSync. A concurrent writer can grow the open file after that check, causing an allocation and read far beyond maximumBytes before the later identity check rejects it. The promised bounded-read denial-of-service control is therefore ineffective during the actual read.
-**Fix:** Read the descriptor in bounded chunks, stop after maximumBytes plus one byte, and emit a source-boundary error immediately. Recheck descriptor identity after the bounded read.
+**File:** `scripts/lib/repository_truth.cjs:1315-1330`
+**Issue:** `acceptedProofRow` accepts any relative Markdown path whose basename equals the canonical verification filename. Thus `decoy/31-VERIFICATION.md` satisfies a row for `.planning/phases/31-real/31-VERIFICATION.md`. A focused probe returned no completion diagnostics with that decoy link.
+**Fix:** Resolve evidence links relative to the ledger, reject escapes/symlinks, normalize to a repository-relative path, and require exact equality with `verificationArtifact`. Add negative tests for same-basename paths in other directories.
 
-### CR-05: JSON null mirror content crashes planning-health (BLOCKER)
+### CR-05: A generic caveat sentence overrides a failed verification artifact [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1241-1253
-**Issue:** JSON.parse('null') succeeds, then value.contract dereferences null. With demonstrated consumer evidence, planning-health throws a TypeError instead of returning PMIRROR_METADATA_INVALID and a controlled nonzero conclusion.
-**Fix:** After parsing, require a non-null, non-array object before accessing fields. Classify every other JSON value as PMIRROR_METADATA_INVALID.
+**File:** `scripts/lib/repository_truth.cjs:1387-1407`
+**Issue:** Any single EVIDENCE line matching “Phase 31 ... accepted/acknowledged ... caveat” makes `acknowledgedCaveat` true. That suppresses `PCOMP_VERIFICATION_UNPROVEN` and also satisfies the per-requirement verification side of `linked`, even when the canonical verification frontmatter says `status: failed` and its requirement row says `failed`. A focused probe returned an empty diagnostics list for that contradiction.
+**Fix:** Parse a structured, unique caveat record tied to the exact phase, requirement IDs, canonical verification artifact, reviewer/authority, and explicit accepted disposition. A caveat must not override an explicit failed verification unless the policy expressly models and validates that transition.
 
-### CR-06: Contradictory consumer mirrors pass validation (BLOCKER)
+### CR-06: Global verification status plus an arbitrary ID mention proves each requirement [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1251-1263
-**Issue:** Mirror validation checks only contract, flavor, phases-as-array, and a prefix milestone match. It never compares phase records or status to ROADMAP/STATE, and startsWith accepts v2.20 for canonical v2.2. A demonstrated-consumer stale mirror can therefore pass with no diagnostic.
-**Fix:** Require exact milestone equality, validate the full mirror schema, and compare its active phase/status projection to canonical ROADMAP and STATE. Emit PMIRROR_CONTENT_MISMATCH for every missing, extra, or contradictory routing value.
+**File:** `scripts/lib/repository_truth.cjs:1333-1339`
+**Issue:** When verification frontmatter is globally passed, `requirementPassedByVerification` treats any non-negative line containing the requirement ID as passed. Narrative text such as `REPO-01 mentioned` therefore counts as requirement-level proof. Combined with a superficially accepted EVIDENCE row, completion is reported healthy without a parsed per-requirement result.
+**Fix:** Parse a defined requirement-results table or structured section and require exactly one explicit accepted status for each ID. Reject narrative mentions, duplicates, and absent/malformed rows. Add a test where a globally passed document merely discusses the ID.
 
-### CR-07: An authority conflict suppresses incomplete-proof diagnostics (BLOCKER)
+### CR-07: Unknown STATE status values are accepted without diagnostics [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1266-1271
-**Issue:** activeArtifactDiagnostics returns when activeScope.active is null, while validateCompletionProof runs only after canonical directory resolution. If ROADMAP marks a phase complete but STATE disagrees and the canonical phase directory is missing or ambiguous, the result reports only the status conflict and omits the required incomplete snapshot/proof diagnostic.
-**Fix:** When completion is claimed, resolve and validate the canonical proof set independently of whether active scope agreement succeeded. Preserve both the authority-conflict and incomplete-proof diagnostics.
+**File:** `scripts/lib/repository_truth.cjs:909-969`
+**Issue:** `resolveActiveScope` validates milestone and phase pointers but never validates `state.status`. A STATE document with `status: nonsense` resolves an active phase with no diagnostics. For an otherwise valid in-progress phase, planning health can therefore report healthy while its canonical session state is outside the supported state model.
+**Fix:** Define and enforce the allowed STATE statuses and their consistency with ROADMAP completion. Missing, duplicate, or unsupported status values should produce a blocking authority/schema diagnostic. Add tests for unknown, missing, and contradictory statuses.
 
-### CR-08: Unchecked ROADMAP plans can produce a healthy completed phase (BLOCKER)
+### CR-08: History CLI renders repository-controlled control characters unescaped [BLOCKER]
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1150-1167
-**Issue:** Completion validation iterates declared plans but never checks plan.complete. activeArtifactDiagnostics downgrades an unchecked plan with a complete summary to a warning, and warnings do not affect exit status. A ROADMAP phase checked complete with an unchecked plan, passing summary, verification, and evidence returns status healthy and exit 0.
-**Fix:** In validateCompletionProof, emit a blocking PCOMP_PLAN_NOT_ACCEPTED diagnostic for every unchecked declared plan. A summary must not override the ROADMAP checklist.
+**File:** `scripts/history_integrity.cjs:150-156`
+**Issue:** Human output interpolates Git-derived archive paths and observation errors directly. Git filenames may contain newlines and terminal escape characters, allowing a crafted archive path in a pull request to forge log lines or emit terminal control sequences in CI/local review output. The repository inventory renderer already escapes this class of input, but the history renderer does not.
+**Fix:** Apply the same control-character escaping used by `repository_truth.cjs` to base/head values, artifact paths, change labels, and error text before human rendering. Add hostile newline, tab, and ANSI-path tests; keep JSON as the exact machine-readable representation.
 
-### CR-09: Malformed or unknown porcelain records are silently discarded (BLOCKER)
+## Warnings
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:151-190
-**Issue:** parseStatus has no final rejection branch. Any nonempty unrecognized token is ignored, so a future, truncated, or malformed dirty record can disappear and the inventory can report a clean healthy worktree. Existing tests reject malformed records only when they begin with known record prefixes.
-**Fix:** Reject every nonempty token that is neither a supported header nor a supported record. Also validate the mandatory branch headers before returning, so incomplete porcelain becomes RINV_COLLECTION_INCOMPLETE.
+### WR-01: `--workflow <file name>` can never match the returned run [WARNING]
 
-### CR-10: Phase-artifact namespace changes are absent from consistency checking (BLOCKER)
+**File:** `scripts/ci_monitor.cjs:132-152`
+**Issue:** Help advertises a workflow name or file name, and `gh run list --workflow ci.yml` supports the file form, but `findRun` additionally requires `run.workflowName === workflow`. GitHub returns the display name (`CI`), so a valid `--workflow ci.yml` query is discarded as `no_ci_run_for_sha`.
+**Fix:** Trust the server-side `--workflow` filter and match only the exact SHA, or resolve the requested file to the workflow display name/ID before comparing. Add a fake-gh test where the requested selector is `ci.yml` and `workflowName` is `CI`.
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:1007-1025
-**Issue:** The final consistency pass rechecks only files already recorded in documents/artifactIdentities. It does not re-list .planning/phases or compare the artifact-name set. A second canonical phase directory or proof artifact added during collection is invisible, allowing a result derived from a stale namespace to be reported healthy.
-**Fix:** Snapshot a deterministic identity for relevant directories and their exact entry sets, then re-list and compare them during the final consistency pass. Any addition, removal, or rename must produce PSCOPE_SNAPSHOT_CHANGED and exit 2.
+### WR-02: Completed-run lookup errors bypass the documented blocked result [WARNING]
 
-### CR-11: ROADMAP archive links are parsed and then ignored (BLOCKER)
+**File:** `scripts/ci_monitor.cjs:260`
+**Issue:** Only `findRun` is inside the `GhError` handler. If `viewRun` fails or returns invalid JSON, `assertCi` rejects; the CLI's promise has no catch, so it emits an unhandled stack and typically exits 1 instead of the documented exit 2 with JSON `reason: gh_error`.
+**Fix:** Wrap both list and view operations in the same error-to-evidence boundary (or catch around the whole polling iteration), and add a test for `gh run view` failure in both JSON and human modes.
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:600-606
-**Issue:** parseShippedMilestones stores roadmapLink, but validateMilestoneHistory never reads it. A shipped ROADMAP entry can point outside the repository, to a mutable file, or to a missing archive while the validator reports history healthy based solely on MILESTONES.md links.
-**Fix:** Resolve each ROADMAP link relative to .planning/ROADMAP.md, enforce the repository boundary and immutable .planning/milestones destination, and require it to exist in milestoneArchives.
+### WR-03: Timeout and polling options accept non-finite and negative values [WARNING]
 
-### CR-12: The recorded planning-milestone identity is never validated (BLOCKER)
+**File:** `scripts/ci_monitor.cjs:206-215`
+**Issue:** `Number()` results are never validated. Values such as `--poll NaN`, `--poll Infinity`, or negative timeouts produce immediate timers, tight polling, warnings, or inconsistent one-attempt behavior rather than invalid-usage exit 2.
+**Fix:** Require finite numeric values, `timeout >= 0`, and a bounded positive poll interval (allow zero only if explicitly supported as a test/single-shot mode). Return structured `invalid_usage` evidence and test boundary values.
 
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:731-785
-**Issue:** The milestone index's Planning milestone field is not parsed or compared with the ROADMAP milestone. A v1.2 block can claim Planning milestone v9.9 without any diagnostic, violating the five-separate-identities contract.
-**Fix:** Parse Planning milestone from each block and require exact equality with expected.planningMilestone. Emit a dedicated PIDENT diagnostic for missing or contradictory values.
+### WR-04: Repository-truth subprocesses have no execution timeout [WARNING]
 
-### CR-13: Unsupported publication claims are accepted as truth (BLOCKER)
-
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:778-785
-**Issue:** Publication produces an informational diagnostic only when absent or beginning with unknown. Any other text, including an unevidenced Published claim, receives no validation or diagnostic even though no publication-registry evidence is collected. Local tags can therefore be presented as published releases without proof.
-**Fix:** Keep publication unknown unless independent registry evidence is supplied through a defined source. Without such evidence, make every positive publication assertion a blocking PIDENT_PUBLICATION_OVERCLAIM diagnostic.
-
-### CR-14: Duplicate canonical phase definitions silently select the first winner (BLOCKER)
-
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:575-597,825
-**Issue:** parseRoadmap permits repeated phase numbers and resolveActiveScope uses Array.find, silently selecting the first duplicate. Contradictory names or completion states inside the canonical ROADMAP therefore do not block, contrary to the no-guessed-winner authority rule.
-**Fix:** Index phases by number while parsing, emit an ambiguity diagnostic for duplicates, and refuse to resolve active scope until exactly one definition exists for the STATE pointer.
-
-### CR-15: Any undated keyword mention can satisfy the archive-correction requirement (BLOCKER)
-
-**File:** /Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:707-708
-**Issue:** correctionRecorded checks only whether a line contains the milestone and one of four generic words. It does not require a date, the contradictory archive path, a correction classification, or accepted evidence. Text such as v1.2 archive status therefore suppresses PHIST_CORRECTION_REFERENCE_MISSING.
-**Fix:** Parse a structured EVIDENCE entry and require a valid date, exact milestone, exact preserved archive target, correction/erratum classification, and substantive evidence before treating the contradiction as corrected.
+**File:** `scripts/lib/repository_truth.cjs:69-78`
+**Issue:** Git inspection commands omit `timeout`, and the installed GSD corroboration call at line 1219 also has no timeout. A hung Git helper, filesystem, credential helper, or runtime query can block the report and CI indefinitely instead of yielding the documented incomplete snapshot.
+**Fix:** Set bounded timeouts on every subprocess, classify timeout/signal results as collection errors with `incomplete: true`, and cover both Git and corroboration timeout paths with injected-runner tests.
 
 ---
 
-_Reviewed: 2026-09-09T21:50:40Z_
+_Reviewed: 2026-09-10T03:44:49Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
