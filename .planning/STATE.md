@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-07-PLAN.md
-last_updated: "2026-09-10T22:05:58.562Z"
+stopped_at: Completed 32-08-PLAN.md
+last_updated: "2026-09-10T22:18:52.208Z"
 last_activity: 2026-09-10
 last_activity_desc: Completed Phase 32 Plan 07
-state_head: 78cbf6f3268e38988896c038f392a978421da95a
+state_head: 599682aa0e3f13567a9420098080e676ab832846
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -31,9 +31,9 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
 Plan: 10 of 11
 Status: Ready to execute
-Last activity: 2026-09-10 — Completed Phase 32 Plan 07
+Last activity: 2026-09-10 — Completed Phase 32 Plan 08
 
-Progress: [█████████░] 90%
+Progress: [█████████░] 95%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [█████████░] 90%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 18
+- Plans completed: 19
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -66,6 +66,7 @@ Progress: [█████████░] 90%
 | Phase 32 P06 | 6min | 2 tasks | 8 files |
 | Phase 32 P09 | 5min | 2 tasks | 6 files |
 | Phase 32 P07 | 9min | 2 tasks | 5 files |
+| Phase 32 P08 | 7min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ Progress: [█████████░] 90%
 - [Phase 32]: Use one literal list-subscription operation and route across initial and continuation pages while cursor material remains dispatch-only.
 - [Phase 32]: Use validated subscription IDs for lifecycle reconciliation, while transaction create retains no substitute resource ID before provider confirmation.
 - [Phase 32]: Remove resource-level positive and negative idempotency cases; only supported restrictive retry options remain typed.
+- [Phase 32]: Prepend terminal telemetry ahead of Req retry and carry attempt timing only in request-private state so every physical attempt emits one pair.
+- [Phase 32]: Normalize telemetry exceptions to transport_error, http_error, or exception and responses to fixed ok/error results without exposing transport state.
+- [Phase 32]: Use process-owned subscribers with unique handler IDs and deterministic detach to prove concurrent request isolation.
 
 ### Pending Todos
 
@@ -141,10 +145,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T22:05:58.311Z
-Stopped at: Completed 32-07-PLAN.md
+Last session: 2026-09-10T22:18:52.112Z
+Stopped at: Completed 32-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue with `32-08-PLAN.md`.
+- Continue with `32-10-PLAN.md`.

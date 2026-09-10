@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 0
+open_count: 1
 waived_count: 0
-fixed_count: 5
-total_count: 5
-last_updated: 2026-09-10T22:06:49.737Z
+fixed_count: 6
+total_count: 7
+last_updated: 2026-09-10T22:19:46.062Z
 ---
 
 # Broken Windows Ledger
@@ -20,6 +20,8 @@ last_updated: 2026-09-10T22:06:49.737Z
 | 3 | 32 | deviation | .planning/STATE.md |  | Reconciled skipped progress output and duplicate phase prefixes after standard state handlers | fixed |  | 2026-09-10T20:35:37.138Z | 2026-09-10T20:35:37.252Z |
 | 4 | 32 | deviation | .planning/STATE.md |  | Reconciled visible state after SDK handlers advanced authoritative counters | fixed |  | 2026-09-10T21:23:02.854Z | 2026-09-10T21:23:15.402Z |
 | 5 | 32 | deviation | .planning/STATE.md |  | Reconciled human-readable progress and next-step fields after state.update-progress skipped the unscoped in-progress phase. | fixed |  | 2026-09-10T22:06:29.226Z | 2026-09-10T22:06:49.737Z |
+| 6 | 32 | unmet-truth | test/paddle/seam_test.exs | 105 | Plan 32-10 owns three seam-contract transition failures left after Plan 32-08; focused telemetry and all non-seam runtime tests pass. | open |  | 2026-09-10T22:18:50.607Z |  |
+| 7 | 32 | deviation | .planning/STATE.md |  | Reconciled Plan 32 visible state after dependency-ordered execution and skipped unscoped progress update. | fixed |  | 2026-09-10T22:19:28.718Z | 2026-09-10T22:19:46.062Z |
 
 ````json
 [
@@ -82,6 +84,30 @@ last_updated: 2026-09-10T22:06:49.737Z
     "reason": "",
     "recorded_at": "2026-09-10T22:06:29.226Z",
     "resolved_at": "2026-09-10T22:06:49.737Z"
+  },
+  {
+    "id": 6,
+    "kind": "unmet-truth",
+    "phase": "32",
+    "file": "test/paddle/seam_test.exs",
+    "line": 105,
+    "description": "Plan 32-10 owns three seam-contract transition failures left after Plan 32-08; focused telemetry and all non-seam runtime tests pass.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:18:50.607Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "deviation",
+    "phase": "32",
+    "file": ".planning/STATE.md",
+    "line": null,
+    "description": "Reconciled Plan 32 visible state after dependency-ordered execution and skipped unscoped progress update.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:19:28.718Z",
+    "resolved_at": "2026-09-10T22:19:46.062Z"
   }
 ]
 ````
