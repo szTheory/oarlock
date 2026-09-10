@@ -31,6 +31,12 @@ defmodule Paddle.SubscriptionsTest do
           assert request.url.path == "/subscriptions/sub_01"
           assert request.body == nil
 
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_subscription,
+                   route: "/subscriptions/:subscription_id"
+                 }
+
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
 
@@ -131,6 +137,32 @@ defmodule Paddle.SubscriptionsTest do
                Subscriptions.get(client, "sub_01")
     end
 
+    test "retries a transient read within the central bound and keeps static context" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          count = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_subscription,
+                   route: "/subscriptions/:subscription_id"
+                 }
+
+          response =
+            if count == 0,
+              do: Req.Response.new(status: 503, body: %{}),
+              else:
+                Req.Response.new(status: 200, body: %{"data" => subscription_payload_canceled()})
+
+          {request, response}
+        end)
+
+      assert {:ok, %Subscription{}} = Subscriptions.get(client, "sub/runtime-canary")
+      assert Agent.get(attempts, & &1) == 2
+    end
+
     test "maps update_payment_method to nil for manual-collection subscriptions (Pitfall 5)" do
       response_data = subscription_payload_manual_no_payment_link()
 
@@ -156,6 +188,13 @@ defmodule Paddle.SubscriptionsTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/subscriptions/sub_01"
+
+          assert request_context(request) == %{
+                   method: :patch,
+                   operation: :update_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "proration_billing_mode" => "next_billing_period",
@@ -223,6 +262,12 @@ defmodule Paddle.SubscriptionsTest do
           assert request.url.path == "/subscriptions"
           assert URI.decode_query(request.url.query || "") == %{}
           assert request.body == nil
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :list_subscriptions,
+                   route: "/subscriptions"
+                 }
 
           {request,
            Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
@@ -361,18 +406,7 @@ defmodule Paddle.SubscriptionsTest do
 
     test "raises Paddle.Error when a later page fails" do
       {client, _requests} =
-        client_with_get_sequence([
-          %{
-            path: "/subscriptions",
-            query: %{},
-            response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
-          },
-          %{
-            path: "/subscriptions",
-            query: %{"after" => "cursor_1"},
-            response: paddle_unavailable_response()
-          }
-        ])
+        client_with_get_sequence(subscription_terminal_failure_requests())
 
       error =
         assert_raise Error, fn ->
@@ -436,18 +470,7 @@ defmodule Paddle.SubscriptionsTest do
 
     test "returns the first later-page Paddle.Error without partial results" do
       {client, _requests} =
-        client_with_get_sequence([
-          %{
-            path: "/subscriptions",
-            query: %{},
-            response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
-          },
-          %{
-            path: "/subscriptions",
-            query: %{"after" => "cursor_1"},
-            response: paddle_unavailable_response()
-          }
-        ])
+        client_with_get_sequence(subscription_terminal_failure_requests())
 
       assert {:error, %Error{status_code: 503, message: "Paddle unavailable"}} =
                Subscriptions.all(client)
@@ -469,6 +492,14 @@ defmodule Paddle.SubscriptionsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/subscriptions/sub_01/cancel"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :cancel_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id/cancel"
+                 }
+
           assert decode_json_body(request.body) == %{"effective_from" => "next_billing_period"}
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
@@ -546,7 +577,16 @@ defmodule Paddle.SubscriptionsTest do
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+      assert {:error,
+              %Error{
+                type: "network_timeout",
+                network_error?: true,
+                ambiguous?: true,
+                retryable?: false,
+                operation: :cancel_subscription,
+                resource_id: "sub_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
                Subscriptions.cancel(client, "sub_01")
     end
   end
@@ -559,6 +599,14 @@ defmodule Paddle.SubscriptionsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/subscriptions/sub_01/cancel"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :cancel_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id/cancel"
+                 }
+
           assert decode_json_body(request.body) == %{"effective_from" => "immediately"}
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
@@ -630,7 +678,16 @@ defmodule Paddle.SubscriptionsTest do
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+      assert {:error,
+              %Error{
+                type: "network_timeout",
+                network_error?: true,
+                ambiguous?: true,
+                retryable?: false,
+                operation: :cancel_subscription,
+                resource_id: "sub_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
                Subscriptions.cancel_immediately(client, "sub_01")
     end
   end
@@ -643,6 +700,13 @@ defmodule Paddle.SubscriptionsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/subscriptions/sub_01/pause"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :pause_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id/pause"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "effective_from" => "next_billing_period",
@@ -711,13 +775,13 @@ defmodule Paddle.SubscriptionsTest do
                Subscriptions.pause(client, "sub_01", on_resume: :not_allowed)
     end
 
-    test "raises ArgumentError for idempotency_key and unsupported keys before dispatch" do
+    test "rejects idempotency_key as an ordinary unknown option before dispatch" do
       client =
         client_with_adapter(fn request ->
           flunk("unexpected request: #{inspect(request)}")
         end)
 
-      assert_raise ArgumentError, ~r/idempotency_key is not supported for pause operations/, fn ->
+      assert_raise ArgumentError, ~r/unknown pause option: :idempotency_key/, fn ->
         Subscriptions.pause(client, "sub_01", idempotency_key: "attempt-1")
       end
 
@@ -753,6 +817,13 @@ defmodule Paddle.SubscriptionsTest do
           assert request.method == :post
           assert request.url.path == "/subscriptions/sub_01/pause"
 
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :pause_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id/pause"
+                 }
+
           assert decode_json_body(request.body) == %{
                    "effective_from" => "immediately",
                    "resume_at" => "2026-07-01T00:00:00Z",
@@ -769,13 +840,13 @@ defmodule Paddle.SubscriptionsTest do
                )
     end
 
-    test "raises ArgumentError for idempotency_key" do
+    test "rejects idempotency_key as an ordinary unknown option" do
       client =
         client_with_adapter(fn request ->
           flunk("unexpected request: #{inspect(request)}")
         end)
 
-      assert_raise ArgumentError, ~r/idempotency_key/, fn ->
+      assert_raise ArgumentError, ~r/unknown pause option: :idempotency_key/, fn ->
         Subscriptions.pause_immediately(client, "sub_01", idempotency_key: "attempt-2")
       end
     end
@@ -789,6 +860,13 @@ defmodule Paddle.SubscriptionsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/subscriptions/sub_01/resume"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :resume_subscription,
+                   resource_id: "sub_01",
+                   route: "/subscriptions/:subscription_id/resume"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "effective_from" => "immediately",
@@ -835,14 +913,14 @@ defmodule Paddle.SubscriptionsTest do
                Subscriptions.resume(client, "sub_01", on_resume: :not_allowed)
     end
 
-    test "raises ArgumentError for idempotency_key and unsupported keys before dispatch" do
+    test "rejects idempotency_key as an ordinary unknown option before dispatch" do
       client =
         client_with_adapter(fn request ->
           flunk("unexpected request: #{inspect(request)}")
         end)
 
       assert_raise ArgumentError,
-                   ~r/idempotency_key is not supported for resume operations/,
+                   ~r/unknown resume option: :idempotency_key/,
                    fn ->
                      Subscriptions.resume(client, "sub_01", idempotency_key: "attempt-3")
                    end
@@ -891,6 +969,44 @@ defmodule Paddle.SubscriptionsTest do
     end
   end
 
+  describe "lifecycle mutation safety" do
+    test "every update, cancel, pause, and resume variant dispatches once with reconciliation context" do
+      operations = [
+        {:update_subscription,
+         fn client -> Subscriptions.update(client, "sub_01", %{custom_data: %{}}) end},
+        {:cancel_subscription, fn client -> Subscriptions.cancel(client, "sub_01") end},
+        {:cancel_subscription,
+         fn client -> Subscriptions.cancel_immediately(client, "sub_01") end},
+        {:pause_subscription, fn client -> Subscriptions.pause(client, "sub_01") end},
+        {:pause_subscription, fn client -> Subscriptions.pause_immediately(client, "sub_01") end},
+        {:resume_subscription, fn client -> Subscriptions.resume(client, "sub_01") end}
+      ]
+
+      for {operation, call} <- operations do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_retry_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            assert request_context(request).operation == operation
+            assert request_context(request).resource_id == "sub_01"
+            {request, %Req.TransportError{reason: :timeout}}
+          end)
+
+        assert {:error,
+                %Error{
+                  ambiguous?: true,
+                  retryable?: false,
+                  operation: ^operation,
+                  resource_id: "sub_01",
+                  reconciliation: [:lookup, :webhook, :provider_dashboard]
+                }} = call.(client)
+
+        assert Agent.get(attempts, & &1) == 1
+      end
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
@@ -929,7 +1045,7 @@ defmodule Paddle.SubscriptionsTest do
     {:ok, requests} = Agent.start_link(fn -> expected_requests end)
 
     client =
-      client_with_adapter(fn request ->
+      client_with_retry_adapter(fn request ->
         expected =
           Agent.get_and_update(requests, fn
             [expected | rest] ->
@@ -944,6 +1060,12 @@ defmodule Paddle.SubscriptionsTest do
         assert URI.decode_query(request.url.query || "") == expected.query
         assert request.body == nil
 
+        assert request_context(request) == %{
+                 method: :get,
+                 operation: :list_subscriptions,
+                 route: "/subscriptions"
+               }
+
         {request, expected.response}
       end)
 
@@ -952,6 +1074,10 @@ defmodule Paddle.SubscriptionsTest do
 
   defp assert_no_more_requests(requests) do
     assert Agent.get(requests, & &1) == []
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
   end
 
   defp subscription_pagination_requests do
@@ -987,6 +1113,22 @@ defmodule Paddle.SubscriptionsTest do
           )
       }
     ]
+  end
+
+  defp subscription_terminal_failure_requests do
+    first = %{
+      path: "/subscriptions",
+      query: %{},
+      response: subscription_page(["sub_01"], true, "/subscriptions?after=cursor_1")
+    }
+
+    terminal = %{
+      path: "/subscriptions",
+      query: %{"after" => "cursor_1"},
+      response: paddle_unavailable_response()
+    }
+
+    [first | List.duplicate(terminal, 4)]
   end
 
   defp subscription_page(ids, has_more, next) do
