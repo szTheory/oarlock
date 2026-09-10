@@ -126,7 +126,7 @@ status: complete
 - Mutation ambiguity is determined from the immutable request method plus a transport failure or terminal 408/5xx response. It never changes the `{:error, %Paddle.Error{}}` family and always forces `retryable?: false`.
 - Context values are consumed and type-validated before Req dispatch. Only operation/resource are copied to the public error; route remains request-private for telemetry and never becomes reconciliation guidance.
 
-## Verification
+## Automated Evidence
 
 - `mix test test/paddle/client_test.exs test/paddle/http_test.exs --trace` — 30 tests, 0 failures.
 - `mix test test/paddle/http_test.exs test/paddle/error_test.exs` — 32 tests, 0 failures.
