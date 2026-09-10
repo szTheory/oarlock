@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-06-PLAN.md
-last_updated: "2026-09-10T21:44:30.739Z"
+stopped_at: Completed 32-09-PLAN.md
+last_updated: "2026-09-10T21:53:07.433Z"
 last_activity: 2026-09-10
 last_activity_desc: Completed Phase 32 Plan 06
-state_head: e4a94232cfafa40d5193601ca022837f66d9485b
+state_head: 5ea6d1c7cbf49f7d04b804fdc5ee330ac6eb98db
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 ## Current Position
 
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 8 of 11
+Plan: 9 of 11
 Status: Ready to execute
 Last activity: 2026-09-10 — Completed Phase 32 Plan 06
 
@@ -64,6 +64,7 @@ Progress: [████████░░] 80%
 | Phase 32 P04 | 9min | 2 tasks | 7 files |
 | Phase 32 P05 | 8min | 3 tasks | 9 files |
 | Phase 32 P06 | 6min | 2 tasks | 8 files |
+| Phase 32 P09 | 5min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Progress: [████████░░] 80%
 - [Phase 32]: Use one literal list operation/route pair for both initial and continuation pages so runtime filters, IDs, and cursors remain dispatch-only.
 - [Phase 32]: Keep notification create retry restriction typing while removing unsupported idempotency typing; update/delete remain option-free and all three mutations rely on the central one-attempt policy.
 - [Phase 32]: Attach only validated notification-setting IDs as mutation resource context, never destinations, endpoint secrets, bodies, or dynamic route labels.
+- [Phase 32]: Classify every public raw_data-bearing type from source and every field on the six capability-bearing values so additions fail until explicitly reviewed.
+- [Phase 32]: Redact promoted capability fields and complete raw_data or transport containers with the stable [REDACTED] marker while leaving stored terms unchanged.
 
 ### Pending Todos
 
@@ -134,8 +137,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T21:44:30.619Z
-Stopped at: Completed 32-06-PLAN.md
+Last session: 2026-09-10T21:53:07.321Z
+Stopped at: Completed 32-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
