@@ -149,12 +149,22 @@ function parseArguments(argv) {
   return parsed;
 }
 
+function escapeTerminal(value) {
+  return String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (character) => `\\u${character.codePointAt(0).toString(16).padStart(4, "0")}`);
+}
+
 function render(result, json) {
   if (json) return `${JSON.stringify(result, null, 2)}\n`;
-  const lines = [`History integrity: ${result.status}`, `Base: ${result.base || "unobserved"}`, `Head: ${result.head || "unobserved"}`];
-  for (const violation of result.violations) lines.push(`${violation.code} ${violation.artifact}: ${violation.change}`);
-  for (const artifact of result.additions) lines.push(`HIST_ARCHIVE_ADDED ${artifact}`);
-  if (result.error) lines.push(`HIST_OBSERVATION_INCOMPLETE: ${result.error}`);
+  const lines = [
+    `History integrity: ${escapeTerminal(result.status)}`,
+    `Base: ${escapeTerminal(result.base || "unobserved")}`,
+    `Head: ${escapeTerminal(result.head || "unobserved")}`,
+  ];
+  for (const violation of result.violations) {
+    lines.push(`${escapeTerminal(violation.code)} ${escapeTerminal(violation.artifact)}: ${escapeTerminal(violation.change)}`);
+  }
+  for (const artifact of result.additions) lines.push(`HIST_ARCHIVE_ADDED ${escapeTerminal(artifact)}`);
+  if (result.error) lines.push(`HIST_OBSERVATION_INCOMPLETE: ${escapeTerminal(result.error)}`);
   return `${lines.join("\n")}\n`;
 }
 

@@ -106,6 +106,20 @@ if (MUTATION_SUBJECT) {
     assert.equal(guard(root, base, head).status, 0);
   });
 
+  test("human output escapes control characters in repository-controlled paths", (t) => {
+    const { root, base } = repository(t);
+    const hostile = ".planning/milestones/hostile\n\t\u001b[31m.md";
+    write(root, hostile, "# Hostile archive name\n");
+    const head = commit(root);
+    const human = guard(root, base, head);
+    assert.equal(human.status, 0);
+    assert.doesNotMatch(human.stdout, /[\t\u001b]/);
+    assert.match(human.stdout, /hostile\\u000a\\u0009\\u001b\[31m\.md/);
+
+    const machine = JSON.parse(guard(root, base, head, ["--json"]).stdout);
+    assert.equal(machine.additions[0], hostile);
+  });
+
   test("correction ledger: prior-row modification and removal fail", async (t) => {
     for (const [name, mutateLedger] of [
       ["modification", (content) => content.replace("Added navigation", "Replaced navigation")],
