@@ -492,3 +492,73 @@ test("unsafe renderer input is visibly escaped without changing JSON facts", () 
   assert.match(renderHuman(result), /\\u001b/);
   assert.equal(JSON.parse(renderJson(result)).facts.repository.root, "/fixture\u001b[31m");
 });
+
+test("CLI transparency: inferred and unsupported ownership remain unknown in human and JSON output", (t) => {
+  for (const unsupported of [false, true]) {
+    const root = makeRepository(t);
+    const registryPath = path.join(root, ".planning/repository-ownership.json");
+    if (unsupported) {
+      const registry = registryFor(["tracked.txt"]);
+      registry.claims[0].owner = { inferred: "from-path" };
+      fs.writeFileSync(registryPath, JSON.stringify(registry));
+      run("git", ["add", ".planning/repository-ownership.json"], { cwd: root });
+      run("git", ["commit", "-m", "unsupported claim fixture"], { cwd: root });
+    }
+    fs.appendFileSync(path.join(root, "tracked.txt"), "dirty\n");
+
+    const human = invokeInventory(root, []);
+    const json = invokeInventory(root, ["--json"]);
+    const result = JSON.parse(json.stdout);
+
+    assert.equal(human.status, unsupported ? 2 : 1);
+    assert.equal(json.status, unsupported ? 2 : 1);
+    assert.match(human.stdout, /RINV_UNKNOWN_STATE/);
+    assert.equal(result.dispositions.some(({ artifact, state, owner }) => artifact.endsWith(":tracked.txt") && state === "unknown" && owner === "unknown"), true);
+    assert.equal(result.conclusion.status, unsupported ? "incomplete" : "policy-error");
+    assert.ok(result.conclusion.diagnosticCodes.includes("RINV_UNKNOWN_STATE"));
+    if (unsupported) {
+      assert.match(human.stdout, /RINV_CLAIM_INVALID/);
+      assert.ok(result.conclusion.diagnosticCodes.includes("RINV_CLAIM_INVALID"));
+    }
+  }
+});
+
+test("CLI transparency: stale claims remain visible and blocking in human and JSON output", (t) => {
+  const root = makeRepository(t);
+  const registry = registryFor(["tracked.txt"]);
+  registry.claims[0].revisit_at = "2020-01-01";
+  fs.writeFileSync(path.join(root, ".planning/repository-ownership.json"), JSON.stringify(registry));
+  run("git", ["add", ".planning/repository-ownership.json"], { cwd: root });
+  run("git", ["commit", "-m", "stale claim fixture"], { cwd: root });
+  fs.appendFileSync(path.join(root, "tracked.txt"), "dirty\n");
+
+  const human = invokeInventory(root, []);
+  const json = invokeInventory(root, ["--json"]);
+  const result = JSON.parse(json.stdout);
+
+  assert.equal(human.status, 1);
+  assert.equal(json.status, 1);
+  assert.match(human.stdout, /RINV_STALE_CLAIM/);
+  assert.match(human.stdout, /Conclusion: policy-error/);
+  assert.equal(result.dispositions.some(({ artifact, state }) => artifact.endsWith(":tracked.txt") && state === "stale"), true);
+  assert.ok(result.diagnostics.some(({ code }) => code === "RINV_STALE_CLAIM"));
+  assert.equal(result.conclusion.status, "policy-error");
+});
+
+test("CLI transparency: bounded collection is explicitly incomplete in human and JSON output", (t) => {
+  const root = makeRepository(t);
+  for (const argv of [[], ["--json"]]) {
+    const invocation = invokeInventory(root, argv, { maximumRegistryBytes: 8 });
+    assert.equal(invocation.status, 2);
+    assert.match(invocation.stdout, /RINV_REGISTRY_UNREADABLE/);
+    assert.match(invocation.stdout, /incomplete/);
+    if (argv.includes("--json")) {
+      const result = JSON.parse(invocation.stdout);
+      assert.equal(result.conclusion.exitCode, 2);
+      assert.equal(result.conclusion.status, "incomplete");
+      assert.equal(result.dispositions.every(({ owner }) => owner === "unknown"), true);
+    } else {
+      assert.match(invocation.stdout, /Conclusion: incomplete \(exit 2/);
+    }
+  }
+});
