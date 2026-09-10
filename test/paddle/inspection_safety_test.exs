@@ -30,7 +30,11 @@ defmodule Paddle.InspectionSafetyTest do
         source = File.read!(path)
 
         if Regex.match?(~r/\b(?:defstruct|defexception)\b[\s\S]*\braw_data\b/, source) do
-          [module] = Regex.run(~r/^defmodule\s+([A-Z][A-Za-z0-9_.]*)\s+do/m, source, capture: :all_but_first)
+          [module] =
+            Regex.run(~r/^defmodule\s+([A-Z][A-Za-z0-9_.]*)\s+do/m, source,
+              capture: :all_but_first
+            )
+
           MapSet.put(modules, module)
         else
           modules
@@ -59,7 +63,8 @@ defmodule Paddle.InspectionSafetyTest do
          "endpoint_secret_key" => "promoted_endpoint_secret_canary",
          "provider_extension" => %{
            "signed_url" => "https://provider.test/nested_notification_url_canary",
-           "credentials" => {"nested_notification_tuple_canary", ["nested_notification_list_canary"]}
+           "credentials" =>
+             {"nested_notification_tuple_canary", ["nested_notification_list_canary"]}
          }
        },
        [
