@@ -347,6 +347,15 @@ test("completion: same-basename evidence links outside the canonical phase are r
   ]);
 });
 
+test("completion: generic caveat prose cannot override failed verification", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/EVIDENCE.md"].content += "\nPhase 31 accepted with an acknowledged caveat.\n";
+  snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = "---\nstatus: failed\n---\n\n| REPO-01 | failed |\n| REPO-02 | failed |\n";
+  const codes = validateCompletionProof(snapshot, "31").map(({ code }) => code);
+  assert.equal(codes.filter((code) => code === "PCOMP_REQUIREMENT_UNLINKED").length, 2);
+  assert.ok(codes.includes("PCOMP_VERIFICATION_UNPROVEN"));
+});
+
 test("completion: unchecked plans remain blocking even with complete summaries", () => {
   const snapshot = completedSnapshot();
   snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace("- [x] 31-02-PLAN.md", "- [ ] 31-02-PLAN.md");

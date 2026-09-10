@@ -1395,13 +1395,12 @@ function validateCompletionProof(snapshot, phaseNumber) {
   const verificationMetadata = parseFrontmatter(verificationContent);
   const verificationStatus = String(verificationMetadata.status || verificationMetadata.result || verificationMetadata.verdict || "").trim().toLowerCase();
   const verificationPassed = ["pass", "passed", "complete", "verified"].includes(verificationStatus);
-  const acknowledgedCaveat = new RegExp(`Phase\\s+${String(phaseNumber).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*(?:accepted|acknowledged)[^\\n]*caveat`, "i").test(evidence);
   if (!verificationArtifact) diagnostics.push(completionDiagnostic(
-    "PCOMP_VERIFICATION_MISSING", `.planning/phases/${phaseNumber}`, "phase verification", `${phaseNumber}-VERIFICATION.md or classified caveat`, null,
-    ".planning/EVIDENCE.md + phase verification", "No phase verification artifact or explicitly classified caveat was found", "Propose running phase verification and recording its result in EVIDENCE.md.",
+    "PCOMP_VERIFICATION_MISSING", `.planning/phases/${phaseNumber}`, "phase verification", `${phaseNumber}-VERIFICATION.md`, null,
+    ".planning/EVIDENCE.md + phase verification", "No phase verification artifact was found", "Propose running phase verification and recording its result in EVIDENCE.md.",
   ));
-  else if (!verificationPassed && !acknowledgedCaveat) diagnostics.push(completionDiagnostic(
-    "PCOMP_VERIFICATION_UNPROVEN", verificationArtifact, "verification status", "explicit pass or classified acknowledged caveat", "filename present without passing content",
+  else if (!verificationPassed) diagnostics.push(completionDiagnostic(
+    "PCOMP_VERIFICATION_UNPROVEN", verificationArtifact, "verification status", "explicit pass", "filename present without passing content",
     ".planning/EVIDENCE.md + phase verification", "Verification artifact presence alone does not prove success", "Propose re-running verification and recording an explicit status or reviewed caveat.",
   ));
 
@@ -1411,7 +1410,7 @@ function validateCompletionProof(snapshot, phaseNumber) {
     const requirement = requirementById.get(requirementId);
     const trace = traceById.get(requirementId);
     const linked = acceptedProofRow(evidence, requirementId, verificationArtifact)
-      && (requirementPassedByVerification(verificationContent, requirementId, verificationPassed) || acknowledgedCaveat);
+      && requirementPassedByVerification(verificationContent, requirementId, verificationPassed);
     if (!requirement || !requirement.complete || !trace || trace.phase !== String(phaseNumber) || !/^complete$/i.test(trace.status) || !linked) {
       diagnostics.push(completionDiagnostic(
         "PCOMP_REQUIREMENT_UNLINKED", ".planning/REQUIREMENTS.md + .planning/EVIDENCE.md", requirementId,
