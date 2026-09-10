@@ -257,7 +257,20 @@ async function assertCi(args, options = {}) {
       continue;
     }
 
-    const viewed = viewRun({ runId: run.databaseId, repo }, options);
+    let viewed;
+    try {
+      viewed = viewRun({ runId: run.databaseId, repo }, options);
+    } catch (error) {
+      return {
+        exitCode: 2,
+        evidence: {
+          verified: false,
+          reason: "gh_error",
+          message: error.message,
+          details: error.details || {},
+        },
+      };
+    }
     const jobs = Array.isArray(viewed.jobs) ? viewed.jobs : [];
     const jobsEvidence = jobEvidence(jobs, requiredJobs);
     const runConclusion = viewed.conclusion || run.conclusion;

@@ -66,7 +66,10 @@ if (args[0] === "run" && args[1] === "list") {
 }
 
 if (args[0] === "run" && args[1] === "view") {
-  if (scenario === "failed-job") write({ ...run("completed", "success"), jobs: jobs({ "package smoke": "failure" }) });
+  if (scenario === "view-error") {
+    process.stderr.write("view unavailable");
+    process.exit(1);
+  } else if (scenario === "failed-job") write({ ...run("completed", "success"), jobs: jobs({ "package smoke": "failure" }) });
   else if (scenario === "failed-planning-truth") write({ ...run("completed", "success"), jobs: jobs({ "planning truth": "failure" }) });
   else if (scenario === "missing-planning-truth") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "planning truth") });
   else if (scenario === "missing-job") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "CI contract") });
@@ -94,12 +97,12 @@ process.exit(1);
   };
 }
 
-function runMonitor(scenario, extraArgs = []) {
+function runMonitor(scenario, extraArgs = [], asJson = true) {
   const fake = makeFakeGh(scenario);
   try {
     return spawnSync(
       process.execPath,
-      [script, "assert-ci", "--sha", "abc123", "--workflow", "CI", "--timeout", "0", "--poll", "0", "--json", ...extraArgs],
+      [script, "assert-ci", "--sha", "abc123", "--workflow", "CI", "--timeout", "0", "--poll", "0", ...(asJson ? ["--json"] : []), ...extraArgs],
       {
         encoding: "utf8",
         env: fake.env,
@@ -173,6 +176,19 @@ test("assert-ci fails when planning truth failed for the exact SHA", () => {
   const evidence = JSON.parse(result.stdout);
   assert.equal(evidence.reason, "required_job_not_successful");
   assert.deepEqual(evidence.failedJobs, ["planning truth"]);
+});
+
+test("assert-ci reports completed-run lookup errors as blocked evidence", () => {
+  const jsonResult = runMonitor("view-error");
+  assert.equal(jsonResult.status, 2);
+  assert.equal(JSON.parse(jsonResult.stdout).reason, "gh_error");
+  assert.match(JSON.parse(jsonResult.stdout).message, /view unavailable/);
+
+  const humanResult = runMonitor("view-error", [], false);
+  assert.equal(humanResult.status, 2);
+  assert.match(humanResult.stderr, /CI verification failed: gh_error/);
+  assert.match(humanResult.stderr, /view unavailable/);
+  assert.doesNotMatch(humanResult.stderr, /\n\s+at /);
 });
 
 test("assert-ci times out when the run is still in progress", () => {
