@@ -4,6 +4,14 @@
 defmodule Paddle.SeamTest do
   use ExUnit.Case, async: false
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   alias Paddle.Address
   alias Paddle.Client
   alias Paddle.Customer
@@ -353,7 +361,9 @@ defmodule Paddle.SeamTest do
       api_key: "sk_test_123",
       environment: :sandbox,
       base_url: "https://sandbox-api.paddle.com",
-      req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+      req:
+        Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 
@@ -584,11 +594,20 @@ defmodule Paddle.SeamTest do
     demo_readme = File.read!("demo/README.md")
 
     intro = demo_readme |> markdown_section!("# oarlock Phoenix Demo") |> normalize_markdown()
-    demonstrated = demo_readme |> markdown_section!("## What It Demonstrates") |> normalize_markdown()
+
+    demonstrated =
+      demo_readme |> markdown_section!("## What It Demonstrates") |> normalize_markdown()
+
     run_locally = demo_readme |> markdown_section!("## Run Locally") |> normalize_markdown()
-    offline_mode = demo_readme |> markdown_section!("## Offline Paddle Mode") |> normalize_markdown()
+
+    offline_mode =
+      demo_readme |> markdown_section!("## Offline Paddle Mode") |> normalize_markdown()
+
     webhook_flow = demo_readme |> markdown_section!("## Webhook Flow") |> normalize_markdown()
-    handoffs = demo_readme |> markdown_section!("## Checkout and Portal Handoffs") |> normalize_markdown()
+
+    handoffs =
+      demo_readme |> markdown_section!("## Checkout and Portal Handoffs") |> normalize_markdown()
+
     before_live = demo_readme |> markdown_section!("## Before Live Mode") |> normalize_markdown()
 
     assert intro =~ "sign in as the mock merchant"
@@ -661,15 +680,23 @@ defmodule Paddle.SeamTest do
     assert getting_started =~ "Send the user to Paddle Checkout"
     assert getting_started =~ "Verify the webhook when Paddle tells you payment completed"
     assert getting_started =~ "Save the resulting Paddle IDs and grant access in your app"
-    assert getting_started =~ "Paddle.Webhooks.verify_signature(raw_body, signature_header, secret)"
+
+    assert getting_started =~
+             "Paddle.Webhooks.verify_signature(raw_body, signature_header, secret)"
+
     assert getting_started =~ "Paddle.Webhooks.parse_event(raw_body)"
     assert getting_started =~ "Paddle.Subscriptions.get(client, transaction.subscription_id)"
     assert getting_started =~ "Paddle.Customers.PortalSessions.create/4"
-    assert getting_started =~ "Your app still owns authorization, audit records, and local state updates"
+
+    assert getting_started =~
+             "Your app still owns authorization, audit records, and local state updates"
+
     assert getting_started =~ "Phoenix request parsing or webhook plugs"
     assert getting_started =~ "Ecto schemas or synchronization tables"
     assert getting_started =~ "Stored idempotency keys for app-level retry jobs"
-    assert getting_started =~ "verifies the exact raw request body before parsing or trusting events"
+
+    assert getting_started =~
+             "verifies the exact raw request body before parsing or trusting events"
   end
 
   test "public docs do not claim provider-state proof from local fixtures" do

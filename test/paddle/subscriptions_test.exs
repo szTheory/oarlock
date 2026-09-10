@@ -5,6 +5,14 @@
 defmodule Paddle.SubscriptionsTest do
   use ExUnit.Case, async: true
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   alias Paddle.Client
   alias Paddle.Error
   alias Paddle.Page
@@ -888,7 +896,9 @@ defmodule Paddle.SubscriptionsTest do
       api_key: "sk_test_123",
       environment: :sandbox,
       base_url: "https://sandbox-api.paddle.com",
-      req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+      req:
+        Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 
@@ -909,8 +919,9 @@ defmodule Paddle.SubscriptionsTest do
           retry: :transient,
           retry_delay: fn _ -> 0 end,
           max_retries: 3,
-          adapter: adapter
+          adapter: Adapter
         )
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 

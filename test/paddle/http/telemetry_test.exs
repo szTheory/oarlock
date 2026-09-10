@@ -1,6 +1,14 @@
 defmodule Paddle.Http.TelemetryTest do
   use ExUnit.Case, async: true
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   setup do
     handler_id = {__MODULE__, make_ref()}
 
@@ -34,10 +42,11 @@ defmodule Paddle.Http.TelemetryTest do
       Req.new(
         method: :get,
         url: "/customers",
-        adapter: fn request ->
-          {request, Req.Response.new(status: 200, body: %{"ok" => true})}
-        end
+        adapter: Adapter
       )
+      |> Req.Request.put_private(:paddle_test_adapter, fn request ->
+        {request, Req.Response.new(status: 200, body: %{"ok" => true})}
+      end)
       |> Paddle.Http.Telemetry.attach()
 
     assert {:ok, %Req.Response{status: 200}} = Req.request(req)
@@ -60,10 +69,11 @@ defmodule Paddle.Http.TelemetryTest do
         method: :get,
         url: "/customers",
         retry: false,
-        adapter: fn request ->
-          {request, %Req.TransportError{reason: :timeout}}
-        end
+        adapter: Adapter
       )
+      |> Req.Request.put_private(:paddle_test_adapter, fn request ->
+        {request, %Req.TransportError{reason: :timeout}}
+      end)
       |> Paddle.Http.Telemetry.attach()
 
     assert {:error, %Req.TransportError{reason: :timeout}} = Req.request(req)
