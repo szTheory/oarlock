@@ -2,6 +2,12 @@ defmodule Paddle.Transactions do
   @moduledoc """
   Provides operations for managing Paddle Transactions.
 
+  Transaction reads use bounded retries for documented transient failures.
+  Creates always make one attempt. If a create may have reached Paddle but its
+  outcome is unknown, the returned `%Paddle.Error{}` is non-retryable and
+  carries only the static `:create_transaction` operation and fixed consumer
+  reconciliation actions.
+
   ## Example Pipeline
 
   ```elixir
@@ -34,10 +40,14 @@ defmodule Paddle.Transactions do
   alias Paddle.Transaction.Checkout
 
   @type transaction_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+  @type request_opt :: {:retry, boolean()}
 
   @doc """
   Retrieves a transaction by ID.
+
+  This safe read uses bounded transient retries. The runtime transaction ID is
+  encoded only into the dispatch path; request context uses the normalized
+  `/transactions/:transaction_id` route.
 
   ## Examples
 
@@ -62,13 +72,22 @@ defmodule Paddle.Transactions do
   def get(%Client{} = client, transaction_id) do
     with :ok <- validate_transaction_id(transaction_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, transaction_path(transaction_id)) do
+           Http.request(client, :get, transaction_path(transaction_id),
+             operation: :get_transaction,
+             route: "/transactions/:transaction_id"
+           ) do
       {:ok, build_transaction(data)}
     end
   end
 
   @doc """
   Creates a new transaction.
+
+  This mutation makes one attempt. `retry: false` may explicitly retain that
+  restriction, while `retry: true` is rejected before dispatch. Ambiguous
+  transport or terminal HTTP 408/5xx failures return a non-retryable error with
+  `operation: :create_transaction` and fixed lookup/webhook/provider-dashboard
+  reconciliation actions.
 
   Local validation is performed on the provided attributes before sending the request to the provider.
 
@@ -126,7 +145,16 @@ defmodule Paddle.Transactions do
          {:ok, checkout} <- validate_checkout(attrs),
          body <- build_body(customer_id, address_id, items, custom_data, checkout),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :post, "/transactions", Keyword.merge([json: body], opts)) do
+           Http.request(
+             client,
+             :post,
+             "/transactions",
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_transaction,
+               route: "/transactions"
+             )
+           ) do
       {:ok, build_transaction(data)}
     end
   end

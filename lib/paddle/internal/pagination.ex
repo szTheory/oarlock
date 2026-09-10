@@ -6,8 +6,7 @@ defmodule Paddle.Internal.Pagination do
   `next_page/4` accepts the dynamic cursor path only as the dispatch URL. Its
   keyword context carries a normalized `:operation` and `:route`, so later
   pages retain the owning resource operation without exposing cursor data.
-  Pagination uses `GET`, so `retry: false` may restrict its bounded read retry;
-  idempotency keys are unsupported.
+  Pagination uses `GET`, so `retry: false` may restrict its bounded read retry.
   """
 
   alias Paddle.Error
@@ -21,19 +20,14 @@ defmodule Paddle.Internal.Pagination do
     }
   end
 
-  @doc false
-  @spec next_page(Paddle.Client.t(), module(), String.t()) ::
-          {:ok, Page.t()} | {:error, Error.t() | term()}
-  def next_page(client, module, path) do
-    next_page(client, module, path, [])
-  end
-
   @doc """
   Fetches a cursor URL using static operation/route context.
 
   The `path` is used only for provider dispatch. Callers should pass literal
   `:operation` and normalized `:route` labels in `context`; `:resource_id` and
-  `retry: false` are also accepted by the central request boundary.
+  `retry: false` are also accepted by the central request boundary. The legacy
+  context-free arity is intentionally not exported, so every caller must state
+  the originating resource context explicitly.
   """
   @spec next_page(Paddle.Client.t(), module(), String.t(), [Paddle.Http.request_opt()]) ::
           {:ok, Page.t()} | {:error, Error.t() | term()}
