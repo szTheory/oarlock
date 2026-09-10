@@ -36,6 +36,7 @@ defmodule Paddle.Http do
     reject_idempotency_key!(opts)
     {retry_options, opts} = retry_options!(method, opts)
     {context, opts} = request_context(opts)
+    context = Map.put(context, :method, method)
     opts = Keyword.merge(opts, method: method, url: path)
     opts = Keyword.merge(opts, retry_options)
 
@@ -46,10 +47,10 @@ defmodule Paddle.Http do
         {:ok, body}
 
       {:ok, %Req.Response{} = resp} ->
-        {:error, Paddle.Error.from_response(resp)}
+        {:error, Paddle.Error.from_response(resp, context)}
 
       {:error, %Req.TransportError{} = exception} ->
-        {:error, Paddle.Error.from_transport(exception)}
+        {:error, Paddle.Error.from_transport(exception, context)}
 
       {:error, exception} ->
         {:error, exception}
@@ -105,8 +106,28 @@ defmodule Paddle.Http do
   defp retry_decision(_request, _outcome), do: false
 
   defp request_context(opts) do
+    for key <- [:operation, :route, :resource_id], length(Keyword.get_values(opts, key)) > 1 do
+      raise ArgumentError, "#{key} may be supplied only once"
+    end
+
     {context, opts} = Keyword.split(opts, [:operation, :route, :resource_id])
-    {Map.new(context), opts}
+    context = Map.new(context)
+
+    validate_context_value!(context, :operation, &is_atom/1)
+    validate_context_value!(context, :route, &is_binary/1)
+    validate_context_value!(context, :resource_id, &is_binary/1)
+
+    {context, opts}
+  end
+
+  defp validate_context_value!(context, key, predicate) do
+    case Map.fetch(context, key) do
+      :error ->
+        :ok
+
+      {:ok, value} ->
+        if predicate.(value), do: :ok, else: raise(ArgumentError, "#{key} is invalid")
+    end
   end
 
   defp reject_idempotency_key!(opts) do
