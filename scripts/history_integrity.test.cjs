@@ -122,6 +122,24 @@ if (MUTATION_SUBJECT) {
     }
   });
 
+  test("correction ledger: valid rows inserted before or between existing bytes fail", async (t) => {
+    const correction = "| 2026-09-10 | v1.4 | Added archive link | `.planning/milestones/v1.4-ROADMAP.md` | Additive navigation correction | Frozen roadmap records shipped work | Publication remains unknown |";
+    for (const [name, insert] of [
+      ["before", (content) => `${correction}\n${content}`],
+      ["between", (content) => content.replace("| 2026-09-09", `${correction}\n| 2026-09-09`)],
+    ]) {
+      await t.test(name, (subtest) => {
+        const { root, base } = repository(subtest);
+        const ledger = path.join(root, ".planning/EVIDENCE.md");
+        fs.writeFileSync(ledger, insert(fs.readFileSync(ledger, "utf8")));
+        const head = commit(root, `insert ${name}`);
+        const result = guard(root, base, head, ["--json"]);
+        assert.equal(result.status, 1);
+        assert.match(result.stdout, /HIST_EVIDENCE_NOT_APPEND_ONLY/);
+      });
+    }
+  });
+
   test("correction ledger: a structurally valid dated correction row is allowed", (t) => {
     const { root, base } = repository(t);
     fs.appendFileSync(path.join(root, ".planning/EVIDENCE.md"), "| 2026-09-10 | v1.4 | Added archive link | `.planning/milestones/v1.4-ROADMAP.md` | Additive navigation correction | Frozen roadmap records shipped work | Publication remains unknown |\n");

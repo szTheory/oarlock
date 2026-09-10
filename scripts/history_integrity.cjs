@@ -70,17 +70,19 @@ function validCorrectionRow(line) {
 }
 
 function compareEvidence(baseContent, headContent) {
-  const baseLines = baseContent.toString("utf8").split("\n");
-  const headLines = headContent.toString("utf8").split("\n");
-  const additions = [];
-  let baseIndex = 0;
-  for (const line of headLines) {
-    if (baseIndex < baseLines.length && line === baseLines[baseIndex]) baseIndex += 1;
-    else if (line !== "") additions.push(line);
+  if (!headContent.subarray(0, baseContent.length).equals(baseContent)) {
+    return { valid: false, additions: [], reason: "base ledger bytes are missing, modified, or reordered" };
   }
-  if (baseIndex !== baseLines.length) {
-    return { valid: false, additions, reason: "base ledger lines are missing, modified, or reordered" };
+
+  let suffix = headContent.subarray(baseContent.length).toString("utf8");
+  if (suffix.length > 0 && baseContent.length > 0 && baseContent[baseContent.length - 1] !== 0x0a) {
+    if (!suffix.startsWith("\n")) {
+      return { valid: false, additions: [], reason: "appended ledger content does not begin at a newline boundary" };
+    }
+    suffix = suffix.slice(1);
   }
+  const additions = suffix.split("\n");
+  if (additions.at(-1) === "") additions.pop();
   const invalid = additions.filter((line) => !validCorrectionRow(line));
   if (invalid.length > 0) return { valid: false, additions, reason: "added ledger content is not a valid dated correction row" };
   return { valid: true, additions, reason: null };
