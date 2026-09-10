@@ -1,7 +1,7 @@
 # Phase 31 — UI Review
 
 **Audited:** 2026-09-09
-**Baseline:** Abstract 6-pillar standards; no `UI-SPEC.md` exists
+**Baseline:** Applicability check against abstract 6-pillar standards; no `UI-SPEC.md` exists
 **Disposition:** Skipped — not applicable
 **Screenshots:** Not captured; no phase-relevant frontend was implemented
 
@@ -9,18 +9,19 @@
 
 ## Applicability Decision
 
-Phase 31 has no frontend or visual interaction surface to audit. It delivered repository-inspection and planning-health command-line tooling, tests, JSON data, and planning Markdown. The repository does contain an existing Phoenix demo UI under `demo/`, but Phase 31 did not modify that UI.
+Phase 31 has no frontend or visual interaction surface to audit. Across all nine plans and execution summaries, the phase delivered repository-inspection and planning-health CLIs, Node tests and fixtures, planning Markdown/JSON, Git-history enforcement, and GitHub Actions configuration.
 
 Assigning 1–4 scores would falsely imply that copy, visual hierarchy, color, typography, spacing, and browser interaction were part of this phase. The six pillars are therefore recorded as **N/A**, not zero and not a passing `24/24`.
 
 ## Evidence
 
-- The three plans declare only CommonJS scripts/tests, `.planning/repository-ownership.json`, and planning Markdown as modified files: `31-01-PLAN.md:7-11`, `31-02-PLAN.md:8-12`, and `31-03-PLAN.md:8-12`.
-- The execution summaries confirm the implemented surface: repository CLI and tests in `31-01-SUMMARY.md:25-31`, planning-health CLI and tests in `31-02-SUMMARY.md:26-32`, and planning-history code plus Markdown ledgers in `31-03-SUMMARY.md:25-31`.
-- The union of files changed by the 13 implementation/test commits listed by the summaries contains nine unique paths, all under `scripts/` or `.planning/`. No changed path ends in `.tsx`, `.jsx`, `.css`, `.scss`, `.html`, `.heex`, `.vue`, or `.svelte`.
-- A repository-wide frontend scan found existing files under `demo/assets/` and `demo/lib/demo_web/`; none appears in the Phase 31 plans, summaries, or commit file union.
-- Dev-server detection returned no response on ports 3000 or 5173. Port 8080 returned HTTP 301 rather than the required HTTP 200, so it was not treated as a running phase dev server.
-- No Phase 31 `UI-SPEC.md` exists. No root `components.json` exists, so the third-party component-registry audit is also inapplicable.
+- Plans `31-01` through `31-05` declare only CommonJS scripts/tests, repository/planning data and Markdown, with no `.tsx`, `.jsx`, `.css`, `.scss`, `.html`, `.heex`, `.vue`, or `.svelte` implementation files.
+- Gap-closure Plans `31-06` through `31-08` add only Node tests, prohibition fixtures, planning metadata, and Git-history tooling.
+- Plan `31-09` adds the recurring planning-truth CI job and exact-SHA monitor/enforcer changes in `.github/workflows/ci.yml` and `scripts/**/*.cjs`; it does not add a browser surface.
+- Summaries `31-01` through `31-09` confirm those implemented artifacts and identify no frontend component, stylesheet, visual asset, browser route, or interaction flow.
+- The phase directory contains no `UI-SPEC.md`. A scan of the conventional `src/` frontend extensions returned no files, and no root `components.json` exists, so the third-party component-registry audit is inapplicable.
+- The screenshot-storage safety gate passed: `.planning/ui-reviews/.gitignore` already excludes common screenshot formats.
+- Dev-server detection returned no response on ports 3000 or 5173. Port 8080 returned HTTP 301, not a Phase 31 UI endpoint; no screenshots were captured.
 
 ---
 
@@ -41,7 +42,7 @@ Assigning 1–4 scores would falsely imply that copy, visual hierarchy, color, t
 
 ## Priority Fixes
 
-None. Creating UI fixes for Phase 31 would expand its scope beyond the implemented repository and planning-truth tooling. The command-line behavior and human-readable terminal output should be assessed through code review, CLI usability tests, and requirement verification rather than a visual UI audit.
+None. Creating UI fixes for Phase 31 would expand its scope beyond the implemented repository and planning-truth tooling. Its command-line behavior and terminal output belong in code review, CLI usability testing, and requirement verification.
 
 ---
 
@@ -50,24 +51,29 @@ None. Creating UI fixes for Phase 31 would expand its scope beyond the implement
 ### Phase context
 
 - `.planning/phases/31-repository-planning-truth/31-CONTEXT.md`
-- `.planning/phases/31-repository-planning-truth/31-01-PLAN.md`
-- `.planning/phases/31-repository-planning-truth/31-02-PLAN.md`
-- `.planning/phases/31-repository-planning-truth/31-03-PLAN.md`
-- `.planning/phases/31-repository-planning-truth/31-01-SUMMARY.md`
-- `.planning/phases/31-repository-planning-truth/31-02-SUMMARY.md`
-- `.planning/phases/31-repository-planning-truth/31-03-SUMMARY.md`
+- `.planning/phases/31-repository-planning-truth/31-01-PLAN.md` through `31-09-PLAN.md`
+- `.planning/phases/31-repository-planning-truth/31-01-SUMMARY.md` through `31-09-SUMMARY.md`
 
-### Implemented Phase 31 file surface
+### Implemented Phase 31 surface
 
 - `scripts/lib/repository_truth.cjs`
 - `scripts/repository_inventory.cjs`
 - `scripts/repository_inventory.test.cjs`
 - `scripts/planning_health.cjs`
 - `scripts/planning_health.test.cjs`
+- `scripts/history_integrity.cjs`
+- `scripts/history_integrity.test.cjs`
+- `scripts/ci_monitor.cjs`
+- `scripts/ci_monitor.test.cjs`
+- `scripts/prohibitions/*.cjs`
+- `scripts/prohibitions/*.test.cjs`
+- `scripts/fixtures/prohibitions/*`
+- `.github/workflows/ci.yml`
 - `.planning/repository-ownership.json`
 - `.planning/GSD-PREFERENCES.md`
 - `.planning/MILESTONES.md`
 - `.planning/EVIDENCE.md`
+- `.planning/phases/31-repository-planning-truth/31-01-PLAN.md` through `31-03-PLAN.md` (prohibition metadata updates)
 
 ## Review Conclusion
 
