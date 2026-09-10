@@ -1,6 +1,14 @@
 defmodule Paddle.EventsTest do
   use ExUnit.Case, async: true
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   alias Paddle.Client
   alias Paddle.Event
   alias Paddle.Events
@@ -115,7 +123,9 @@ defmodule Paddle.EventsTest do
       api_key: "sk_test_123",
       environment: :sandbox,
       base_url: "https://sandbox-api.paddle.com",
-      req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+      req:
+        Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 
