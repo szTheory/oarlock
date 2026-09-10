@@ -86,18 +86,46 @@ Plans:
   4. Safe reads retry only within documented bounds; ambiguous mutations are not blindly replayed and instead return enough guidance for a consumer to reconcile provider state.
   5. Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer base URLs continue to work, and public docs/types/examples describe that tested behavior accurately.
 
-**Plans**: 8 plans
+**Plans**: 11 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 32-01-PLAN.md — Isolate the secure Req 0.7.4 root/demo dependency migration.
-- [ ] 32-02-PLAN.md — Migrate Req adapters and prove the complete compatibility matrix.
-- [ ] 32-03-PLAN.md — Validate explicit client construction and redact client inspection.
-- [ ] 32-04-PLAN.md — Establish bounded read retries and non-replayed mutation reconciliation.
-- [ ] 32-05-PLAN.md — Expand the safe request contract across all remaining resource paths.
-- [ ] 32-06-PLAN.md — Replace telemetry payloads with paired per-attempt allowlists.
-- [ ] 32-07-PLAN.md — Redact every secret-bearing public inspection boundary.
-- [ ] 32-08-PLAN.md — Align and mechanically prove the public contract and final matrix.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 32-02-PLAN.md — Migrate the bounded adjustment/customer and catalog/event Req adapter fixture families.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 32-11-PLAN.md — Migrate remaining integration fixtures and build the fail-fast compatibility matrix with atomic acceptance.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 32-03-PLAN.md — Validate explicit client construction and align/redact its public docs, types, and inspection.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 32-04-PLAN.md — Establish bounded read retries, non-replayed mutation reconciliation, and truthful central docs/types.
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 32-05-PLAN.md — Harden adjustment/customer/address/portal-session request paths and their module contracts.
+- [ ] 32-06-PLAN.md — Harden catalog/event/notification request paths and their module contracts.
+- [ ] 32-09-PLAN.md — Redact every secret-bearing public inspection boundary with aligned public types/docs.
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 32-07-PLAN.md — Harden subscription/transaction/pagination paths and their module contracts.
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 32-08-PLAN.md — Replace telemetry payloads with paired per-attempt allowlists and aligned module docs.
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
+- [ ] 32-10-PLAN.md — Mechanically prove runtime/docs/types agreement, isolated concurrency, interruption rejection, and the final matrix.
 
 ### Phase 33: Deterministic Green CI
 
@@ -178,7 +206,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
-| 32. Dependency & SDK Trust Boundary | v2.2 | 0/8 | Not started | - |
+| 32. Dependency & SDK Trust Boundary | v2.2 | 0/11 | Not started | - |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
 | 35. Review, Ownership & Worktree Operations | v2.2 | 0/TBD | Not started | - |
