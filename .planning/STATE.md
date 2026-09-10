@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-09-PLAN.md
-last_updated: "2026-09-10T21:53:07.433Z"
+stopped_at: Completed 32-07-PLAN.md
+last_updated: "2026-09-10T22:05:58.562Z"
 last_activity: 2026-09-10
-last_activity_desc: Completed Phase 32 Plan 06
-state_head: 5ea6d1c7cbf49f7d04b804fdc5ee330ac6eb98db
+last_activity_desc: Completed Phase 32 Plan 07
+state_head: 78cbf6f3268e38988896c038f392a978421da95a
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 ## Current Position
 
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 9 of 11
+Plan: 10 of 11
 Status: Ready to execute
-Last activity: 2026-09-10 — Completed Phase 32 Plan 06
+Last activity: 2026-09-10 — Completed Phase 32 Plan 07
 
-Progress: [████████░░] 80%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [████████░░] 80%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 16
+- Plans completed: 18
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -65,6 +65,7 @@ Progress: [████████░░] 80%
 | Phase 32 P05 | 8min | 3 tasks | 9 files |
 | Phase 32 P06 | 6min | 2 tasks | 8 files |
 | Phase 32 P09 | 5min | 2 tasks | 6 files |
+| Phase 32 P07 | 9min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,9 @@ Progress: [████████░░] 80%
 - [Phase 32]: Attach only validated notification-setting IDs as mutation resource context, never destinations, endpoint secrets, bodies, or dynamic route labels.
 - [Phase 32]: Classify every public raw_data-bearing type from source and every field on the six capability-bearing values so additions fail until explicitly reviewed.
 - [Phase 32]: Redact promoted capability fields and complete raw_data or transport containers with the stable [REDACTED] marker while leaving stored terms unchanged.
+- [Phase 32]: Use one literal list-subscription operation and route across initial and continuation pages while cursor material remains dispatch-only.
+- [Phase 32]: Use validated subscription IDs for lifecycle reconciliation, while transaction create retains no substitute resource ID before provider confirmation.
+- [Phase 32]: Remove resource-level positive and negative idempotency cases; only supported restrictive retry options remain typed.
 
 ### Pending Todos
 
@@ -137,10 +141,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T21:53:07.321Z
-Stopped at: Completed 32-09-PLAN.md
+Last session: 2026-09-10T22:05:58.311Z
+Stopped at: Completed 32-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue with `32-07-PLAN.md`.
+- Continue with `32-08-PLAN.md`.

@@ -2,9 +2,9 @@
 schema_version: 1
 open_count: 0
 waived_count: 0
-fixed_count: 4
-total_count: 4
-last_updated: 2026-09-10T21:23:15.402Z
+fixed_count: 5
+total_count: 5
+last_updated: 2026-09-10T22:06:49.737Z
 ---
 
 # Broken Windows Ledger
@@ -19,6 +19,7 @@ last_updated: 2026-09-10T21:23:15.402Z
 | 2 | 32 | deviation | mix.lock |  | Refreshed Bandit from vulnerable 1.12.0 to patched 1.12.5 so the required root Hex audit is clean | fixed |  | 2026-09-10T20:33:36.195Z | 2026-09-10T20:33:39.298Z |
 | 3 | 32 | deviation | .planning/STATE.md |  | Reconciled skipped progress output and duplicate phase prefixes after standard state handlers | fixed |  | 2026-09-10T20:35:37.138Z | 2026-09-10T20:35:37.252Z |
 | 4 | 32 | deviation | .planning/STATE.md |  | Reconciled visible state after SDK handlers advanced authoritative counters | fixed |  | 2026-09-10T21:23:02.854Z | 2026-09-10T21:23:15.402Z |
+| 5 | 32 | deviation | .planning/STATE.md |  | Reconciled human-readable progress and next-step fields after state.update-progress skipped the unscoped in-progress phase. | fixed |  | 2026-09-10T22:06:29.226Z | 2026-09-10T22:06:49.737Z |
 
 ````json
 [
@@ -69,6 +70,18 @@ last_updated: 2026-09-10T21:23:15.402Z
     "reason": "",
     "recorded_at": "2026-09-10T21:23:02.854Z",
     "resolved_at": "2026-09-10T21:23:15.402Z"
+  },
+  {
+    "id": 5,
+    "kind": "deviation",
+    "phase": "32",
+    "file": ".planning/STATE.md",
+    "line": null,
+    "description": "Reconciled human-readable progress and next-step fields after state.update-progress skipped the unscoped in-progress phase.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:06:29.226Z",
+    "resolved_at": "2026-09-10T22:06:49.737Z"
   }
 ]
 ````
