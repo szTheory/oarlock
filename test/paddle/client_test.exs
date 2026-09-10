@@ -56,8 +56,8 @@ defmodule Paddle.ClientTest do
     test "rejects missing, blank, whitespace, and nonbinary API keys without disclosure" do
       cases = [
         {[], nil},
-        {[api_key: ""], ""},
-        {[api_key: "  \t\n"], "  \t\n"},
+        {[api_key: ""], nil},
+        {[api_key: "  \t\n"], nil},
         {[api_key: {:secret_key_canary, 41}], "secret_key_canary"}
       ]
 
