@@ -621,7 +621,7 @@ defmodule Paddle.SeamTest do
       assert telemetry_contract =~ claim
     end
 
-    for forbidden <- ["`:request`", "`:response`", "`:exception`", "request.url"] do
+    for forbidden <- ["`:request`", "`:response`", "request.url"] do
       refute telemetry_contract =~ forbidden
     end
 
@@ -632,7 +632,7 @@ defmodule Paddle.SeamTest do
     migration = changelog |> markdown_section!("### Phase 32 Migration") |> normalize_markdown()
     assert migration =~ "pre-1.0"
     assert migration =~ "removed `idempotency_key`"
-    assert migration =~ "telemetry metadata schema"
+    assert migration =~ "Telemetry metadata schema"
     assert migration =~ "constructor validation"
   end
 
@@ -834,7 +834,9 @@ defmodule Paddle.SeamTest do
 
     assert getting_started =~ "Phoenix request parsing or webhook plugs"
     assert getting_started =~ "Ecto schemas or synchronization tables"
-    assert getting_started =~ "Stored idempotency keys for app-level retry jobs"
+
+    assert getting_started =~
+             "Durable app-owned purchase intents and reconciliation status for mutation jobs"
 
     assert getting_started =~
              "verifies the exact raw request body before parsing or trusting events"

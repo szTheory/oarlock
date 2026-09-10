@@ -62,6 +62,46 @@ def deps do
 end
 ```
 
+The package runtime depends on Req `~> 0.7.4`. The supported BEAM range is
+Elixir `~> 1.19`; the tracked and fully exercised toolchain is Elixir 1.19.5 / OTP 28.1.
+Broader OTP combinations are not implied by the local compatibility evidence.
+
+## Client Construction Contract
+
+`Paddle.Client.new!/1` accepts only `:api_key`, `:environment`, and `:base_url`.
+The key must be a nonblank binary, URLs must be absolute HTTP(S) URLs with a
+host, and invalid input raises a value-redacted `ArgumentError` before Req
+construction or network dispatch.
+
+| Input | Result |
+| --- | --- |
+| No environment and no base URL | Canonical `:sandbox` client |
+| `:sandbox`, with no URL or the canonical sandbox URL | Canonical `:sandbox` client |
+| `:live`, with no URL or the canonical live URL | Canonical `:live` client |
+| `:custom` plus an absolute HTTP(S) base URL | Explicit `:custom` client |
+| Noncanonical base URL only | Inferred `:custom` client |
+| Unknown/duplicate options, invalid key/URL, custom without URL, or conflicting canonical environment/URL | Secret-safe `ArgumentError` before Req construction |
+
+## Retry, Mutation, and Inspection Safety
+
+Safe `GET` and `HEAD` reads retry only HTTP 408, 429, 500, 502, 503, and 504
+or the documented transient transport reasons `:timeout`, `:econnrefused`, and
+`:closed`. The ceiling is three retries (four total attempts). A read-side 429
+honors `Retry-After` only up to 60,000 ms; `retry: false` disables retries for
+that call.
+
+Every `POST`, `PATCH`, `PUT`, and `DELETE` mutation makes a single attempt.
+`retry: true` is rejected before dispatch, and `idempotency_key` is unsupported:
+the presence of a header would not prove provider deduplication. A mutation
+transport failure or terminal HTTP 408/5xx response is returned as a
+non-retryable, `ambiguous` `%Paddle.Error{}`. Reconcile with the fixed
+`:lookup`, `:webhook`, and `:provider_dashboard` actions; never blindly replay
+the mutation.
+
+Inspection of capability-bearing public values retains their stored data but
+renders credentials, operational URLs, transport state, and secret-capable
+`raw_data` containers with the stable `[REDACTED]` marker.
+
 ## Quick Start
 
 Create a client:

@@ -82,8 +82,8 @@ The exported public function inventory is intentionally explicit:
   `list/1`, `list/2`, `stream/1`, `stream/2`, `all/1`, `all/2`,
   `update/3`, `delete/2`.
 - `Paddle.Page`: `next_cursor/1`.
-- `Paddle.Error`: `exception/1`, `from_response/1`,
-  `from_transport/1`, `message/1`.
+- `Paddle.Error`: `exception/1`, `from_response/1`, `from_response/2`,
+  `from_transport/1`, `from_transport/2`, `message/1`.
 - `Paddle.PortalSessions`: `create/2` compatibility surface. New code
   should prefer the customer-scoped portal namespace described below.
 

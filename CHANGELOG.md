@@ -11,6 +11,30 @@ This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Phase 32 Migration
+
+This is an intentional pre-1.0 source and observable-behavior break. The SDK now
+depends on Req `~> 0.7.4` and supports Elixir `~> 1.19`; the tracked compatibility
+toolchain is Elixir 1.19.5 / OTP 28.1.
+
+* **Mutation replay:** removed `idempotency_key` from all public option types and
+  functions because sending a header is not proof of provider deduplication.
+  Mutations now make one attempt; uncertain transport and terminal HTTP 408/5xx
+  outcomes return non-retryable ambiguity context with lookup, webhook, and
+  provider-dashboard reconciliation guidance.
+* **Read retries:** only GET/HEAD may retry the documented transient allowlist,
+  with three retries (four total attempts) and a 60,000 ms read-side 429
+  `Retry-After` cap. `retry: false` may restrict a read; `retry: true` cannot
+  enable mutation replay.
+* **Telemetry metadata schema:** event names are unchanged, but raw request,
+  response, and exception terms were replaced by exact low-cardinality
+  measurement and metadata allowlists. Subscribers must migrate their patterns.
+* **Client constructor validation:** unknown or duplicate options, blank/nonbinary
+  keys, unsupported environments, invalid URLs, and conflicting environment/URL
+  pairs now raise secret-safe `ArgumentError` before transport construction.
+* **Inspection:** credentials, operational URLs, transport state, and
+  secret-capable `raw_data` render as `[REDACTED]` without changing stored terms.
+
 ### Breaking Changes
 
 * **`%Paddle.Error{}`**: Field `:raw` renamed to `:raw_data` for consistency with all other locked structs (every `Paddle.Customer`/`Paddle.Address`/`Paddle.Transaction`/`Paddle.Subscription`/etc. already uses `:raw_data` as the documented forward-compat escape hatch). Pattern matches against `%Paddle.Error{raw: r}` will silently miss after this change — update them to `%Paddle.Error{raw_data: r}`. (See `.planning/phases/08-reliability-primitives/08-CONTEXT.md` D-01..D-05 for rationale.)
@@ -21,8 +45,9 @@ This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 * **`%Paddle.Error{}`**: New `:network_error?` field (boolean, defaults to `false`) — to be populated by `from_transport/1` in a follow-up plan.
 * **`%Paddle.Error{}`**: New `:retryable?` field (boolean, defaults to `false`) — advisory class predicate populated by `from_transport/1` in a follow-up plan.
 * **`from_transport/1`**: New public constructor that maps `%Req.TransportError{}` into a normalized `%Paddle.Error{}` with `:network_error?: true`, `:retryable?: true`, and a stable `:type` taxonomy (`"network_timeout"`, `"network_nxdomain"`, `"network_closed"`, `"network_unknown"`). Public resource calls now return `{:error, %Paddle.Error{network_error?: true, ...}}` for transport failures instead of leaking the raw `%Req.TransportError{}` to consumers — Accrue and other consumers can now pattern-match on a single error shape across both HTTP and transport failures. (REL-03)
-* **Idempotency-Key support on every `create/*` POST**: `Paddle.Customers.create/3`, `Paddle.Customers.Addresses.create/4`, and `Paddle.Transactions.create/3` accept an optional `idempotency_key:` opt that is forwarded as the `Idempotency-Key` HTTP header. Callers (e.g., Accrue's Oban-job retry layer) supply a deterministic per-attempt key like `"accrue:job:#{job_id}:attempt:#{attempt}"`; the SDK does NOT auto-generate keys (see `.planning/phases/08-reliability-primitives/08-CONTEXT.md` D-06/D-07 for rationale). `nil`, empty-string, whitespace-only, or non-binary values raise `ArgumentError`. Locked v1.2 opts vocabulary on every public function: `:idempotency_key` (POSTs only) and `:retry` (boolean). (REL-01)
-* **Automatic retry policy on `Paddle.Client.new!/1`**: Configures `req` with `retry: :transient` (retries on 429, 500, 502, 503, 504, and transport errors with `:reason in [:timeout, :econnrefused, :closed]`) and `max_retries: 3`. `Retry-After` headers are honored on 429 and 503 responses; otherwise exponential backoff (1s, 2s, 4s) is used. Per-call override: pass `retry: false` to disable retry for a single call (e.g., `Paddle.Customers.create(client, attrs, retry: false)`); omitted/`true` inherits client policy. The locked v1.2 opts vocabulary on every public function is `:idempotency_key` (POSTs only) and `:retry` (boolean) — `:max_retries`, `:retry_delay`, `:retry_log_level`, `:timeout` are NOT exposed as public opts (see `.planning/phases/08-reliability-primitives/08-CONTEXT.md` D-19/D-20). (REL-02)
+* **Request-local bounded retry policy**: safe reads use the central method-aware
+  policy described in the Phase 32 migration notes; client construction no
+  longer installs a global all-method retry policy. (REL-02, superseded)
 * **Public documentation truth pass**: aligned README, [`guides/getting-started.md`](guides/getting-started.md), [`guides/accrue-seam.md`](guides/accrue-seam.md), [`demo/README.md`](demo/README.md), this changelog, and generated docs with the shipped SDK seam. The bounded supported surface now covers customers, addresses, customer portal sessions, transactions/checkout, raw-body webhook verification/parsing, subscription fetch/update/lifecycle, adjustments, catalog reads, event history, notification settings, pagination helpers, normalized errors, and compatibility `Paddle.PortalSessions.create/2`. Use [`guides/accrue-seam.md`](guides/accrue-seam.md) for the canonical contract and task guides for integration flows.
 * **Proof-boundary documentation**: named the evidence ladder consistently across public docs. Unit/contract tests prove local SDK behavior; `Paddle.MockServer` proves deterministic local SDK/demo wiring; Paddle sandbox checks prove real provider-state behavior only when real sandbox credentials are used; live mode remains operator-owned before charging customers.
 

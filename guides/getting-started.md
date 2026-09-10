@@ -106,8 +106,7 @@ Now create the transaction:
 case Paddle.Transactions.create(client,
        customer_id: customer.id,
        address_id: address.id,
-       items: [%{price_id: "pri_monthly_123", quantity: 1}],
-       idempotency_key: "accrue:checkout:user_123:attempt_1"
+       items: [%{price_id: "pri_monthly_123", quantity: 1}]
      ) do
   {:ok, %Paddle.Transaction{} = transaction} ->
     # Hand off to the browser
@@ -118,6 +117,14 @@ case Paddle.Transactions.create(client,
     raise "Failed to create transaction: #{error.message}"
 end
 ```
+
+Transaction creation is a single-attempt mutation. The SDK does not accept an
+idempotency option and does not infer provider deduplication from a request
+header. If a transport failure or terminal HTTP 408/5xx response leaves the
+outcome `ambiguous`, do not blindly replay the create. Use the error's fixed
+`:lookup`, `:webhook`, and `:provider_dashboard` reconciliation actions: query
+canonical provider state, wait for the verified webhook, or inspect Paddle's
+dashboard before deciding what your app should do next.
 
 If Paddle returns checkout data, you now have the next move:
 
@@ -339,7 +346,7 @@ You may also want:
 - The latest known subscription status
 - The latest known billing email and address snapshot
 - An internal audit trail for provisioning decisions
-- Stored idempotency keys for app-level retry jobs
+- Durable app-owned purchase intents and reconciliation status for mutation jobs
 
 ## Before Live Mode
 
