@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { inspectHistory } = require("./history_integrity.cjs");
 const test = require("node:test");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
@@ -159,5 +160,26 @@ if (MUTATION_SUBJECT) {
     run("git", ["clone", "--depth", "1", `file://${root}`, shallow]);
     const shallowHead = run("git", ["rev-parse", "HEAD"], { cwd: shallow }).stdout.trim();
     assert.equal(guard(shallow, shallowHead, shallowHead).status, 2);
+  });
+
+  test("evidence observation: base, head, and both-side read errors fail closed", async (t) => {
+    for (const failingSides of [["base"], ["head"], ["base", "head"]]) {
+      await t.test(failingSides.join(" and "), (subtest) => {
+        const { root, base } = repository(subtest);
+        fs.appendFileSync(path.join(root, ".planning/EVIDENCE.md"), "| 2026-09-10 | v1.4 | Added archive link | `.planning/milestones/v1.4-ROADMAP.md` | Additive navigation correction | Frozen roadmap records shipped work | Publication remains unknown |\n");
+        const head = commit(root);
+        const revisions = { base, head };
+        const runner = (command, args, options) => {
+          const side = Object.entries(revisions).find(([, revision]) => args[1] === `${revision}:.planning/EVIDENCE.md`)?.[0];
+          if (args[0] === "show" && failingSides.includes(side)) {
+            return { status: 1, stdout: Buffer.alloc(0), stderr: Buffer.from(`${side} evidence read failed`) };
+          }
+          return spawnSync(command, args, options);
+        };
+        const result = inspectHistory(base, head, { cwd: root, runner });
+        assert.equal(result.status, "incomplete");
+        assert.match(result.error, /evidence read failed/);
+      });
+    }
   });
 }

@@ -45,12 +45,12 @@ function listArchivePaths(revision, options) {
 }
 
 function readObject(revision, artifact, options, required = true) {
-  try {
-    return git(["show", `${revision}:${artifact}`], options);
-  } catch (error) {
-    if (!required) return null;
-    throw error;
+  if (!required) {
+    const matches = git(["ls-tree", "-z", "--name-only", revision, "--", artifact], options)
+      .toString("utf8").split("\0").filter(Boolean);
+    if (!matches.includes(artifact)) return null;
   }
+  return git(["show", `${revision}:${artifact}`], options);
 }
 
 function validDate(value) {
