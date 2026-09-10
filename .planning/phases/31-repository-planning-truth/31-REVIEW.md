@@ -1,6 +1,6 @@
 ---
 phase: 31-repository-planning-truth
-reviewed: 2026-09-10T03:44:49Z
+reviewed: 2026-09-10T04:35:50Z
 depth: standard
 files_reviewed: 24
 files_reviewed_list:
@@ -29,104 +29,64 @@ files_reviewed_list:
   - scripts/repository_inventory.cjs
   - scripts/repository_inventory.test.cjs
 findings:
-  critical: 8
-  warning: 4
+  critical: 4
+  warning: 1
   info: 0
-  total: 12
+  total: 5
 status: issues_found
 ---
 
 # Phase 31: Code Review Report
 
-**Reviewed:** 2026-09-10T03:44:49Z
+**Reviewed:** 2026-09-10T04:35:50Z
 **Depth:** standard
 **Files Reviewed:** 24
 **Status:** issues_found
 
 ## Summary
 
-The 24 scoped workflow, implementation, fixture, and test files were reviewed at standard depth. The scoped Node suite passes (98 tests), but focused adversarial probes demonstrate multiple fail-open proof paths: ledger insertions and unreadable ledgers can pass history integrity, linked-worktree ownership claims bleed across worktrees, and completion can be accepted through non-canonical or failed evidence. CI monitoring also has documented-input and error-handling defects.
+The five findings from the iteration-2 review are resolved: requirement/traceability mappings are now checked bidirectionally and for duplicates, proof frontmatter must be unique, shipped links must target the exact milestone archives, CI subprocesses and sleeps are deadline-bounded, and nonzero or malformed corroboration results make the snapshot incomplete. The scoped suite passes 128 tests.
+
+The final adversarial pass found five additional defects. Four allow contradictory or incomplete canonical planning/history data to be accepted, and one makes ownership claims expire at the start rather than the end of their stated revisit date.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: Append-only history check accepts rows inserted into the existing ledger [BLOCKER]
+### CR-01: Duplicate STATE routing fields silently select the last value [BLOCKER]
 
-**File:** `scripts/history_integrity.cjs:72-86`
-**Issue:** `compareEvidence` implements a subsequence check, so new rows may appear anywhere as long as every old line remains in order. A valid correction row inserted before an existing row returns `valid: true`, even though the ledger was rewritten rather than appended. This defeats the CI guard's append-only promise.
-**Fix:** Require the head bytes to begin with the complete base bytes (with an explicitly defined newline boundary), then validate only the suffix as new correction rows. Add a test that inserts a valid row before and between existing rows and expects `HIST_EVIDENCE_NOT_APPEND_ONLY`.
+**File:** `/Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:588-596, 941-969`
+**Issue:** `parseFrontmatter` still overwrites repeated keys, while `resolveActiveScope` checks cardinality only for `status`. Duplicate `milestone` and `current_phase` declarations are therefore accepted using the last value. A focused snapshot containing `milestone: v9.9` followed by `milestone: v2.2` and `current_phase: 99` followed by `current_phase: 31` returned an active `{ milestone: "v2.2", phase: "31" }` scope with no diagnostics. Contradictory canonical routing data can thus acquire authority solely by ordering.
+**Fix:** Read `milestone` and `current_phase` with `frontmatterFieldValues`, require exactly one non-empty value for each, and emit blocking ambiguity diagnostics before resolving a phase. Add both field orders and duplicate-equal-value regressions.
 
-### CR-02: Evidence read failures are treated as absence and can produce a healthy result [BLOCKER]
+### CR-02: Committed scope is taken from the first versioned section, not the active milestone [BLOCKER]
 
-**File:** `scripts/history_integrity.cjs:47-52`
-**Issue:** `readObject(..., required = false)` suppresses every Git failure, not just a missing path. If both base and head reads of `.planning/EVIDENCE.md` fail (for example from `maxBuffer`, timeout, or object corruption), both values become `null`; lines 112-126 then perform no ledger check and `inspectHistory` returns `healthy`. A focused runner probe reproduced this result with both `git show` calls failing.
-**Fix:** Distinguish “path absent” using a prior tree lookup or a narrowly recognized missing-path status. Propagate all other observation failures so the result is `incomplete`/exit 2. Add tests for base-only, head-only, and both-side read errors.
+**File:** `/Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:558-585, 941-950, 1418-1425`
+**Issue:** `parseCommittedRequirements` selects the first heading matching `## v... Requirements` without receiving or validating the active milestone. Its traceability parser likewise takes the first global `## Traceability` section. A focused completed `v2.2` snapshot with a `v2.1 Requirements` section first, a later `v2.2 Requirements` section containing an additional unproved requirement, and proof only for the old ID returned zero completion diagnostics. Current committed scope can therefore be omitted merely by retaining or inserting an older versioned section above it.
+**Fix:** Resolve the unique active milestone first, parse the exact `## ${milestone} Requirements` section and its associated traceability table, and reject missing or duplicate matching sections. Add regressions with older/newer sections before and after the active section and with multiple traceability headings.
 
-### CR-03: A linked-worktree claim silently classifies matching paths in every linked worktree [BLOCKER]
+### CR-03: Duplicate plan checklist entries reuse one artifact as multiple completed plans [BLOCKER]
 
-**File:** `scripts/lib/repository_truth.cjs:334-369`
-**Issue:** A `dirty_path` selector contains only `worktree_role` and relative `path`. Because every non-main tree has role `linked`, one claim for `same.txt` matches that path in all linked worktrees. A focused two-worktree probe assigned one owner's evidence to both trees and returned exit 0, even though only one tree was reviewed.
-**Fix:** Include an exact normalized `worktree_path` (or another stable unique worktree identity) in linked dirty-path selectors and require it in `selectorMatches`. Reject legacy ambiguous linked selectors as invalid/incomplete, and test two linked worktrees with the same relative dirty path.
+**File:** `/Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:625-637, 1434-1458`
+**Issue:** `parseRoadmap` appends every plan row without enforcing unique filenames, and completion validation independently accepts each duplicate against the same summary. A focused phase declaring `31-01-PLAN.md` twice, with only one plan file and one summary, returned zero completion diagnostics. This permits a claimed `2/2` completion to be proven by one executed plan repeated twice.
+**Fix:** Count plan filenames within each phase and emit a blocking ambiguity diagnostic unless every declared plan appears exactly once. Validate declared plan totals against the unique checklist when a totals field is present, and add duplicate-identical plus contradictory checked/unchecked regressions.
 
-### CR-04: Evidence links are validated by basename rather than canonical artifact path [BLOCKER]
+### CR-04: Milestone history ignores names, shipment dates, and contradictory duplicate metadata [BLOCKER]
 
-**File:** `scripts/lib/repository_truth.cjs:1315-1330`
-**Issue:** `acceptedProofRow` accepts any relative Markdown path whose basename equals the canonical verification filename. Thus `decoy/31-VERIFICATION.md` satisfies a row for `.planning/phases/31-real/31-VERIFICATION.md`. A focused probe returned no completion diagnostics with that decoy link.
-**Fix:** Resolve evidence links relative to the ledger, reject escapes/symlinks, normalize to a repository-relative path, and require exact equality with `verificationArtifact`. Add negative tests for same-basename paths in other directories.
-
-### CR-05: A generic caveat sentence overrides a failed verification artifact [BLOCKER]
-
-**File:** `scripts/lib/repository_truth.cjs:1387-1407`
-**Issue:** Any single EVIDENCE line matching “Phase 31 ... accepted/acknowledged ... caveat” makes `acknowledgedCaveat` true. That suppresses `PCOMP_VERIFICATION_UNPROVEN` and also satisfies the per-requirement verification side of `linked`, even when the canonical verification frontmatter says `status: failed` and its requirement row says `failed`. A focused probe returned an empty diagnostics list for that contradiction.
-**Fix:** Parse a structured, unique caveat record tied to the exact phase, requirement IDs, canonical verification artifact, reviewer/authority, and explicit accepted disposition. A caveat must not override an explicit failed verification unless the policy expressly models and validates that transition.
-
-### CR-06: Global verification status plus an arbitrary ID mention proves each requirement [BLOCKER]
-
-**File:** `scripts/lib/repository_truth.cjs:1333-1339`
-**Issue:** When verification frontmatter is globally passed, `requirementPassedByVerification` treats any non-negative line containing the requirement ID as passed. Narrative text such as `REPO-01 mentioned` therefore counts as requirement-level proof. Combined with a superficially accepted EVIDENCE row, completion is reported healthy without a parsed per-requirement result.
-**Fix:** Parse a defined requirement-results table or structured section and require exactly one explicit accepted status for each ID. Reject narrative mentions, duplicates, and absent/malformed rows. Add a test where a globally passed document merely discusses the ID.
-
-### CR-07: Unknown STATE status values are accepted without diagnostics [BLOCKER]
-
-**File:** `scripts/lib/repository_truth.cjs:909-969`
-**Issue:** `resolveActiveScope` validates milestone and phase pointers but never validates `state.status`. A STATE document with `status: nonsense` resolves an active phase with no diagnostics. For an otherwise valid in-progress phase, planning health can therefore report healthy while its canonical session state is outside the supported state model.
-**Fix:** Define and enforce the allowed STATE statuses and their consistency with ROADMAP completion. Missing, duplicate, or unsupported status values should produce a blocking authority/schema diagnostic. Add tests for unknown, missing, and contradictory statuses.
-
-### CR-08: History CLI renders repository-controlled control characters unescaped [BLOCKER]
-
-**File:** `scripts/history_integrity.cjs:150-156`
-**Issue:** Human output interpolates Git-derived archive paths and observation errors directly. Git filenames may contain newlines and terminal escape characters, allowing a crafted archive path in a pull request to forge log lines or emit terminal control sequences in CI/local review output. The repository inventory renderer already escapes this class of input, but the history renderer does not.
-**Fix:** Apply the same control-character escaping used by `repository_truth.cjs` to base/head values, artifact paths, change labels, and error text before human rendering. Add hostile newline, tab, and ANSI-path tests; keep JSON as the exact machine-readable representation.
+**File:** `/Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:655-663, 684-693, 749-752, 789-926`
+**Issue:** `parseShippedMilestones` captures each ROADMAP milestone's name and shipped date, but `validateMilestoneHistory` never compares either value with the MILESTONES heading. `milestoneBlocks` also overwrites duplicate milestone headings, `fieldFromBlock` accepts the first duplicate field, and the shipped-status check succeeds if any matching status occurs anywhere in the block. A focused snapshot with ROADMAP name/date `Roadmap Name`/`2026-01-01`, MILESTONES name/date `Different Name`/`2099-12-31`, and both `Status: Failed` and `Status: Shipped` produced no error. The history report can therefore certify materially contradictory release identity.
+**Fix:** Parse milestone blocks into cardinality-preserving records; require one block and one value for each canonical field. Compare the exact name and a calendar-valid shipped date against ROADMAP, and reject all duplicate headings/status/phase/identity/archive fields even when values agree. Add name-only, date-only, invalid-date, duplicate-block, and competing-status regressions.
 
 ## Warnings
 
-### WR-01: `--workflow <file name>` can never match the returned run [WARNING]
+### WR-01: A claim expires at midnight on its own revisit date [WARNING]
 
-**File:** `scripts/ci_monitor.cjs:132-152`
-**Issue:** Help advertises a workflow name or file name, and `gh run list --workflow ci.yml` supports the file form, but `findRun` additionally requires `run.workflowName === workflow`. GitHub returns the display name (`CI`), so a valid `--workflow ci.yml` query is discarded as `no_ci_run_for_sha`.
-**Fix:** Trust the server-side `--workflow` filter and match only the exact SHA, or resolve the requested file to the workflow display name/ID before comparing. Add a fake-gh test where the requested selector is `ci.yml` and `workflowName` is `CI`.
-
-### WR-02: Completed-run lookup errors bypass the documented blocked result [WARNING]
-
-**File:** `scripts/ci_monitor.cjs:260`
-**Issue:** Only `findRun` is inside the `GhError` handler. If `viewRun` fails or returns invalid JSON, `assertCi` rejects; the CLI's promise has no catch, so it emits an unhandled stack and typically exits 1 instead of the documented exit 2 with JSON `reason: gh_error`.
-**Fix:** Wrap both list and view operations in the same error-to-evidence boundary (or catch around the whole polling iteration), and add a test for `gh run view` failure in both JSON and human modes.
-
-### WR-03: Timeout and polling options accept non-finite and negative values [WARNING]
-
-**File:** `scripts/ci_monitor.cjs:206-215`
-**Issue:** `Number()` results are never validated. Values such as `--poll NaN`, `--poll Infinity`, or negative timeouts produce immediate timers, tight polling, warnings, or inconsistent one-attempt behavior rather than invalid-usage exit 2.
-**Fix:** Require finite numeric values, `timeout >= 0`, and a bounded positive poll interval (allow zero only if explicitly supported as a test/single-shot mode). Return structured `invalid_usage` evidence and test boundary values.
-
-### WR-04: Repository-truth subprocesses have no execution timeout [WARNING]
-
-**File:** `scripts/lib/repository_truth.cjs:69-78`
-**Issue:** Git inspection commands omit `timeout`, and the installed GSD corroboration call at line 1219 also has no timeout. A hung Git helper, filesystem, credential helper, or runtime query can block the report and CI indefinitely instead of yielding the documented incomplete snapshot.
-**Fix:** Set bounded timeouts on every subprocess, classify timeout/signal results as collection errors with `incomplete: true`, and cover both Git and corroboration timeout paths with injected-runner tests.
+**File:** `/Users/jon/projects/oarlock/scripts/lib/repository_truth.cjs:431-439`
+**Issue:** Staleness compares `Date.parse(claim.revisit_at)`, which is midnight UTC, with the full snapshot timestamp. A claim whose `revisit_at` equals the observation's calendar date is marked stale for nearly the entire stated date. This creates false blocking inventory failures at a boundary that users reasonably interpret as valid through that date.
+**Fix:** Compare normalized `YYYY-MM-DD` calendar values, or define the deadline as the exclusive start of the following UTC day. Add tests immediately before, during, and after the revisit date.
 
 ---
 
-_Reviewed: 2026-09-10T03:44:49Z_
+_Reviewed: 2026-09-10T04:35:50Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_

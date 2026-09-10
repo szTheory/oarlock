@@ -1,128 +1,71 @@
 ---
 phase: 31-repository-planning-truth
-fixed_at: 2026-09-09T22:09:28Z
+fixed_at: 2026-09-10T05:36:29Z
 review_path: /Users/jon/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md
-iteration: 1
-findings_in_scope: 15
-fixed: 15
+iteration: 3
+findings_in_scope: 5
+fixed: 5
 skipped: 0
 status: all_fixed
 ---
 
 # Phase 31: Code Review Fix Report
 
-**Fixed at:** 2026-09-09T22:09:28Z
+**Fixed at:** 2026-09-10T05:36:29Z
 **Source review:** `/Users/jon/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md`
-**Iteration:** 1
+**Iteration:** 3
 
 **Summary:**
 
-- Findings in scope: 15
-- Fixed: 15
+- Findings in scope: 5
+- Fixed: 5
 - Skipped: 0
 
 ## Fixed Issues
 
-### CR-01: Completion accepts failing evidence as proof
+### CR-01: Duplicate STATE routing fields silently select the last value
 
 **Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** c4db46d
-**Applied fix:** Parses one canonical evidence row, requires an accepted classification and bounded verification target, and rejects negative requirement classifications. Status: fixed; requires human verification.
+**Commit:** d0747fe
+**Applied fix:** Reads every `milestone` and `current_phase` declaration, requires exactly one non-empty value for each, and blocks missing, duplicate-equal, and conflicting declarations without selecting an ordering winner. Added both-order and duplicate-equal regressions. Status: fixed; requires human verification.
 
-### CR-02: Rejected ownership claims can still become intentional dispositions
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/repository_inventory.test.cjs`, `.planning/repository-ownership.json`
-**Commit:** a3fb40b
-**Applied fix:** Builds an accepted-claims collection using strict selector, metadata, disposition, confidence, and calendar-date validation; invalid claims cannot match observations. Status: fixed; requires human verification.
-
-### CR-03: Same-length in-place rewrites evade snapshot identity checks
+### CR-02: Committed scope is taken from the first versioned section, not the active milestone
 
 **Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** ca19237
-**Applied fix:** Adds ctime, descriptor-after-read identity checks, and SHA-256 content digests to snapshot consistency. Status: fixed; requires human verification.
+**Commit:** f115fd7
+**Applied fix:** Binds committed requirement parsing to the uniquely active ROADMAP milestone, requires exactly one matching requirements section and one traceability section, and propagates ambiguity diagnostics into authority and completion validation. Added active-section and duplicate-section regressions. Status: fixed; requires human verification.
 
-### CR-04: The configured byte limit is not enforced during reads
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 959e8b6
-**Applied fix:** Replaces unbounded descriptor reads with capped chunks that stop at `maximumBytes + 1` and fail at the source boundary. Status: fixed; requires human verification.
-
-### CR-05: JSON null mirror content crashes planning-health
+### CR-03: Duplicate plan checklist entries reuse one artifact as multiple completed plans
 
 **Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 1f4f12b
-**Applied fix:** Requires parsed mirror JSON to be a non-null, non-array object before field access. Status: fixed.
+**Commit:** 2fabd74
+**Applied fix:** Rejects repeated plan filenames, parses the declared executed/total counts, and validates those totals against the unique checklist. Added identical and checked/unchecked duplicate regressions. Status: fixed; requires human verification.
 
-### CR-06: Contradictory consumer mirrors pass validation
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** d9301d9
-**Applied fix:** Validates phase-record schema, exact milestone identity, unique phase numbers, and every canonical phase name/status projection, including missing and extra routes. Status: fixed; requires human verification.
-
-### CR-07: An authority conflict suppresses incomplete-proof diagnostics
+### CR-04: Milestone history ignores names, shipment dates, and contradictory duplicate metadata
 
 **Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 9163825
-**Applied fix:** Runs completion proof resolution independently from active-scope agreement and retains both conflict and incomplete-proof diagnostics. Status: fixed; requires human verification.
+**Commits:** 4f37b2c, cc8781c
+**Applied fix:** Preserves duplicate milestone blocks and field values, requires one canonical block and one value per required field, compares milestone names and calendar-valid shipment dates with ROADMAP, and rejects competing status/identity/archive metadata. Supports both canonical date-heading forms already present in repository history. Added name, date, invalid-date, duplicate-block, and competing-status regressions. Status: fixed; requires human verification.
 
-### CR-08: Unchecked ROADMAP plans can produce a healthy completed phase
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** c76069e
-**Applied fix:** Emits blocking `PCOMP_PLAN_NOT_ACCEPTED` diagnostics for every unchecked declared plan regardless of summary presence. Status: fixed; requires human verification.
-
-### CR-09: Malformed or unknown porcelain records are silently discarded
+### WR-01: A claim expires at midnight on its own revisit date
 
 **Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/repository_inventory.test.cjs`
-**Commit:** e7567b2
-**Applied fix:** Rejects every unsupported nonempty porcelain token, duplicate mandatory headers, and incomplete branch headers. Status: fixed.
-
-### CR-10: Phase-artifact namespace changes are absent from consistency checking
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 9187609
-**Applied fix:** Snapshots phase-directory identities and exact typed entry sets, then compares the namespace during final consistency validation. Status: fixed; requires human verification.
-
-### CR-11: ROADMAP archive links are parsed and then ignored
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** d53c366
-**Applied fix:** Resolves shipped ROADMAP links relative to ROADMAP.md and validates repository bounds, immutable namespace, and collected archive existence. Status: fixed; requires human verification.
-
-### CR-12: The recorded planning-milestone identity is never validated
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 30e433d
-**Applied fix:** Parses and exactly compares each milestone block's Planning milestone field, with a dedicated mismatch diagnostic. Status: fixed.
-
-### CR-13: Unsupported publication claims are accepted as truth
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** f927598
-**Applied fix:** Keeps absent/unknown publication informational and blocks every positive assertion when no independent registry source was collected. Status: fixed; requires human verification.
-
-### CR-14: Duplicate canonical phase definitions silently select the first winner
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** ea8645b
-**Applied fix:** Indexes ROADMAP phase counts, emits `PSCOPE_PHASE_DEFINITION_AMBIGUOUS`, and refuses to select or validate a duplicate phase winner. Status: fixed; requires human verification.
-
-### CR-15: Any undated keyword mention can satisfy the archive-correction requirement
-
-**Files modified:** `scripts/lib/repository_truth.cjs`, `scripts/planning_health.test.cjs`
-**Commit:** 2baa309
-**Applied fix:** Requires a structured evidence row with a valid date, exact milestone, exact preserved archive target, correction classification, and substantive evidence. Status: fixed; requires human verification.
+**Commit:** 2bb9f4c
+**Applied fix:** Treats a revisit date as valid through the end of that UTC calendar day and marks it stale at the next day's boundary. Added before, during, end-of-day, and after-boundary regressions. Status: fixed; requires human verification.
 
 ## Verification
 
 Verification ran in the main checkout because `.planning/config.json` sets `workflow.use_worktrees` to `false`.
 
-- Syntax checks passed for all three modified CommonJS files.
-- `node --test scripts/repository_inventory.test.cjs scripts/planning_health.test.cjs`: 54 passed, 0 failed.
-- All source and test changes are committed; only the orchestrator-owned report and pre-existing user files remain uncommitted.
+- Tier 1 source re-reads and CommonJS syntax checks passed for every modified section.
+- Focused regression tests passed for each finding.
+- `node --test scripts/planning_health.test.cjs scripts/repository_inventory.test.cjs`: 83 passed, 0 failed.
+- `node --test scripts/*.test.cjs scripts/prohibitions/*.test.cjs`: 128 passed, 0 failed.
+- `node scripts/prohibitions/enforce_phase31.cjs`: 6/6 prohibition contracts passed.
+- Source and test changes are committed; this report remains uncommitted for the orchestrator.
 
 ---
 
-_Fixed: 2026-09-09T22:09:28Z_
+_Fixed: 2026-09-10T05:36:29Z_
 _Fixer: the agent (gsd-code-fixer)_
-_Iteration: 1_
+_Iteration: 3_
