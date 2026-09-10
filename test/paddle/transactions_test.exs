@@ -25,6 +25,12 @@ defmodule Paddle.TransactionsTest do
           assert request.url.path == "/transactions/txn_01"
           assert request.body == nil
 
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_transaction,
+                   route: "/transactions/:transaction_id"
+                 }
+
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
 
@@ -111,6 +117,31 @@ defmodule Paddle.TransactionsTest do
                Transactions.get(client, "txn_01")
     end
 
+    test "retries a transient read within the central bound with static route context" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_retry_adapter(fn request ->
+          count = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_transaction,
+                   route: "/transactions/:transaction_id"
+                 }
+
+          response =
+            if count == 0,
+              do: Req.Response.new(status: 503, body: %{}),
+              else: Req.Response.new(status: 200, body: %{"data" => transaction_payload()})
+
+          {request, response}
+        end)
+
+      assert {:ok, %Transaction{}} = Transactions.get(client, "txn/runtime-canary")
+      assert Agent.get(attempts, & &1) == 2
+    end
+
     test "uses Transactions.get/2 as the canonical bridge from completed recurring transaction to subscription_id" do
       response_data =
         transaction_payload()
@@ -139,6 +170,12 @@ defmodule Paddle.TransactionsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/transactions"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :create_transaction,
+                   route: "/transactions"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "address_id" => "add_01",
@@ -489,7 +526,16 @@ defmodule Paddle.TransactionsTest do
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+      assert {:error,
+              %Error{
+                type: "network_timeout",
+                network_error?: true,
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_transaction,
+                resource_id: nil,
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
                Transactions.create(client,
                  customer_id: "ctm_01",
                  address_id: "add_01",
@@ -497,15 +543,19 @@ defmodule Paddle.TransactionsTest do
                )
     end
 
-    test "for recurring start, forwards idempotency_key and returns checkout-bearing transaction" do
+    test "for recurring start, uses the same one-attempt create contract and returns checkout" do
       response_data = transaction_payload()
-      key = "accrue:checkout:co_123:attempt:1"
 
       client =
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/transactions"
-          assert Req.Request.get_header(request, "idempotency-key") == [key]
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :create_transaction,
+                   route: "/transactions"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "address_id" => "add_01",
@@ -520,16 +570,53 @@ defmodule Paddle.TransactionsTest do
       assert {:ok, %Transaction{} = transaction} =
                Transactions.create(
                  client,
-                 [
-                   customer_id: "ctm_01",
-                   address_id: "add_01",
-                   items: [%{price_id: "pri_recurring_01", quantity: 1}]
-                 ],
-                 idempotency_key: key
+                 customer_id: "ctm_01",
+                 address_id: "add_01",
+                 items: [%{price_id: "pri_recurring_01", quantity: 1}]
                )
 
       assert %Checkout{} = transaction.checkout
       assert is_binary(transaction.checkout.url)
+    end
+  end
+
+  describe "shared pagination context" do
+    test "exports only next_page/4 and keeps cursor material out of static context" do
+      cursor = "/transactions?after=cursor-secret-canary&customer_id=ctm-secret-canary"
+
+      client =
+        client_with_adapter(fn request ->
+          assert request.url.path == "/transactions"
+          assert request.url.query == "after=cursor-secret-canary&customer_id=ctm-secret-canary"
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :list_transactions,
+                   route: "/transactions"
+                 }
+
+          refute inspect(request_context(request)) =~ "cursor-secret-canary"
+          refute inspect(request_context(request)) =~ "ctm-secret-canary"
+
+          {request,
+           Req.Response.new(
+             status: 200,
+             body: %{"data" => [transaction_payload()], "meta" => %{}}
+           )}
+        end)
+
+      Code.ensure_loaded!(Paddle.Internal.Pagination)
+      refute function_exported?(Paddle.Internal.Pagination, :next_page, 3)
+      assert function_exported?(Paddle.Internal.Pagination, :next_page, 4)
+
+      assert {:ok, %Paddle.Page{data: [%Transaction{}]}} =
+               Paddle.Internal.Pagination.next_page(
+                 client,
+                 Transaction,
+                 cursor,
+                 operation: :list_transactions,
+                 route: "/transactions"
+               )
     end
   end
 
@@ -542,6 +629,27 @@ defmodule Paddle.TransactionsTest do
         Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp client_with_retry_adapter(adapter) do
+    %Client{
+      api_key: "sk_test_123",
+      environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
+      req:
+        Req.new(
+          base_url: "https://sandbox-api.paddle.com",
+          retry: :transient,
+          retry_delay: fn _ -> 0 end,
+          max_retries: 3,
+          adapter: Adapter
+        )
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
+    }
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
   end
 
   defp decode_json_body(body) do
