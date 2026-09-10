@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-05-PLAN.md
-last_updated: "2026-09-10T21:35:07.839Z"
+stopped_at: Completed 32-06-PLAN.md
+last_updated: "2026-09-10T21:44:30.739Z"
 last_activity: 2026-09-10
-last_activity_desc: Completed Phase 32 Plan 04
-state_head: 0c73115ddf70fd4dc406971e810388d66c30d02d
+last_activity_desc: Completed Phase 32 Plan 06
+state_head: e4a94232cfafa40d5193601ca022837f66d9485b
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 ## Current Position
 
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 7 of 11
+Plan: 8 of 11
 Status: Ready to execute
-Last activity: 2026-09-10 — Completed Phase 32 Plan 05
+Last activity: 2026-09-10 — Completed Phase 32 Plan 06
 
-Progress: [████████░░] 75%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [████████░░] 75%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 15
+- Plans completed: 16
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -63,6 +63,7 @@ Progress: [████████░░] 75%
 | Phase 32 P03 | 5min | 2 tasks | 2 files |
 | Phase 32 P04 | 9min | 2 tasks | 7 files |
 | Phase 32 P05 | 8min | 3 tasks | 9 files |
+| Phase 32 P06 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,9 @@ Progress: [████████░░] 75%
 - [Phase 32]: Use literal operation and normalized route labels at every Plan 05 request call while keeping runtime IDs confined to encoded dispatch paths and explicit mutation resource context.
 - [Phase 32]: Make Paddle.Customers.PortalSessions the sole request owner and retain Paddle.PortalSessions.create/2 as a validating compatibility delegate.
 - [Phase 32]: Model terminal transient pagination fixtures as four physical attempts so resource tests prove the central bounded-read policy rather than disabling it.
+- [Phase 32]: Use one literal list operation/route pair for both initial and continuation pages so runtime filters, IDs, and cursors remain dispatch-only.
+- [Phase 32]: Keep notification create retry restriction typing while removing unsupported idempotency typing; update/delete remain option-free and all three mutations rely on the central one-attempt policy.
+- [Phase 32]: Attach only validated notification-setting IDs as mutation resource context, never destinations, endpoint secrets, bodies, or dynamic route labels.
 
 ### Pending Todos
 
@@ -130,10 +134,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T21:35:07.726Z
-Stopped at: Completed 32-05-PLAN.md
+Last session: 2026-09-10T21:44:30.619Z
+Stopped at: Completed 32-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue with `32-06-PLAN.md`.
+- Continue with `32-07-PLAN.md`.
