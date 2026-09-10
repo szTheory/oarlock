@@ -23,6 +23,7 @@ defmodule Paddle.PricesTest do
           assert request.method == :get
           assert request.url.path == "/prices/pri_01"
           assert request.body == nil
+          assert request_context(request) == price_request_context()
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -49,6 +50,7 @@ defmodule Paddle.PricesTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/prices"
+          assert request_context(request) == list_request_context()
           # include should be dropped
           assert request.options[:params] == %{"status" => "active", "per_page" => 10}
 
@@ -82,6 +84,50 @@ defmodule Paddle.PricesTest do
     end
   end
 
+  describe "all/2" do
+    test "keeps literal list context across a dynamic cursor continuation" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          attempt = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+          assert request_context(request) == list_request_context()
+
+          case attempt do
+            0 ->
+              assert request.url.path == "/prices"
+
+              body = %{
+                "data" => [price_payload()],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => true,
+                    "next" => "/prices?after=pri_runtime_secret",
+                    "per_page" => 1
+                  }
+                }
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+
+            1 ->
+              assert request.url.path == "/prices"
+              assert URI.decode_query(request.url.query) == %{"after" => "pri_runtime_secret"}
+
+              body = %{
+                "data" => [%{price_payload() | "id" => "pri_02"}],
+                "meta" => %{"pagination" => %{"has_more" => false, "next" => nil}}
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+          end
+        end)
+
+      assert {:ok, [%Price{id: "pri_01"}, %Price{id: "pri_02"}]} = Prices.all(client)
+      assert Agent.get(attempts, & &1) == 2
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
@@ -92,6 +138,15 @@ defmodule Paddle.PricesTest do
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
+
+  defp request_context(request),
+    do: Req.Request.get_private(request, :paddle_request_context)
+
+  defp price_request_context,
+    do: %{method: :get, operation: :get_price, route: "/prices/:price_id"}
+
+  defp list_request_context,
+    do: %{method: :get, operation: :list_prices, route: "/prices"}
 
   defp price_payload do
     %{

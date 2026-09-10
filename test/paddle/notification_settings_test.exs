@@ -10,6 +10,7 @@ defmodule Paddle.NotificationSettingsTest do
   end
 
   alias Paddle.Client
+  alias Paddle.Error
   alias Paddle.NotificationSetting
   alias Paddle.NotificationSettings
 
@@ -28,6 +29,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/notification-settings"
+          assert request_context(request) == create_request_context()
 
           # Notice api_version, type, destination, etc., and dropped extra_field
           assert Jason.decode!(IO.iodata_to_binary(request.body)) ==
@@ -74,6 +76,37 @@ defmodule Paddle.NotificationSettingsTest do
       assert {:error, %Paddle.Error{code: "bad_request"}} =
                NotificationSettings.create(client, attrs)
     end
+
+    test "makes one attempt and exposes secret-safe ambiguity without idempotency support" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :timeout}}
+        end)
+
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_notification_setting,
+                resource_id: nil,
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
+               NotificationSettings.create(client, %{
+                 api_version: 1,
+                 destination: "https://secret.example/hooks"
+               })
+
+      assert Agent.get(attempts, & &1) == 1
+
+      assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+        NotificationSettings.create(client, %{api_version: 1}, idempotency_key: "idem_forbidden")
+      end
+
+      assert Agent.get(attempts, & &1) == 1
+    end
   end
 
   describe "update/3" do
@@ -84,6 +117,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/notification-settings/ntfset_01"
+          assert request_context(request) == update_request_context("ntfset_01")
 
           assert Jason.decode!(IO.iodata_to_binary(request.body)) == %{"active" => false}
 
@@ -107,6 +141,28 @@ defmodule Paddle.NotificationSettingsTest do
       assert {:error, :invalid_notification_setting_id} =
                NotificationSettings.update(client, "", %{})
     end
+
+    test "makes one attempt and exposes only the setting ID in ambiguity context" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, Req.Response.new(status: 503, body: %{})}
+        end)
+
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :update_notification_setting,
+                resource_id: "ntfset_runtime_secret",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
+               NotificationSettings.update(client, "ntfset_runtime_secret", %{active: false})
+
+      assert Agent.get(attempts, & &1) == 1
+    end
   end
 
   describe "delete/2" do
@@ -115,6 +171,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :delete
           assert request.url.path == "/notification-settings/ntfset_01"
+          assert request_context(request) == delete_request_context("ntfset_01")
 
           {request, Req.Response.new(status: 200, body: %{})}
         end)
@@ -125,6 +182,27 @@ defmodule Paddle.NotificationSettingsTest do
     test "returns error for blank id" do
       client = client_with_adapter(&{&1, Req.Response.new(status: 200, body: %{})})
       assert {:error, :invalid_notification_setting_id} = NotificationSettings.delete(client, "")
+    end
+
+    test "makes one attempt and returns ambiguity guidance for transport failure" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :closed}}
+        end)
+
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :delete_notification_setting,
+                resource_id: "ntfset_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} = NotificationSettings.delete(client, "ntfset_01")
+
+      assert Agent.get(attempts, & &1) == 1
     end
   end
 
@@ -137,6 +215,7 @@ defmodule Paddle.NotificationSettingsTest do
           assert request.method == :get
           assert request.url.path == "/notification-settings/ntfset_01"
           assert request.body == nil
+          assert request_context(request) == get_request_context()
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -173,6 +252,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/notification-settings"
+          assert request_context(request) == list_request_context()
           assert URI.decode_query(request.url.query) == %{"per_page" => "10"}
 
           body = %{
@@ -202,6 +282,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/notification-settings"
+          assert request_context(request) == list_request_context()
 
           query = request.url.query || ""
 
@@ -255,6 +336,7 @@ defmodule Paddle.NotificationSettingsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/notification-settings"
+          assert request_context(request) == list_request_context()
 
           query = request.url.query || ""
 
@@ -312,6 +394,46 @@ defmodule Paddle.NotificationSettingsTest do
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
+
+  defp request_context(request),
+    do: Req.Request.get_private(request, :paddle_request_context)
+
+  defp create_request_context,
+    do: %{
+      method: :post,
+      operation: :create_notification_setting,
+      route: "/notification-settings"
+    }
+
+  defp get_request_context,
+    do: %{
+      method: :get,
+      operation: :get_notification_setting,
+      route: "/notification-settings/:notification_setting_id"
+    }
+
+  defp list_request_context,
+    do: %{
+      method: :get,
+      operation: :list_notification_settings,
+      route: "/notification-settings"
+    }
+
+  defp update_request_context(id),
+    do: %{
+      method: :patch,
+      operation: :update_notification_setting,
+      resource_id: id,
+      route: "/notification-settings/:notification_setting_id"
+    }
+
+  defp delete_request_context(id),
+    do: %{
+      method: :delete,
+      operation: :delete_notification_setting,
+      resource_id: id,
+      route: "/notification-settings/:notification_setting_id"
+    }
 
   defp setting_payload do
     %{
