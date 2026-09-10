@@ -32,7 +32,7 @@ defmodule Paddle.PortalSessionTest do
       assert session.urls["general"]["overview"] =~ "overview"
     end
 
-    test "excludes urls from Inspect" do
+    test "redacts urls and raw_data from Inspect without changing stored data" do
       session = %PortalSession{
         id: "cptrsess_01hv8...",
         customer_id: "ctm_01hv8...",
@@ -42,15 +42,21 @@ defmodule Paddle.PortalSessionTest do
           }
         },
         created_at: "2024-04-12T10:49:57.652758Z",
-        custom_data: nil
+        custom_data: nil,
+        raw_data: %{"nested" => "raw_portal_secret_canary"}
       }
+
+      original = session
 
       inspected = inspect(session)
 
       assert inspected =~ "cptrsess_01hv8"
       assert inspected =~ "ctm_01hv8"
       refute inspected =~ "secret=true"
+      refute inspected =~ "raw_portal_secret_canary"
       assert inspected =~ "urls: \"[REDACTED]\""
+      assert inspected =~ "raw_data: \"[REDACTED]\""
+      assert session == original
     end
   end
 end
