@@ -4,6 +4,13 @@ defmodule Paddle.Customers.Addresses do
 
   Addresses are associated with a customer and are used for tax calculation.
 
+  Address reads use bounded retries for documented transient failures, and
+  cursor continuations retain the same literal operation/route context as the
+  first page. Creates and updates always make one attempt; `retry: true` and
+  `idempotency_key` are unsupported. Ambiguous mutation failures return a
+  non-retryable `%Paddle.Error{}` with a safe customer or address resource ID
+  and fixed consumer reconciliation actions.
+
   ## Example Pipeline
 
   ```elixir
@@ -32,7 +39,7 @@ defmodule Paddle.Customers.Addresses do
 
   @type customer_id :: String.t()
   @type address_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+  @type request_opt :: {:retry, boolean()}
 
   @create_allowlist ~w(description first_line second_line city postal_code region country_code custom_data)
   @list_allowlist ~w(id after per_page order_by status search)
@@ -40,6 +47,10 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Creates a new address for a customer.
+
+  This mutation makes one attempt. Ambiguous transport or terminal HTTP
+  408/5xx failures identify `:create_customer_address` and the validated
+  customer resource ID. Automatic replay and idempotency keys are unsupported.
 
   ```elixir
   attrs = %{
@@ -91,7 +102,12 @@ defmodule Paddle.Customers.Addresses do
              client,
              :post,
              customer_addresses_path(customer_id),
-             Keyword.merge([json: body], opts)
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_customer_address,
+               route: "/customers/:customer_id/addresses",
+               resource_id: customer_id
+             )
            ) do
       {:ok, Http.build_struct(Address, data)}
     end
@@ -99,6 +115,10 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Retrieves a specific address for a customer by ID.
+
+  This safe read uses bounded transient retries. Customer and address IDs are
+  encoded only into the dispatch path; telemetry uses the literal normalized
+  route `/customers/:customer_id/addresses/:address_id`.
 
   ## Examples
 
@@ -137,13 +157,20 @@ defmodule Paddle.Customers.Addresses do
     with :ok <- validate_customer_id(customer_id),
          :ok <- validate_address_id(address_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, customer_address_path(customer_id, address_id)) do
+           Http.request(client, :get, customer_address_path(customer_id, address_id),
+             operation: :get_customer_address,
+             route: "/customers/:customer_id/addresses/:address_id"
+           ) do
       {:ok, Http.build_struct(Address, data)}
     end
   end
 
   @doc """
   Lists addresses for a customer, returning a paginated `Paddle.Page`.
+
+  The initial page and all cursor continuations use bounded retries with the
+  static operation `:list_customer_addresses` and normalized route
+  `/customers/:customer_id/addresses`.
 
   ## Examples
 
@@ -183,13 +210,20 @@ defmodule Paddle.Customers.Addresses do
          {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, customer_addresses_path(customer_id), params: query) do
+           Http.request(client, :get, customer_addresses_path(customer_id),
+             params: query,
+             operation: :list_customer_addresses,
+             route: "/customers/:customer_id/addresses"
+           ) do
       {:ok, build_page(data, meta)}
     end
   end
 
   @doc """
   Returns a `Stream` that transparently fetches all pages of addresses for a customer.
+
+  Provider cursor values remain dispatch-only; every page retains the literal
+  `:list_customer_addresses` request context.
 
   This is useful when you want to iterate over all addresses lazily, without pulling them all into memory at once.
 
@@ -223,6 +257,9 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Fetches all addresses for a customer by automatically paginating through all available pages.
+
+  Provider cursor values remain dispatch-only; every page retains the literal
+  `:list_customer_addresses` request context.
 
   Unlike `stream/3`, this function blocks and fetches all data into a single list.
 
@@ -267,6 +304,10 @@ defmodule Paddle.Customers.Addresses do
 
   @doc """
   Updates an existing address for a customer.
+
+  This mutation makes one attempt. Ambiguous transport or terminal HTTP
+  408/5xx failures identify `:update_customer_address` and the validated
+  address resource ID. Automatic replay and idempotency keys are unsupported.
 
   ## Examples
 
@@ -323,7 +364,10 @@ defmodule Paddle.Customers.Addresses do
          body <- Attrs.allowlist(attrs, @update_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
            Http.request(client, :patch, customer_address_path(customer_id, address_id),
-             json: body
+             json: body,
+             operation: :update_customer_address,
+             route: "/customers/:customer_id/addresses/:address_id",
+             resource_id: address_id
            ) do
       {:ok, Http.build_struct(Address, data)}
     end
@@ -333,10 +377,10 @@ defmodule Paddle.Customers.Addresses do
     do: "/customers/#{encode_path_segment(customer_id)}/addresses"
 
   defp next_page(client, path) do
-    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, path) do
-      {:ok, build_page(data, meta)}
-    end
+    Pagination.next_page(client, Address, path,
+      operation: :list_customer_addresses,
+      route: "/customers/:customer_id/addresses"
+    )
   end
 
   defp build_page(data, meta) do

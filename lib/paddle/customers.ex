@@ -90,7 +90,11 @@ defmodule Paddle.Customers do
              client,
              :post,
              "/customers",
-             Keyword.merge([json: body, operation: :create_customer, route: "/customers"], opts)
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_customer,
+               route: "/customers"
+             )
            ) do
       {:ok, Http.build_struct(Customer, data)}
     end

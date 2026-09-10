@@ -64,9 +64,10 @@ defmodule Paddle.Adjustments do
              client,
              :post,
              "/adjustments",
-             Keyword.merge(
-               [json: body, operation: :create_adjustment, route: "/adjustments"],
-               opts
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_adjustment,
+               route: "/adjustments"
              )
            ) do
       {:ok, Http.build_struct(Adjustment, data)}

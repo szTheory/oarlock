@@ -484,6 +484,7 @@ defmodule Paddle.Customers.AddressesTest do
   end
 
   defp client_with_get_sequence(expected_requests) do
+    expected_requests = Enum.flat_map(expected_requests, &expand_retryable_read_request/1)
     {:ok, requests} = Agent.start_link(fn -> expected_requests end)
 
     client =
@@ -511,6 +512,12 @@ defmodule Paddle.Customers.AddressesTest do
 
     {client, requests}
   end
+
+  defp expand_retryable_read_request(%{response: %Req.Response{status: status}} = request)
+       when status in [408, 429, 500, 502, 503, 504],
+       do: List.duplicate(request, 4)
+
+  defp expand_retryable_read_request(request), do: [request]
 
   defp assert_no_more_requests(requests) do
     assert Agent.get(requests, & &1) == []
