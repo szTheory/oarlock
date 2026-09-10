@@ -90,7 +90,14 @@ defmodule Paddle.SeamTest do
       update: 3
     ],
     Paddle.Page => [next_cursor: 1],
-    Paddle.Error => [exception: 1, from_response: 1, from_transport: 1, message: 1],
+    Paddle.Error => [
+      exception: 1,
+      from_response: 1,
+      from_response: 2,
+      from_transport: 1,
+      from_transport: 2,
+      message: 1
+    ],
     Paddle.PortalSessions => [create: 2]
   }
 
@@ -175,7 +182,7 @@ defmodule Paddle.SeamTest do
       client_with_adapter(fn request ->
         assert request.method == :post
         assert request.url.path == "/transactions"
-        assert Req.Request.get_header(request, "idempotency-key") == ["accrue:seam:txn_seam01"]
+        assert Req.Request.get_header(request, "idempotency-key") == []
 
         assert decode_json_body(request.body) == %{
                  "address_id" => "add_seam01",
@@ -188,14 +195,10 @@ defmodule Paddle.SeamTest do
       end)
 
     assert {:ok, %Transaction{id: "txn_seam01"} = transaction} =
-             Paddle.Transactions.create(
-               transaction_create_client,
-               [
-                 customer_id: customer.id,
-                 address_id: address.id,
-                 items: [%{price_id: "pri_seam01", quantity: 1}]
-               ],
-               idempotency_key: "accrue:seam:txn_seam01"
+             Paddle.Transactions.create(transaction_create_client,
+               customer_id: customer.id,
+               address_id: address.id,
+               items: [%{price_id: "pri_seam01", quantity: 1}]
              )
 
     assert %Checkout{url: checkout_url} = transaction.checkout
@@ -556,13 +559,151 @@ defmodule Paddle.SeamTest do
   test "sealed modules remain undocumented" do
     for module <- [
           Paddle,
-          Paddle.Http,
-          Paddle.Http.Telemetry,
           Paddle.Application,
-          Paddle.Internal.Attrs,
-          Paddle.Internal.Pagination
+          Paddle.Internal.Attrs
         ] do
       assert {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(module)
+    end
+  end
+
+  test "public documentation pins the secure dependency and runtime migration contract" do
+    readme = File.read!("README.md")
+    getting_started = File.read!("guides/getting-started.md")
+    telemetry = File.read!("guides/telemetry.md")
+    seam = File.read!("guides/accrue-seam.md")
+    changelog = File.read!("CHANGELOG.md")
+    contract = Enum.join([readme, getting_started, telemetry, seam, changelog], "\n")
+
+    for claim <- [
+          "Req `~> 0.7.4`",
+          "Elixir `~> 1.19`",
+          "Elixir 1.19.5 / OTP 28.1",
+          "three retries (four total attempts)",
+          "408, 429, 500, 502, 503, and 504",
+          "60,000 ms",
+          "single attempt",
+          "ambiguous",
+          "`:lookup`, `:webhook`, and `:provider_dashboard`",
+          "`[REDACTED]`"
+        ] do
+      assert contract =~ claim, "public contract is missing #{inspect(claim)}"
+    end
+
+    constructor_contract =
+      readme |> markdown_section!("## Client Construction Contract") |> normalize_markdown()
+
+    for row <- [
+          "No environment and no base URL",
+          "`:sandbox`",
+          "`:live`",
+          "`:custom`",
+          "Noncanonical base URL only",
+          "before Req construction"
+        ] do
+      assert constructor_contract =~ row
+    end
+
+    telemetry_contract =
+      telemetry |> markdown_section!("## Request Events") |> normalize_markdown()
+
+    for claim <- [
+          "`:system_time`",
+          "`:duration`",
+          "`:method`",
+          "`:host`",
+          "`:attempt`",
+          "`:operation`",
+          "`:route`",
+          "`:status`",
+          "`:result`",
+          "`:error_class`"
+        ] do
+      assert telemetry_contract =~ claim
+    end
+
+    for forbidden <- ["`:request`", "`:response`", "`:exception`", "request.url"] do
+      refute telemetry_contract =~ forbidden
+    end
+
+    refute Regex.match?(~r/idempotency_key:\s*["']|accepts? an? .*idempotency_key/i, contract)
+    refute Regex.match?(~r/mutations? .*retr(?:y|ies) automatically/i, contract)
+    refute Regex.match?(~r/https?:\/\/[^\s`]*@/i, contract)
+
+    migration = changelog |> markdown_section!("### Phase 32 Migration") |> normalize_markdown()
+    assert migration =~ "pre-1.0"
+    assert migration =~ "removed `idempotency_key`"
+    assert migration =~ "telemetry metadata schema"
+    assert migration =~ "constructor validation"
+  end
+
+  test "compiled docs types and specs agree with the Phase 32 decision tables" do
+    documented_modules = [
+      Paddle.Client,
+      Paddle.Http,
+      Paddle.Error,
+      Paddle.Internal.Pagination,
+      Paddle.Adjustments,
+      Paddle.Customers,
+      Paddle.Customers.Addresses,
+      Paddle.Customers.PortalSessions,
+      Paddle.PortalSessions,
+      Paddle.Events,
+      Paddle.NotificationSettings,
+      Paddle.Prices,
+      Paddle.Products,
+      Paddle.Subscriptions,
+      Paddle.Transactions,
+      Paddle.Http.Telemetry,
+      Paddle.NotificationSetting,
+      Paddle.PortalSession,
+      Paddle.Subscription.ManagementUrls,
+      Paddle.Transaction.Checkout
+    ]
+
+    for module <- documented_modules do
+      assert {:docs_v1, _, _, _, docs, _, _} = Code.fetch_docs(module)
+      refute docs == :hidden, "#{inspect(module)} must expose its Phase 32 contract"
+    end
+
+    assert normalized_moduledoc!(Paddle.Client) =~
+             "unique options `:api_key`, `:environment`, and `:base_url`"
+
+    assert normalized_moduledoc!(Paddle.Http) =~ "four physical attempts"
+    assert normalized_moduledoc!(Paddle.Http) =~ "`:idempotency_key` is unsupported"
+    assert normalized_moduledoc!(Paddle.Error) =~ "ambiguous and non-retryable"
+
+    assert normalized_moduledoc!(Paddle.Internal.Pagination) =~
+             "dynamic cursor path only as the dispatch URL"
+
+    assert normalized_moduledoc!(Paddle.Http.Telemetry) =~ "exact payload schemas"
+
+    for module <- [
+          Paddle.Adjustments,
+          Paddle.Customers,
+          Paddle.Customers.Addresses,
+          Paddle.Customers.PortalSessions,
+          Paddle.NotificationSettings,
+          Paddle.Subscriptions,
+          Paddle.Transactions
+        ] do
+      {:ok, types} = Code.Typespec.fetch_types(module)
+      assert term_contains_atom?(types, :retry)
+      refute term_contains_atom?(types, :idempotency_key)
+    end
+
+    assert spec_arities(Paddle.Client) == [new!: 1]
+    assert {:request, 4} in spec_arities(Paddle.Http)
+    assert {:next_page, 4} in spec_arities(Paddle.Internal.Pagination)
+    refute {:next_page, 3} in Paddle.Internal.Pagination.__info__(:functions)
+    assert {:attach, 1} in spec_arities(Paddle.Http.Telemetry)
+
+    for module <- [
+          Paddle.NotificationSetting,
+          Paddle.PortalSession,
+          Paddle.Subscription.ManagementUrls,
+          Paddle.Transaction.Checkout
+        ] do
+      assert normalized_moduledoc!(module) =~ "[REDACTED]"
     end
   end
 
@@ -732,4 +873,33 @@ defmodule Paddle.SeamTest do
   defp normalize_markdown(markdown) do
     Regex.replace(~r/\s+/, markdown, " ")
   end
+
+  defp moduledoc!(module) do
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, %{"en" => moduledoc}, _, _} ->
+        moduledoc
+
+      other ->
+        flunk("expected English module docs for #{inspect(module)}, got: #{inspect(other)}")
+    end
+  end
+
+  defp normalized_moduledoc!(module), do: module |> moduledoc!() |> normalize_markdown()
+
+  defp spec_arities(module) do
+    {:ok, specs} = Code.Typespec.fetch_specs(module)
+    specs |> Enum.map(fn {{name, arity}, _specs} -> {name, arity} end) |> Enum.sort()
+  end
+
+  defp term_contains_atom?(term, atom) when is_atom(term), do: term == atom
+
+  defp term_contains_atom?(term, atom) when is_tuple(term) do
+    term |> Tuple.to_list() |> Enum.any?(&term_contains_atom?(&1, atom))
+  end
+
+  defp term_contains_atom?(term, atom) when is_list(term) do
+    Enum.any?(term, &term_contains_atom?(&1, atom))
+  end
+
+  defp term_contains_atom?(_term, _atom), do: false
 end
