@@ -23,7 +23,7 @@ remain guidance and require explicit promotion through a later discovery cycle.
 
 ## Phases
 
-- [ ] **Phase 31: Repository & Planning Truth** - Establish a non-destructive, authoritative account of repository state, active scope, and shipped history.
+- [x] **Phase 31: Repository & Planning Truth** - Establish a non-destructive, authoritative account of repository state, active scope, and shipped history. (completed 2026-09-10)
 - [ ] **Phase 32: Dependency & SDK Trust Boundary** - Make dependency, telemetry, inspection, retry, validation, and public-contract behavior safe and truthful.
 - [ ] **Phase 33: Deterministic Green CI** - Make one complete, measured, immutable CI contract authoritative for each exact SHA and remote main.
 - [ ] **Phase 34: Release Integrity** - Bind every automatic and recovery publication to the accepted exact-SHA CI and package identity.
@@ -166,7 +166,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 31. Repository & Planning Truth | v2.2 | 9/9 | In Progress|  |
+| 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
 | 32. Dependency & SDK Trust Boundary | v2.2 | 0/TBD | Not started | - |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
