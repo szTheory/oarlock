@@ -39,7 +39,7 @@ defmodule Paddle.MixProject do
 
   defp deps do
     [
-      {:req, "~> 0.5.17"},
+      {:req, "~> 0.7.4"},
       {:telemetry, "~> 1.4"},
       {:plug, "~> 1.0", optional: true},
       {:bandit, "~> 1.0", optional: true},
