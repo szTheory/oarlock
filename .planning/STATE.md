@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-11-PLAN.md
-last_updated: "2026-09-10T21:01:16.507Z"
+stopped_at: Completed 32-03-PLAN.md
+last_updated: "2026-09-10T21:09:53.940Z"
 last_activity: 2026-09-10
-last_activity_desc: Completed Phase 32 Plan 11
-state_head: 394274bd825cfd93549b051e6df612afeac42a83
+last_activity_desc: Completed Phase 32 Plan 03
+state_head: c082b256fddee384993b84392ec62b9bac4f33b8
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 ## Current Position
 
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 4 of 11
+Plan: 5 of 11
 Status: Ready to execute
-Last activity: 2026-09-10 — Completed Phase 32 Plan 11
+Last activity: 2026-09-10 — Completed Phase 32 Plan 03
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 65%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [██████░░░░] 60%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 12
+- Plans completed: 13
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -60,6 +60,7 @@ Progress: [██████░░░░] 60%
 | Phase 32 P01 | 5min | 2 tasks | 4 files |
 | Phase 32 P02 | 3min | 2 tasks | 8 files |
 | Phase 32 P11 | 7min | 2 tasks | 5 files |
+| Phase 32 P03 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Progress: [██████░░░░] 60%
 - [Phase 32]: Use the established request-private module-adapter pattern independently in each remaining compatibility-sensitive fixture, preserving every existing assertion.
 - [Phase 32]: Treat acceptance as a 13-row fail-fast local matrix whose receipt is atomically renamed only after every row and tracked-diff equality pass.
 - [Phase 32]: Propagate the root's selected ASDF Elixir and Erlang versions into isolated package and sibling Accrue Mix projects without modifying either consumer.
+- [Phase 32]: Infer sandbox or live only from exact canonical base URLs and classify noncanonical base-URL-only clients as custom.
+- [Phase 32]: Reject unknown and duplicate client option names before reading values or constructing Req, without rendering option values.
+- [Phase 32]: Redact client api_key, base_url, and req wholesale while preserving visible environment identity and stored runtime state.
 
 ### Pending Todos
 
@@ -118,10 +122,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T21:01:16.407Z
-Stopped at: Completed 32-11-PLAN.md
+Last session: 2026-09-10T21:09:53.850Z
+Stopped at: Completed 32-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue with `32-03-PLAN.md`.
+- Continue with `32-04-PLAN.md`.
