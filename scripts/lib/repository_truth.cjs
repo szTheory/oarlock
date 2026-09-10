@@ -881,9 +881,9 @@ function validateMilestoneHistory(snapshot) {
     }
     const record = matchingBlocks[0];
     const block = record.content;
-    const heading = /^(.*?)\s+\(Shipped:\s*([^)]*)\)\s*$/.exec(record.heading);
+    const heading = /^(.*?)\s+(?:\(Shipped:\s*([^)]*)\)|—\s*(\S+))\s*$/.exec(record.heading);
     const statedName = heading ? heading[1].trim() : record.heading.replace(/\s+—\s+pre-archival\s*$/, "").trim();
-    const statedDate = heading ? heading[2].trim() : null;
+    const statedDate = heading ? (heading[2] || heading[3]).trim() : null;
     const validDate = statedDate && /^\d{4}-\d{2}-\d{2}$/.test(statedDate)
       && Number.isFinite(Date.parse(`${statedDate}T00:00:00.000Z`))
       && new Date(`${statedDate}T00:00:00.000Z`).toISOString().slice(0, 10) === statedDate;
