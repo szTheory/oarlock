@@ -1337,13 +1337,14 @@ function acceptedProofRow(markdown, id, verificationArtifact) {
   });
 }
 
-function requirementPassedByVerification(markdown, id, verificationPassed) {
-  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const lines = String(markdown || "").split(/\r?\n/).filter((line) => new RegExp(`\\b${escaped}\\b`).test(line));
+function requirementPassedByVerification(markdown, id) {
+  const rows = tableRowsFor(markdown, id);
+  if (rows.length !== 1) return false;
+  const cells = rows[0].slice(1);
   const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
-  const positive = /\b(?:pass(?:ed)?|complete(?:d)?|accepted|verified)\b/i;
-  return lines.length > 0 && lines.every((line) => !negative.test(line))
-    && lines.some((line) => positive.test(line) || verificationPassed);
+  const accepted = /^(?:pass(?:ed)?|complete(?:d)?|accepted|verified)$/i;
+  return !cells.some((cell) => negative.test(cell))
+    && cells.filter((cell) => accepted.test(cell)).length === 1;
 }
 
 function validateCompletionProof(snapshot, phaseNumber) {
@@ -1410,7 +1411,7 @@ function validateCompletionProof(snapshot, phaseNumber) {
     const requirement = requirementById.get(requirementId);
     const trace = traceById.get(requirementId);
     const linked = acceptedProofRow(evidence, requirementId, verificationArtifact)
-      && requirementPassedByVerification(verificationContent, requirementId, verificationPassed);
+      && requirementPassedByVerification(verificationContent, requirementId);
     if (!requirement || !requirement.complete || !trace || trace.phase !== String(phaseNumber) || !/^complete$/i.test(trace.status) || !linked) {
       diagnostics.push(completionDiagnostic(
         "PCOMP_REQUIREMENT_UNLINKED", ".planning/REQUIREMENTS.md + .planning/EVIDENCE.md", requirementId,

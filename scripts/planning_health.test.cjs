@@ -133,7 +133,7 @@ function completedSnapshot() {
   snapshot.artifactContents = {
     ".planning/phases/31-repository-truth/31-01-SUMMARY.md": "---\nstatus: complete\n---\n",
     ".planning/phases/31-repository-truth/31-02-SUMMARY.md": "---\nstatus: complete\n---\n",
-    ".planning/phases/31-repository-truth/31-VERIFICATION.md": "---\nstatus: passed\n---\n\nREPO-01 REPO-02\n",
+    ".planning/phases/31-repository-truth/31-VERIFICATION.md": "---\nstatus: passed\n---\n\n| Requirement | Status |\n|-------------|--------|\n| REPO-01 | passed |\n| REPO-02 | passed |\n",
   };
   return snapshot;
 }
@@ -354,6 +354,15 @@ test("completion: generic caveat prose cannot override failed verification", () 
   const codes = validateCompletionProof(snapshot, "31").map(({ code }) => code);
   assert.equal(codes.filter((code) => code === "PCOMP_REQUIREMENT_UNLINKED").length, 2);
   assert.ok(codes.includes("PCOMP_VERIFICATION_UNPROVEN"));
+});
+
+test("completion: global pass plus narrative requirement mentions is not per-requirement proof", () => {
+  const snapshot = completedSnapshot();
+  snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = "---\nstatus: passed\n---\n\nREPO-01 mentioned during review.\nREPO-02 mentioned during review.\n";
+  assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_REQUIREMENT_UNLINKED",
+  ]);
 });
 
 test("completion: unchecked plans remain blocking even with complete summaries", () => {
