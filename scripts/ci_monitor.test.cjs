@@ -25,6 +25,7 @@ const requiredJobs = [
   ["demo PostgreSQL", "success"],
   ["package smoke", "success"],
   ["optional dependencies", "success"],
+  ["planning truth", "success"],
   ["CI contract", "success"]
 ];
 
@@ -66,6 +67,8 @@ if (args[0] === "run" && args[1] === "list") {
 
 if (args[0] === "run" && args[1] === "view") {
   if (scenario === "failed-job") write({ ...run("completed", "success"), jobs: jobs({ "package smoke": "failure" }) });
+  else if (scenario === "failed-planning-truth") write({ ...run("completed", "success"), jobs: jobs({ "planning truth": "failure" }) });
+  else if (scenario === "missing-planning-truth") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "planning truth") });
   else if (scenario === "missing-job") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "CI contract") });
   else if (scenario === "failed-workflow") write({ ...run("completed", "failure"), jobs: jobs() });
   else write({ ...run("completed", "success"), jobs: jobs() });
@@ -113,7 +116,7 @@ test("assert-ci exits 0 with exact SHA and all required jobs successful", () => 
   const evidence = JSON.parse(result.stdout);
   assert.equal(evidence.verified, true);
   assert.equal(evidence.sha, "abc123");
-  assert.equal(evidence.jobs.length, 6);
+  assert.equal(evidence.jobs.length, 7);
 });
 
 test("assert-ci blocks when no pushed run exists for SHA", () => {
@@ -148,6 +151,22 @@ test("assert-ci fails when a required job did not pass", () => {
   assert.deepEqual(evidence.failedJobs, ["package smoke"]);
 });
 
+test("assert-ci fails when planning truth is missing for the exact SHA", () => {
+  const result = runMonitor("missing-planning-truth");
+  assert.equal(result.status, 1);
+  const evidence = JSON.parse(result.stdout);
+  assert.equal(evidence.reason, "required_job_missing");
+  assert.deepEqual(evidence.missingJobs, ["planning truth"]);
+});
+
+test("assert-ci fails when planning truth failed for the exact SHA", () => {
+  const result = runMonitor("failed-planning-truth");
+  assert.equal(result.status, 1);
+  const evidence = JSON.parse(result.stdout);
+  assert.equal(evidence.reason, "required_job_not_successful");
+  assert.deepEqual(evidence.failedJobs, ["planning truth"]);
+});
+
 test("assert-ci times out when the run is still in progress", () => {
   const result = runMonitor("in-progress");
   assert.equal(result.status, 124);
@@ -163,9 +182,12 @@ test("ci workflow defines an always-running contract over required proof jobs", 
   assert.match(contract, /name:\s+CI contract/);
   assert.match(contract, /if:\s+\$\{\{\s*always\(\)\s*\}\}/);
 
-  for (const job of ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps"]) {
+  for (const job of ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"]) {
     assert.match(contract, new RegExp(`- ${job}`));
   }
+  assert.match(contract, /const required = \[[^\]]*"planning-truth"[^\]]*\]/s);
+  assert.match(contract, /sha:\s*process\.env\.GITHUB_SHA_VALUE/);
+  assert.match(contract, /required_jobs:\s*jobs/);
 });
 
 test("ci workflow defines the exact required planning-truth lane", () => {
