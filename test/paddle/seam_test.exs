@@ -863,6 +863,55 @@ defmodule Paddle.SeamTest do
            end)
   end
 
+  test "public proof ladders keep every evidence tier and authority boundary distinct" do
+    for path <- [
+          "README.md",
+          "guides/getting-started.md",
+          "guides/accrue-seam.md",
+          "demo/README.md"
+        ] do
+      proof =
+        path |> File.read!() |> markdown_section!("## Proof Boundary") |> normalize_markdown()
+
+      for tier <- [
+            "Unit and contract tests",
+            "Paddle.MockServer",
+            "Package and downstream consumer checks",
+            "Paddle sandbox",
+            "Hosted CI",
+            "Live provider"
+          ] do
+        assert proof =~ tier, "#{path} proof ladder is missing #{tier}"
+      end
+
+      for unsupported <- [
+            ~r/MockServer .*proves? (?:Paddle |live )?provider/i,
+            ~r/package .*proves? live/i,
+            ~r/header .*proves? (?:provider )?(?:deduplication|idempotency)/i,
+            ~r/hosted CI .*proves? live provider/i
+          ] do
+        refute Regex.match?(unsupported, proof),
+               "#{path} inflates evidence with #{inspect(unsupported)}"
+      end
+    end
+
+    proof_script = File.read!("bin/phase32_contract_proof.sh")
+
+    for marker <- [
+          "phase32_compatibility.sh --self-test",
+          "MIX_BUILD_PATH",
+          "phase32-compatibility.receipt",
+          "SAFE-01",
+          "SAFE-02",
+          "SAFE-03",
+          "SAFE-04",
+          "SAFE-05",
+          "SAFE-06"
+        ] do
+      assert proof_script =~ marker
+    end
+  end
+
   defp markdown_section!(markdown, heading) do
     pattern = Regex.compile!("^#{Regex.escape(heading)}\\n(?<body>.*?)(?=^## |\\z)", "ms")
 
