@@ -408,6 +408,29 @@ test("completion: contradictory duplicate requirement and traceability rows are 
   assert.ok(codes.includes("PCOMP_REQUIREMENT_UNLINKED"));
 });
 
+test("completion: duplicate summary statuses are ambiguous regardless of ordering", () => {
+  for (const statuses of [["failed", "complete"], ["complete", "failed"]]) {
+    const snapshot = completedSnapshot();
+    snapshot.artifactContents[".planning/phases/31-repository-truth/31-01-SUMMARY.md"] = `---\nstatus: ${statuses[0]}\nstatus: ${statuses[1]}\n---\n`;
+    assert.ok(validateCompletionProof(snapshot, "31").some(({ code, artifact, actual }) => code === "PCOMP_SUMMARY_UNPROVEN"
+      && artifact.endsWith("31-01-SUMMARY.md") && actual.length === 2));
+  }
+});
+
+test("completion: duplicate or competing verification statuses are ambiguous regardless of ordering", () => {
+  for (const frontmatter of [
+    "status: failed\nstatus: passed",
+    "status: passed\nstatus: failed",
+    "status: passed\nresult: passed",
+    "verdict: verified\nresult: failed",
+  ]) {
+    const snapshot = completedSnapshot();
+    snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = `---\n${frontmatter}\n---\n\n| REPO-01 | passed |\n| REPO-02 | passed |\n`;
+    assert.ok(validateCompletionProof(snapshot, "31").some(({ code, actual }) => code === "PCOMP_VERIFICATION_UNPROVEN"
+      && actual.length === 2));
+  }
+});
+
 test("completion: unchecked plans remain blocking even with complete summaries", () => {
   const snapshot = completedSnapshot();
   snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace("- [x] 31-02-PLAN.md", "- [ ] 31-02-PLAN.md");

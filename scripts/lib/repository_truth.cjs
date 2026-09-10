@@ -1426,9 +1426,10 @@ function validateCompletionProof(snapshot, phaseNumber) {
       continue;
     }
     const summaryContent = snapshot.artifactContents && snapshot.artifactContents[summaryArtifact];
-    const summaryStatus = String(parseFrontmatter(summaryContent).status || "").trim().toLowerCase();
-    if (!summaryContent || summaryStatus !== "complete") diagnostics.push(completionDiagnostic(
-      "PCOMP_SUMMARY_UNPROVEN", summaryArtifact, "summary status", "frontmatter status: complete", summaryContent ? "missing complete status" : "unread content",
+    const summaryStatuses = frontmatterFieldValues(summaryContent, "status").map((value) => String(value).trim().toLowerCase());
+    const summaryStatusValid = summaryStatuses.length === 1 && summaryStatuses[0] === "complete";
+    if (!summaryContent || !summaryStatusValid) diagnostics.push(completionDiagnostic(
+      "PCOMP_SUMMARY_UNPROVEN", summaryArtifact, "summary status", "exactly one frontmatter status: complete", summaryContent ? summaryStatuses : "unread content",
       summaryArtifact, `Summary filename exists for ${plan.file} but does not carry substantive completion metadata`, "Propose correcting the summary only after re-running its verification.",
     ));
   }
@@ -1438,15 +1439,16 @@ function validateCompletionProof(snapshot, phaseNumber) {
   const verificationArtifact = (snapshot.phaseArtifacts || []).includes(verificationPath) ? verificationPath
     : (snapshot.phaseArtifacts || []).includes(validationPath) ? validationPath : null;
   const verificationContent = verificationArtifact && snapshot.artifactContents ? snapshot.artifactContents[verificationArtifact] : "";
-  const verificationMetadata = parseFrontmatter(verificationContent);
-  const verificationStatus = String(verificationMetadata.status || verificationMetadata.result || verificationMetadata.verdict || "").trim().toLowerCase();
-  const verificationPassed = ["pass", "passed", "complete", "verified"].includes(verificationStatus);
+  const verificationStatuses = ["status", "result", "verdict"].flatMap((name) => frontmatterFieldValues(verificationContent, name)
+    .map((value) => ({ field: name, value: String(value).trim().toLowerCase() })));
+  const verificationPassed = verificationStatuses.length === 1
+    && ["pass", "passed", "complete", "verified"].includes(verificationStatuses[0].value);
   if (!verificationArtifact) diagnostics.push(completionDiagnostic(
     "PCOMP_VERIFICATION_MISSING", `.planning/phases/${phaseNumber}`, "phase verification", `${phaseNumber}-VERIFICATION.md`, null,
     ".planning/EVIDENCE.md + phase verification", "No phase verification artifact was found", "Propose running phase verification and recording its result in EVIDENCE.md.",
   ));
   else if (!verificationPassed) diagnostics.push(completionDiagnostic(
-    "PCOMP_VERIFICATION_UNPROVEN", verificationArtifact, "verification status", "explicit pass", "filename present without passing content",
+    "PCOMP_VERIFICATION_UNPROVEN", verificationArtifact, "verification status", "exactly one explicit passing status/result/verdict", verificationStatuses,
     ".planning/EVIDENCE.md + phase verification", "Verification artifact presence alone does not prove success", "Propose re-running verification and recording an explicit status or reviewed caveat.",
   ));
 
