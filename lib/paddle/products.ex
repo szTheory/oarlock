@@ -8,6 +8,12 @@ defmodule Paddle.Products do
   > Custom products created dynamically during checkout are NOT returned by this Catalog API.
   > This API only returns standard Catalog products.
 
+  Product reads use bounded retries for documented transient failures. Request
+  observability uses only the literal `:get_product`/`:list_products` operations
+  and normalized `/products/:product_id`/`/products` routes; runtime IDs,
+  filters, and pagination cursors remain dispatch-only. Idempotency keys are
+  unsupported.
+
   ## Example Pipeline
 
   ```elixir
@@ -33,12 +39,15 @@ defmodule Paddle.Products do
   alias Paddle.Internal.Pagination
 
   @type product_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
 
   @list_allowlist ~w(after id status tax_category order_by per_page)
 
   @doc """
   Retrieves a product by ID.
+
+  This bounded read is labeled with the static `:get_product` operation and
+  `/products/:product_id` route. The runtime product ID is used only in the
+  encoded dispatch path. Idempotency keys are not accepted.
 
   ## Examples
 
@@ -49,13 +58,21 @@ defmodule Paddle.Products do
   def get(%Client{} = client, product_id) do
     with :ok <- validate_product_id(product_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, product_path(product_id)) do
+           Http.request(client, :get, product_path(product_id),
+             operation: :get_product,
+             route: "/products/:product_id"
+           ) do
       {:ok, Http.build_struct(Product, data)}
     end
   end
 
   @doc """
   Lists products.
+
+  The first page and every continuation are bounded reads labeled with the
+  static `:list_products` operation and `/products` route. Filters and cursor
+  values are never copied into request context. Idempotency keys are not
+  accepted.
 
   ## Examples
 
@@ -67,13 +84,17 @@ defmodule Paddle.Products do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, "/products", params: query) do
+           Http.request(client, :get, "/products",
+             params: query,
+             operation: :list_products,
+             route: "/products"
+           ) do
       {:ok, build_page(data, meta)}
     end
   end
 
   @doc """
-  Returns a stream of products.
+  Returns a stream of products using the bounded, statically labeled list reads.
   """
   @spec stream(Paddle.Client.t(), map() | keyword()) :: Enumerable.t()
   def stream(%Client{} = client, params \\ []) do
@@ -84,7 +105,7 @@ defmodule Paddle.Products do
   end
 
   @doc """
-  Retrieves all products, automatically handling pagination.
+  Retrieves all products across statically labeled, bounded-read pages.
   """
   @spec all(Paddle.Client.t(), map() | keyword()) ::
           {:ok, [Paddle.Product.t()]} | {:error, Paddle.Error.t() | :invalid_params}
@@ -121,10 +142,10 @@ defmodule Paddle.Products do
   defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 
   defp next_page(client, path) do
-    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, path) do
-      {:ok, build_page(data, meta)}
-    end
+    Pagination.next_page(client, Product, path,
+      operation: :list_products,
+      route: "/products"
+    )
   end
 
   defp build_page(data, meta) do
