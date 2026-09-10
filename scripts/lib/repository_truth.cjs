@@ -429,7 +429,8 @@ function evaluateRepositoryInventory(snapshot, registry, options = {}) {
     }
 
     const claim = matching[0];
-    if (Date.parse(claim.revisit_at) < observedAt) {
+    const revisitExpiresAt = Date.parse(`${claim.revisit_at}T00:00:00.000Z`) + 24 * 60 * 60 * 1000;
+    if (observedAt >= revisitExpiresAt) {
       dispositions.push({ artifact, kind: observation.kind, state: "stale", owner: claim.owner, provenance: claim.provenance, confidence: claim.confidence, revisit_at: claim.revisit_at, proposed_disposition: claim.proposed_disposition });
       diagnostics.push(makeDiagnostic({
         code: "RINV_STALE_CLAIM", severity: "error", artifact, field: "revisit_at",

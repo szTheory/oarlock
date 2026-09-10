@@ -591,6 +591,27 @@ test("CLI transparency: stale claims remain visible and blocking in human and JS
   assert.equal(result.conclusion.status, "policy-error");
 });
 
+test("ownership claims remain current through their full UTC revisit date", () => {
+  const snapshot = {
+    schemaVersion: 1,
+    repository: { root: "/fixture", commonDir: "/fixture/.git" },
+    worktrees: [{
+      path: "/fixture", role: "main", head: "a".repeat(40), branch: "main", upstream: null,
+      ahead: null, behind: null, detached: false, bare: false, lock: null, prunable: null,
+      processEvidence: null, dirty: [{ kind: "modified", path: "tracked.txt", originalPath: null, index: ".", worktree: "M" }], collectionErrors: [],
+    }],
+    collectionErrors: [],
+  };
+  const registry = registryFor(["tracked.txt"]);
+  registry.claims[0].revisit_at = "2026-09-09";
+  for (const generatedAt of ["2026-09-08T23:59:59.999Z", "2026-09-09T12:00:00.000Z", "2026-09-09T23:59:59.999Z"]) {
+    const result = evaluateRepositoryInventory({ ...snapshot, generatedAt }, registry);
+    assert.equal(result.dispositions[0].state, "intentional", generatedAt);
+  }
+  const expired = evaluateRepositoryInventory({ ...snapshot, generatedAt: "2026-09-10T00:00:00.000Z" }, registry);
+  assert.equal(expired.dispositions[0].state, "stale");
+});
+
 test("CLI transparency: bounded collection is explicitly incomplete in human and JSON output", (t) => {
   const root = makeRepository(t);
   for (const argv of [[], ["--json"]]) {
