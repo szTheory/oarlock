@@ -80,12 +80,15 @@ function runGh(args, options = {}) {
   const result = spawnSync(ghBin, args, {
     encoding: "utf8",
     env: options.env || process.env,
+    timeout: options.timeoutMs,
   });
 
   if (result.error) {
     throw new GhError(`Unable to execute ${ghBin}: ${result.error.message}`, {
       status: 2,
       stderr: result.error.message,
+      timedOut: result.error.code === "ETIMEDOUT",
+      timeoutMs: options.timeoutMs,
     });
   }
 
@@ -221,14 +224,17 @@ async function assertCi(args, options = {}) {
   }
   const repo = args.repo;
   const start = Date.now();
+  const deadline = start + timeoutSeconds * 1000;
   let lastEvidence = null;
   let attempted = false;
 
-  while (!attempted || Date.now() - start <= timeoutSeconds * 1000) {
+  while (!attempted || Date.now() < deadline) {
     attempted = true;
+    const remainingMs = Math.max(1, deadline - Date.now());
+    const commandOptions = { ...options, timeoutMs: Math.max(1, Math.min(remainingMs, options.timeoutMs ?? remainingMs)) };
     let run;
     try {
-      run = findRun({ sha, workflow, repo }, options);
+      run = findRun({ sha, workflow, repo }, commandOptions);
     } catch (error) {
       return {
         exitCode: 2,
@@ -265,13 +271,20 @@ async function assertCi(args, options = {}) {
       if (pollSeconds <= 0) {
         break;
       }
-      await sleep(pollSeconds * 1000);
+      const sleepMs = Math.min(pollSeconds * 1000, Math.max(0, deadline - Date.now()));
+      if (sleepMs <= 0) break;
+      await (options.sleep || sleep)(sleepMs);
       continue;
     }
 
+    const viewRemainingMs = deadline - Date.now();
+    if (viewRemainingMs <= 0) break;
     let viewed;
     try {
-      viewed = viewRun({ runId: run.databaseId, repo }, options);
+      viewed = viewRun({ runId: run.databaseId, repo }, {
+        ...options,
+        timeoutMs: Math.max(1, Math.min(viewRemainingMs, options.timeoutMs ?? viewRemainingMs)),
+      });
     } catch (error) {
       return {
         exitCode: 2,

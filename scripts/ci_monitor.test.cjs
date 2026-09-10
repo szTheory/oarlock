@@ -58,6 +58,7 @@ function jobs(overrides = {}) {
 }
 
 if (args[0] === "run" && args[1] === "list") {
+  if (scenario === "hung") Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
   if (scenario === "missing-run") write([]);
   else if (scenario === "wrong-sha") write([run("completed", "success", "def456")]);
   else if (scenario === "in-progress") write([run("in_progress", null)]);
@@ -102,7 +103,7 @@ function runMonitor(scenario, extraArgs = [], asJson = true) {
   try {
     return spawnSync(
       process.execPath,
-      [script, "assert-ci", "--sha", "abc123", "--workflow", "CI", "--timeout", "0", "--poll", "0", ...(asJson ? ["--json"] : []), ...extraArgs],
+      [script, "assert-ci", "--sha", "abc123", "--workflow", "CI", "--timeout", "5", "--poll", "0", ...(asJson ? ["--json"] : []), ...extraArgs],
       {
         encoding: "utf8",
         env: fake.env,
@@ -208,9 +209,22 @@ test("assert-ci rejects non-finite, negative, and excessive timing options", () 
 });
 
 test("assert-ci times out when the run is still in progress", () => {
-  const result = runMonitor("in-progress");
+  const started = Date.now();
+  const result = runMonitor("in-progress", ["--timeout", "0.5", "--poll", "3600"]);
   assert.equal(result.status, 124);
   assert.equal(JSON.parse(result.stdout).reason, "timeout");
+  assert.ok(Date.now() - started < 1500, "sleep must not exceed the remaining deadline");
+});
+
+test("assert-ci bounds a hung gh subprocess by the remaining deadline", () => {
+  const started = Date.now();
+  const result = runMonitor("hung", ["--timeout", "0.1"]);
+  assert.equal(result.status, 2);
+  const evidence = JSON.parse(result.stdout);
+  assert.equal(evidence.reason, "gh_error");
+  assert.equal(evidence.details.timedOut, true);
+  assert.ok(evidence.details.timeoutMs <= 100);
+  assert.ok(Date.now() - started < 1000, "hung gh must be terminated by the deadline");
 });
 
 test("ci workflow defines an always-running contract over required proof jobs", () => {
