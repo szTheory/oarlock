@@ -22,6 +22,7 @@ defmodule Paddle.ProductsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/products/pro_01"
+          assert request_context(request) == product_request_context()
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -45,6 +46,7 @@ defmodule Paddle.ProductsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/products"
+          assert request_context(request) == list_request_context()
           # include should be dropped
           assert request.options[:params] == %{"status" => "active"}
 
@@ -71,6 +73,53 @@ defmodule Paddle.ProductsTest do
     end
   end
 
+  describe "stream/2" do
+    test "keeps literal list context across a dynamic cursor continuation" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          attempt = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+
+          assert request_context(request) == list_request_context()
+
+          case attempt do
+            0 ->
+              assert request.url.path == "/products"
+
+              body = %{
+                "data" => [product_payload()],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => true,
+                    "next" => "/products?after=pro_runtime_secret",
+                    "per_page" => 1
+                  }
+                }
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+
+            1 ->
+              assert request.url.path == "/products"
+              assert URI.decode_query(request.url.query) == %{"after" => "pro_runtime_secret"}
+
+              body = %{
+                "data" => [%{product_payload() | "id" => "pro_02"}],
+                "meta" => %{"pagination" => %{"has_more" => false, "next" => nil}}
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+          end
+        end)
+
+      assert [%Product{id: "pro_01"}, %Product{id: "pro_02"}] =
+               Products.stream(client) |> Enum.to_list()
+
+      assert Agent.get(attempts, & &1) == 2
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
@@ -80,6 +129,18 @@ defmodule Paddle.ProductsTest do
         Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
+  end
+
+  defp product_request_context do
+    %{method: :get, operation: :get_product, route: "/products/:product_id"}
+  end
+
+  defp list_request_context do
+    %{method: :get, operation: :list_products, route: "/products"}
   end
 
   defp product_payload do

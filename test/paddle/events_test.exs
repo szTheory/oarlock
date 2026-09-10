@@ -22,6 +22,7 @@ defmodule Paddle.EventsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/events/evt_01h6"
+          assert request_context(request) == event_request_context()
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -45,6 +46,7 @@ defmodule Paddle.EventsTest do
         client_with_adapter(fn request ->
           assert request.method == :get
           assert request.url.path == "/events"
+          assert request_context(request) == list_request_context()
           # unknown_param should be dropped
           assert request.options[:params] == %{"event_type" => "transaction.completed"}
 
@@ -116,6 +118,51 @@ defmodule Paddle.EventsTest do
 
       assert {:ok, [%Event{event_id: "evt_01h6"}]} = Events.all(client)
     end
+
+    test "keeps literal list context across a dynamic cursor continuation" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          attempt = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+
+          assert request_context(request) == list_request_context()
+
+          case attempt do
+            0 ->
+              assert request.url.path == "/events"
+
+              body = %{
+                "data" => [event_payload()],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => true,
+                    "next" => "/events?after=evt_runtime_secret",
+                    "per_page" => 1
+                  }
+                }
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+
+            1 ->
+              assert request.url.path == "/events"
+              assert URI.decode_query(request.url.query) == %{"after" => "evt_runtime_secret"}
+
+              body = %{
+                "data" => [%{event_payload() | "event_id" => "evt_02"}],
+                "meta" => %{"pagination" => %{"has_more" => false, "next" => nil}}
+              }
+
+              {request, Req.Response.new(status: 200, body: body)}
+          end
+        end)
+
+      assert {:ok, [%Event{event_id: "evt_01h6"}, %Event{event_id: "evt_02"}]} =
+               Events.all(client)
+
+      assert Agent.get(attempts, & &1) == 2
+    end
   end
 
   defp client_with_adapter(adapter) do
@@ -127,6 +174,18 @@ defmodule Paddle.EventsTest do
         Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
+  end
+
+  defp event_request_context do
+    %{method: :get, operation: :get_event, route: "/events/:event_id"}
+  end
+
+  defp list_request_context do
+    %{method: :get, operation: :list_events, route: "/events"}
   end
 
   defp event_payload do
