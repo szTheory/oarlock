@@ -175,6 +175,19 @@ test("authority: STATE status must be unique, supported, and consistent with ROA
   assert.ok(contradiction.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
 });
 
+test("authority: duplicate STATE routing fields are ambiguous regardless of order or equality", () => {
+  for (const stateDocument of [
+    "---\nmilestone: v9.9\nmilestone: v2.2\ncurrent_phase: 99\ncurrent_phase: 31\nstatus: executing\n---\n",
+    "---\nmilestone: v2.2\nmilestone: v9.9\ncurrent_phase: 31\ncurrent_phase: 99\nstatus: executing\n---\n",
+    "---\nmilestone: v2.2\nmilestone: v2.2\ncurrent_phase: 31\ncurrent_phase: 31\nstatus: executing\n---\n",
+  ]) {
+    const scope = resolveActiveScope(snapshotFrom({ ".planning/STATE.md": stateDocument }));
+    assert.equal(scope.active, null);
+    assert.ok(scope.diagnostics.some(({ code }) => code === "PAUTH_STATE_MILESTONE_AMBIGUOUS"));
+    assert.ok(scope.diagnostics.some(({ code }) => code === "PSCOPE_STATE_PHASE_AMBIGUOUS"));
+  }
+});
+
 test("authority conflict: canonical disagreement blocks with both values and no selected winner", () => {
   const snapshot = snapshotFrom({
     ".planning/STATE.md": "---\nmilestone: v2.1\ncurrent_phase: 99\nstatus: executing\n---\n",

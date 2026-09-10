@@ -944,10 +944,27 @@ function resolveActiveScope(snapshot) {
   const stateContent = planningDocument(snapshot, ".planning/STATE.md");
   const state = parseFrontmatter(stateContent);
   const stateStatuses = frontmatterFieldValues(stateContent, "status");
+  const stateMilestones = frontmatterFieldValues(stateContent, "milestone").filter((value) => value.trim() !== "");
+  const statePhases = frontmatterFieldValues(stateContent, "current_phase").filter((value) => value.trim() !== "");
   const stateStatusValid = stateStatuses.length === 1 && ["executing", "complete"].includes(stateStatuses[0]);
   const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
   const roadmapMilestone = roadmap.activeMilestones.length === 1 ? roadmap.activeMilestones[0] : null;
-  const stateMilestone = state.milestone || null;
+  const stateMilestone = stateMilestones.length === 1 ? stateMilestones[0] : null;
+
+  if (stateMilestones.length !== 1) diagnostics.push(diagnostic({
+    code: "PAUTH_STATE_MILESTONE_AMBIGUOUS", severity: "error", artifact: ".planning/STATE.md", field: "milestone",
+    expected: "exactly one non-empty milestone", actual: stateMilestones,
+    authority: ".planning/STATE.md", evidence: "STATE milestone routing is missing, empty, or duplicated",
+    repair: "Propose one canonical STATE milestone after reconciling ROADMAP authority.",
+  }));
+  if (statePhases.length !== 1) diagnostics.push(diagnostic({
+    code: "PSCOPE_STATE_PHASE_AMBIGUOUS", severity: "error", artifact: ".planning/STATE.md", field: "current_phase",
+    expected: "exactly one non-empty current_phase", actual: statePhases,
+    authority: ".planning/STATE.md", evidence: "STATE phase routing is missing, empty, or duplicated",
+    repair: "Propose one canonical STATE phase pointer after reconciling ROADMAP authority.",
+  }));
+  state.milestone = stateMilestone;
+  state.current_phase = statePhases.length === 1 ? statePhases[0] : null;
 
   if (roadmap.activeMilestones.length !== 1) {
     diagnostics.push(diagnostic({
