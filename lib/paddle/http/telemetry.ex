@@ -19,6 +19,10 @@ defmodule Paddle.Http.Telemetry do
   Durations use native monotonic-time units. The projection never includes raw
   URLs or queries, IDs, requests, responses, exceptions, headers, bodies,
   credentials, customer data, or `raw_data` containers.
+
+  `:result` is `:ok` for 2xx responses and `:error` otherwise. Error classes
+  are normalized to `:transport_error`, `:http_error`, or `:exception`; an
+  exception module, message, reason, or stacktrace is never emitted.
   """
 
   @state_key :paddle_telemetry_attempt_state
