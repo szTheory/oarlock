@@ -177,4 +177,67 @@ defmodule Paddle.ClientTest do
       assert Agent.get(dispatches, & &1) == 1
     end
   end
+
+  describe "Inspect" do
+    test "redacts every client capability container and keeps environment visible" do
+      client =
+        Client.new!(
+          api_key: "promoted_api_key_canary",
+          environment: :custom,
+          base_url:
+            "https://url_user_canary:url_password_canary@mock.example/path?token=url_query_canary"
+        )
+
+      client = %{
+        client
+        | req:
+            client.req
+            |> Req.merge(auth: {:bearer, "nested_req_bearer_canary"})
+            |> Req.Request.put_header("authorization", "Bearer nested_header_canary")
+      }
+
+      inspected = inspect(client)
+
+      assert length(Regex.scan(~r/\[REDACTED\]/, inspected)) == 3
+      assert inspected =~ "api_key: \"[REDACTED]\""
+      assert inspected =~ "base_url: \"[REDACTED]\""
+      assert inspected =~ "req: \"[REDACTED]\""
+      assert inspected =~ "environment: :custom"
+
+      for canary <- [
+            "promoted_api_key_canary",
+            "url_user_canary",
+            "url_password_canary",
+            "url_query_canary",
+            "nested_req_bearer_canary",
+            "nested_header_canary"
+          ] do
+        refute inspected =~ canary
+      end
+    end
+
+    test "inspection is total and leaves stored client state unchanged" do
+      client =
+        Client.new!(
+          api_key: "state_key_canary",
+          base_url: "http://localhost:4447?token=state_url_canary"
+        )
+
+      original_api_key = client.api_key
+      original_base_url = client.base_url
+      original_req = client.req
+
+      assert is_binary(inspect(client))
+      assert client.api_key == original_api_key
+      assert client.base_url == original_base_url
+      assert client.req == original_req
+
+      assert inspect(%Client{
+               api_key: nil,
+               environment: :custom,
+               base_url: nil,
+               req: nil
+             }) =~ "[REDACTED]"
+    end
+  end
 end
