@@ -231,6 +231,87 @@ jobs:
       - name: Prove fresh consumer without optional fixture deps
         run: bin/package_smoke.sh
 
+  planning-truth:
+    name: planning truth
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and assert historical tags
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require("node:child_process");
+          const required = ["v1.1", "v1.2", "v1.3", "v1.4", "v2.0", "v2.1"];
+          const run = (args, allowFailure = false) => {
+            const result = spawnSync("git", args, { encoding: "utf8", shell: false });
+            if (!allowFailure && result.status !== 0) {
+              throw new Error(`git ${args[0]} failed (${result.status}): ${result.stderr}`);
+            }
+            return result;
+          };
+
+          run(["fetch", "--force", "origin", "refs/tags/*:refs/tags/*"]);
+          for (const tag of required) run(["rev-parse", "--verify", `refs/tags/${tag}^{}`]);
+          if (run(["rev-parse", "--verify", "--quiet", "refs/tags/v1.5^{}"], true).status === 0) {
+            throw new Error("v1.5 unexpectedly exists; update the explicit missing-tag planning identity before CI proceeds");
+          }
+          NODE
+
+      - name: Derive exact history range
+        id: history-range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const { spawnSync } = require("node:child_process");
+          const run = (args) => {
+            const result = spawnSync("git", args, { encoding: "utf8", shell: false });
+            if (result.status !== 0) throw new Error(`git ${args[0]} failed (${result.status}): ${result.stderr}`);
+            return result.stdout.trim();
+          };
+          const validSha = (value) => /^[0-9a-f]{40}$/i.test(value || "") && !/^0+$/.test(value);
+          const head = process.env.HEAD_SHA;
+          if (!validSha(head)) throw new Error("github.sha is missing, malformed, or all-zero");
+
+          let base;
+          if (process.env.EVENT_NAME === "pull_request") {
+            const baseRef = process.env.BASE_REF;
+            if (!/^(?!-)(?!.*\.\.)(?!.*\/\.)(?!.*\.$)[A-Za-z0-9._/-]+$/.test(baseRef || "")) {
+              throw new Error("pull-request base ref is missing or malformed");
+            }
+            const remoteRef = `refs/remotes/origin/${baseRef}`;
+            run(["fetch", "--no-tags", "--force", "origin", `refs/heads/${baseRef}:${remoteRef}`]);
+            base = run(["merge-base", remoteRef, head]);
+          } else if (process.env.EVENT_NAME === "push") {
+            base = process.env.PUSH_BEFORE_SHA;
+          } else {
+            throw new Error(`unsupported event: ${process.env.EVENT_NAME}`);
+          }
+
+          if (!validSha(base)) throw new Error("history base is unavailable, malformed, or all-zero");
+          run(["cat-file", "-e", `${base}^{commit}`]);
+          run(["cat-file", "-e", `${head}^{commit}`]);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `base=${base}\nhead=${head}\n`);
+          NODE
+
+      - name: Run clean production Node suite
+        run: node --test scripts/*.test.cjs scripts/prohibitions/*.test.cjs
+
+      - name: Enforce Phase 31 prohibition descriptors
+        run: node scripts/prohibitions/enforce_phase31.cjs
+
+      - name: Guard base-to-head planning history
+        run: node scripts/history_integrity.cjs --base "${{ steps.history-range.outputs.base }}" --head "${{ github.sha }}"
+
+      - name: Smoke live planning health JSON
+        run: node scripts/planning_health.cjs --json
+
   ci-contract:
     name: CI contract
     runs-on: ubuntu-latest

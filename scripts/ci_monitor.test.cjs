@@ -179,7 +179,8 @@ test("ci workflow defines the exact required planning-truth lane", () => {
   assert.match(workflow, /permissions:\s*\n\s+contents:\s+read/);
   assert.match(lane, /name:\s+planning truth/);
   assert.match(lane, /fetch-depth:\s+0/);
-  assert.match(lane, /git[",\s]+fetch/);
+  assert.match(lane, /spawnSync\("git"/);
+  assert.match(lane, /run\(\["fetch"/);
   assert.match(lane, /refs\/tags\/\*:refs\/tags\/\*/);
   assert.match(lane, /v1\.1/);
   assert.match(lane, /v1\.2/);
