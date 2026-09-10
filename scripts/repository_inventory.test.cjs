@@ -439,6 +439,22 @@ test("edge policy: empty state is valid while null observations and bounded outp
   assert.ok(bounded.collectionErrors.length > 0);
 });
 
+test("collection subprocesses use a bounded timeout and surface Git timeouts", () => {
+  let observedTimeout;
+  const timeoutError = Object.assign(new Error("spawnSync git ETIMEDOUT"), { code: "ETIMEDOUT" });
+  const snapshot = collectRepositorySnapshot({
+    cwd: "/fixture",
+    timeoutMs: 25,
+    runner: (_command, _args, options) => {
+      observedTimeout = options.timeout;
+      return { status: null, signal: "SIGTERM", error: timeoutError, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+    },
+  });
+  assert.equal(observedTimeout, 25);
+  assert.ok(snapshot.collectionErrors.some(({ evidence }) => /ETIMEDOUT/.test(evidence)));
+  assert.equal(exitCodeFor(evaluateRepositoryInventory(snapshot, { schema_version: 1, claims: [] })), 2);
+});
+
 test("edge policy: unclassified divergence, lock, and prunable observations remain visible and blocking", () => {
   const snapshot = {
     schemaVersion: 1,

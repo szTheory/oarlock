@@ -8,6 +8,7 @@ const { spawnSync } = require("node:child_process");
 
 const SCHEMA_VERSION = 1;
 const DEFAULT_MAX_BUFFER = 4 * 1024 * 1024;
+const DEFAULT_SUBPROCESS_TIMEOUT_MS = 15_000;
 const DIAGNOSTIC_SEVERITIES = new Set(["error", "warning", "info"]);
 const REQUIRED_DIAGNOSTIC_FIELDS = [
   "code", "severity", "artifact", "field", "expected", "actual",
@@ -75,6 +76,7 @@ function invoke(command, args, options) {
     shell: false,
     windowsHide: true,
     maxBuffer: options.maxBuffer,
+    timeout: options.timeoutMs ?? DEFAULT_SUBPROCESS_TIMEOUT_MS,
   });
 }
 
@@ -83,8 +85,10 @@ function runGit(args, options) {
     throw new Error(`unsafe Git inspection command rejected: git ${args.join(" ")}`);
   }
   const result = invoke(options.gitBinary || "git", args, options);
-  if (result.error || result.status !== 0) {
-    const error = result.error || new Error(Buffer.from(result.stderr || []).toString("utf8").trim() || `git exited ${result.status}`);
+  if (result.error || result.signal || result.status !== 0) {
+    const error = result.error || new Error(result.signal
+      ? `git terminated by signal ${result.signal}`
+      : Buffer.from(result.stderr || []).toString("utf8").trim() || `git exited ${result.status}`);
     error.status = result.status;
     error.signal = result.signal;
     throw error;
@@ -222,6 +226,7 @@ function processEvidence(lockReason, options) {
     shell: false,
     windowsHide: true,
     maxBuffer: options.maxBuffer,
+    timeout: options.timeoutMs ?? DEFAULT_SUBPROCESS_TIMEOUT_MS,
   });
   if (result.error) return { pid, state: "unreadable", evidence: result.error.message };
   return {
@@ -1243,8 +1248,22 @@ function collectGsdCorroboration(root, options) {
   const entries = [];
   for (const query of ["planning.inspect"]) {
     const args = [tool, "query", query];
-    const result = (options.runner || spawnSync)(process.execPath, args, { cwd: root, encoding: "utf8", shell: false, maxBuffer: options.maximumBytes });
-    entries.push({ query, status: result.status, output: result.status === 0 ? String(result.stdout || "").trim() : String(result.stderr || "").trim() });
+    const result = (options.runner || spawnSync)(process.execPath, args, {
+      cwd: root,
+      encoding: "utf8",
+      shell: false,
+      maxBuffer: options.maximumBytes,
+      timeout: options.timeoutMs ?? DEFAULT_SUBPROCESS_TIMEOUT_MS,
+    });
+    if (result.error || result.signal || result.status === null) {
+      entries.push({
+        query,
+        status: "collection-error",
+        output: result.error ? result.error.message : `runtime query terminated by signal ${result.signal || "unknown"}`,
+      });
+    } else {
+      entries.push({ query, status: result.status, output: result.status === 0 ? String(result.stdout || "").trim() : String(result.stderr || "").trim() });
+    }
   }
   return entries;
 }
@@ -1287,6 +1306,12 @@ function collectPlanningSnapshot(root, options = {}) {
   }
   snapshot.mirror = collectMirror(resolvedRoot, settings, snapshot);
   snapshot.corroboration = collectGsdCorroboration(resolvedRoot, settings);
+  for (const entry of snapshot.corroboration.filter(({ status }) => status === "collection-error")) {
+    snapshot.collectionErrors.push({
+      code: "PAUTH_CORROBORATION_UNAVAILABLE", artifact: "installed GSD runtime", field: entry.query,
+      expected: "bounded corroboration subprocess", actual: entry.status, evidence: entry.output, incomplete: true,
+    });
+  }
   verifyPlanningConsistency(resolvedRoot, snapshot, settings);
   return snapshot;
 }

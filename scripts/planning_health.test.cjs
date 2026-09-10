@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const test = require("node:test");
 
 const {
@@ -539,6 +540,35 @@ test("concurrent snapshot: injected source change exits 2 instead of returning m
     const result = evaluatePlanningHealth(snapshot);
     assert.equal(result.conclusion.exitCode, 2);
     assert.equal(result.diagnostics.some(({ code }) => code === "PSCOPE_SNAPSHOT_CHANGED"), true);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("corroboration subprocess timeout makes the planning snapshot incomplete", () => {
+  const root = writeFixture();
+  try {
+    let observedTimeout;
+    const snapshot = collectPlanningSnapshot(root, {
+      gsdTools: __filename,
+      timeoutMs: 25,
+      runner(command, args, options) {
+        if (command === process.execPath && args.includes("planning.inspect")) {
+          observedTimeout = options.timeout;
+          return {
+            status: null,
+            signal: "SIGTERM",
+            error: Object.assign(new Error("spawnSync node ETIMEDOUT"), { code: "ETIMEDOUT" }),
+            stdout: "",
+            stderr: "",
+          };
+        }
+        return spawnSync(command, args, options);
+      },
+    });
+    assert.equal(observedTimeout, 25);
+    assert.ok(snapshot.collectionErrors.some(({ code, evidence }) => code === "PAUTH_CORROBORATION_UNAVAILABLE" && /ETIMEDOUT/.test(evidence)));
+    assert.equal(evaluatePlanningHealth(snapshot).conclusion.exitCode, 2);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
