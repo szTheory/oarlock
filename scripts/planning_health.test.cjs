@@ -94,12 +94,30 @@ function writeRelative(root, relative, content) {
   fs.writeFileSync(target, content);
 }
 
-function completedDocuments() {
+function capturePlanningBytes(root) {
+  const planningRoot = path.join(root, ".planning");
+  const files = [];
+  function walk(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) walk(absolute);
+      else if (entry.isFile()) files.push([
+        path.relative(root, absolute).split(path.sep).join("/"),
+        fs.readFileSync(absolute).toString("base64"),
+      ]);
+    }
+  }
+  walk(planningRoot);
+  return Object.fromEntries(files.sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function completedDocuments(overrides = {}) {
   return planningDocuments({
     ".planning/REQUIREMENTS.md": `# Requirements\n\n## v2.2 Requirements\n\n- [x] **REPO-01**: inventory\n- [x] **REPO-02**: routing\n\n## Future Requirements\n\n- **FUTURE-01**: candidate\n\n## Traceability\n\n| Requirement | Phase | Status |\n|-------------|-------|--------|\n| REPO-01 | Phase 31 | Complete |\n| REPO-02 | Phase 31 | Complete |\n`,
     ".planning/ROADMAP.md": `# Roadmap\n\n## Milestones\n\n- 🚧 **v2.2 Trust** — active\n\n## Phases\n\n- [x] **Phase 31: Repository Truth**\n\n### Phase 31: Repository Truth\n\n**Requirements**: REPO-01, REPO-02\n**Plans**: 2/2 plans executed\n\n- [x] 31-01-PLAN.md — inventory\n- [x] 31-02-PLAN.md — health\n`,
     ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: complete\n---\n",
     ".planning/EVIDENCE.md": "# Evidence\n\n| REPO-01 | 31-VERIFICATION.md | pass |\n| REPO-02 | 31-VERIFICATION.md | pass |\n",
+    ...overrides,
   });
 }
 
@@ -351,6 +369,33 @@ test("completion: authority conflict does not suppress missing proof diagnostics
   assert.ok(result.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
   assert.ok(result.diagnostics.some(({ code, incomplete }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING" && incomplete));
   assert.equal(result.conclusion.exitCode, 2);
+});
+
+test("conflict repair CLI: no winner is selected, repair data stays inert, and every planning byte is preserved", () => {
+  const root = writeFixture(completedDocuments({
+    ".planning/STATE.md": "---\nmilestone: v2.1\ncurrent_phase: 31\nstatus: complete\n---\n",
+  }));
+  try {
+    const before = capturePlanningBytes(root);
+    const human = invokePlanningCli({ main }, root);
+    assert.deepEqual(capturePlanningBytes(root), before, "human mode changed planning bytes");
+    const jsonRun = invokePlanningCli({ main }, root, ["--json"]);
+    assert.deepEqual(capturePlanningBytes(root), before, "JSON mode changed planning bytes");
+    const json = JSON.parse(jsonRun.stdout);
+    const conflict = json.diagnostics.find(({ code }) => code === "PAUTH_MILESTONE_CONFLICT");
+
+    assert.equal(human.status, 1);
+    assert.equal(jsonRun.status, 1);
+    assert.equal(json.activeScope.active, null);
+    assert.deepEqual({ expected: conflict.expected, actual: conflict.actual }, { expected: "v2.2", actual: "v2.1" });
+    assert.match(conflict.repair, /propose/i);
+    assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_SUMMARY_MISSING"));
+    assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_VERIFICATION_MISSING"));
+    assert.deepEqual(humanDiagnosticCodes(human.stdout), json.conclusion.diagnosticCodes);
+    for (const diagnostic of json.diagnostics) assert.match(human.stdout, new RegExp(`\\b${diagnostic.code}\\b[\\s\\S]*?repair=`));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("diagnostic completion: unsupported completion links produce distinct blocking records", () => {
