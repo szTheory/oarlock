@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
 status: executing
-stopped_at: Completed 31-07-PLAN.md
-last_updated: "2026-09-10T02:32:17.069Z"
+stopped_at: Completed 31-08-PLAN.md
+last_updated: "2026-09-10T02:47:32.350Z"
 last_activity: 2026-09-09
 last_activity_desc: Phase 31 execution started
-state_head: 24049c7b3a2ed3833637419c1cf49a304f470f0b
+state_head: 426c916daac5980d1ae10912846c09dd0c3ae687
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 ## Current Position
 
 Phase: 31 (Repository & Planning Truth) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
 Last activity: 2026-09-09 — Phase 31 execution started
 
-Progress: [████████░░] 78%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [████████░░] 78%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 7
+- Plans completed: 8
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -55,6 +55,7 @@ Progress: [████████░░] 78%
 | Phase 31 P05 | 8min | 3 tasks | 2 files |
 | Phase 31 P06 | 8min | 2 tasks | 6 files |
 | Phase 31 P07 | 13min | 2 tasks | 6 files |
+| Phase 31 P08 | 9min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Progress: [████████░░] 78%
 - [Phase 31]: Completion proof is accepted only from exact paths beneath one resolved active-phase directory and leading YAML frontmatter.
 - [Phase 31]: Milestone ranges compare complete normalized endpoint identities while retaining documented parenthetical count annotations.
 - [Phase 31]: Git observation failure is incomplete evidence with bounded command/status/cause details, never successful absence or an inferred mismatch.
+- [Phase 31]: Frozen history is evaluated from explicit base/head Git objects; a clean candidate worktree is not preservation evidence.
+- [Phase 31]: Tag existence and peeled source SHA use distinct PIDENT diagnostics so neither authority can substitute for the other.
 
 ### Pending Todos
 
@@ -101,8 +104,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T02:32:16.890Z
-Stopped at: Completed 31-07-PLAN.md
+Last session: 2026-09-10T02:47:32.246Z
+Stopped at: Completed 31-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
