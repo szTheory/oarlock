@@ -86,7 +86,7 @@ Plans:
   4. Safe reads retry only within documented bounds; ambiguous mutations are not blindly replayed and instead return enough guidance for a consumer to reconcile provider state.
   5. Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer base URLs continue to work, and public docs/types/examples describe that tested behavior accurately.
 
-**Plans**: 5/11 plans executed
+**Plans**: 6/11 plans executed
 
 Plans:
 **Wave 1**
@@ -111,7 +111,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 32-05-PLAN.md — Harden adjustment/customer/address/portal-session request paths and their module contracts.
+- [x] 32-05-PLAN.md — Harden adjustment/customer/address/portal-session request paths and their module contracts.
 - [ ] 32-06-PLAN.md — Harden catalog/event/notification request paths and their module contracts.
 - [ ] 32-09-PLAN.md — Redact every secret-bearing public inspection boundary with aligned public types/docs.
 
@@ -206,7 +206,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
-| 32. Dependency & SDK Trust Boundary | v2.2 | 5/11 | In Progress|  |
+| 32. Dependency & SDK Trust Boundary | v2.2 | 6/11 | In Progress|  |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
 | 35. Review, Ownership & Worktree Operations | v2.2 | 0/TBD | Not started | - |

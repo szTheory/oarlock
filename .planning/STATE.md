@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-04-PLAN.md
-last_updated: "2026-09-10T21:22:42.329Z"
+stopped_at: Completed 32-05-PLAN.md
+last_updated: "2026-09-10T21:35:07.839Z"
 last_activity: 2026-09-10
 last_activity_desc: Completed Phase 32 Plan 04
-state_head: 8503e7ae263acc11f81e70a7ec63dad4e1b3556e
+state_head: 0c73115ddf70fd4dc406971e810388d66c30d02d
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 ## Current Position
 
 Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 6 of 11
+Plan: 7 of 11
 Status: Ready to execute
-Last activity: 2026-09-10 — Completed Phase 32 Plan 04
+Last activity: 2026-09-10 — Completed Phase 32 Plan 05
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [███████░░░] 70%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 14
+- Plans completed: 15
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -62,6 +62,7 @@ Progress: [███████░░░] 70%
 | Phase 32 P11 | 7min | 2 tasks | 5 files |
 | Phase 32 P03 | 5min | 2 tasks | 2 files |
 | Phase 32 P04 | 9min | 2 tasks | 7 files |
+| Phase 32 P05 | 8min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ Progress: [███████░░░] 70%
 - [Phase 32]: Own retry eligibility in Paddle.Http with a request-local Req callback: only GET/HEAD retry the exact transient allowlist, with three retries/four attempts and a 60000 ms cap only for 429 Retry-After.
 - [Phase 32]: Treat every mutation transport failure and terminal mutation HTTP 408/5xx response as ambiguous and non-retryable while preserving the established Paddle.Error seam.
 - [Phase 32]: Expose only static operation, optional resource ID, provider request ID, and fixed lookup/webhook/provider-dashboard reconciliation actions; never replay or auto-reconcile mutations.
+- [Phase 32]: Use literal operation and normalized route labels at every Plan 05 request call while keeping runtime IDs confined to encoded dispatch paths and explicit mutation resource context.
+- [Phase 32]: Make Paddle.Customers.PortalSessions the sole request owner and retain Paddle.PortalSessions.create/2 as a validating compatibility delegate.
+- [Phase 32]: Model terminal transient pagination fixtures as four physical attempts so resource tests prove the central bounded-read policy rather than disabling it.
 
 ### Pending Todos
 
@@ -126,10 +130,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T21:22:42.099Z
-Stopped at: Completed 32-04-PLAN.md
+Last session: 2026-09-10T21:35:07.726Z
+Stopped at: Completed 32-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue with `32-05-PLAN.md`.
+- Continue with `32-06-PLAN.md`.
