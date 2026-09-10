@@ -140,11 +140,26 @@ function completedSnapshot() {
 }
 
 test("committed requirements: bounded parser excludes source anchors and future candidates", () => {
-  const parsed = parseCommittedRequirements(planningDocuments()[".planning/REQUIREMENTS.md"]);
+  const parsed = parseCommittedRequirements(planningDocuments()[".planning/REQUIREMENTS.md"], "v2.2");
   assert.deepEqual(parsed.requirements.map(({ id }) => id), ["REPO-01", "REPO-02"]);
   assert.deepEqual(parsed.traceability.map(({ id }) => id), ["REPO-01", "REPO-02"]);
   assert.equal(JSON.stringify(parsed).includes("USER-2026-09-09"), false);
   assert.equal(JSON.stringify(parsed).includes("FUTURE-01"), false);
+});
+
+test("committed requirements: active milestone section is exact and traceability is unique", () => {
+  const active = `# Requirements\n\n## v2.1 Requirements\n\n- [x] **OLD-01**: old\n\n## v2.2 Requirements\n\n- [x] **NEW-01**: active\n\n## Traceability\n\n| NEW-01 | Phase 31 | Complete |\n`;
+  assert.deepEqual(parseCommittedRequirements(active, "v2.2").requirements.map(({ id }) => id), ["NEW-01"]);
+
+  for (const content of [
+    active.replace("## v2.1 Requirements", "## v2.3 Requirements"),
+    active.replace("## Traceability", "## Traceability\n\n| OLD-01 | Phase 30 | Complete |\n\n## Traceability"),
+    `${active}\n## v2.2 Requirements\n\n- [x] **OTHER-01**: duplicate\n`,
+  ]) {
+    const parsed = parseCommittedRequirements(content, "v2.2");
+    if ((content.match(/^## Traceability$/gm) || []).length > 1) assert.ok(parsed.diagnostics.some(({ code }) => code === "PAUTH_TRACEABILITY_SECTION_AMBIGUOUS"));
+    if ((content.match(/^## v2\.2 Requirements$/gm) || []).length > 1) assert.ok(parsed.diagnostics.some(({ code }) => code === "PAUTH_COMMITTED_SECTION_AMBIGUOUS"));
+  }
 });
 
 test("authority: ROADMAP graph and STATE pointer resolve one active scope", () => {

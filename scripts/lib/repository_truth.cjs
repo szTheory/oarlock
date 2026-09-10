@@ -565,8 +565,30 @@ function markdownSection(markdown, heading) {
   return next ? remainder.slice(0, next.index) : remainder;
 }
 
-function parseCommittedRequirements(markdown) {
-  const committed = markdownSection(String(markdown || ""), "v[^\\n]+ Requirements");
+function parseCommittedRequirements(markdown, milestone = null) {
+  const content = String(markdown || "");
+  const sections = [...content.matchAll(/^##\s+([^\n]+)\s*$/gm)].map((match, index, matches) => ({
+    heading: match[1].trim(),
+    body: content.slice(match.index + match[0].length, index + 1 < matches.length ? matches[index + 1].index : content.length),
+  }));
+  const requirementSections = milestone
+    ? sections.filter(({ heading }) => heading === `${milestone} Requirements`)
+    : sections.filter(({ heading }) => /^v[^\s]+ Requirements$/.test(heading));
+  const traceSections = sections.filter(({ heading }) => heading === "Traceability");
+  const diagnostics = [];
+  if (requirementSections.length !== 1) diagnostics.push(diagnostic({
+    code: "PAUTH_COMMITTED_SECTION_AMBIGUOUS", severity: "error", artifact: ".planning/REQUIREMENTS.md", field: "committed requirements section",
+    expected: `exactly one ## ${milestone || "<active milestone>"} Requirements section`, actual: requirementSections.map(({ heading }) => heading),
+    authority: ".planning/REQUIREMENTS.md", evidence: "committed scope section is missing or duplicated",
+    repair: "Propose one exact active-milestone requirements section after reconciling canonical scope.",
+  }));
+  if (traceSections.length !== 1) diagnostics.push(diagnostic({
+    code: "PAUTH_TRACEABILITY_SECTION_AMBIGUOUS", severity: "error", artifact: ".planning/REQUIREMENTS.md", field: "traceability section",
+    expected: "exactly one ## Traceability section", actual: traceSections.length,
+    authority: ".planning/REQUIREMENTS.md", evidence: "traceability scope is missing or duplicated",
+    repair: "Propose one authoritative traceability table for the active committed scope.",
+  }));
+  const committed = requirementSections.length === 1 ? requirementSections[0].body : "";
   const requirements = [];
   const checkbox = /^\s*[-*]\s+\[([ xX])\]\s+\*\*([A-Z][A-Z0-9]*-\d+)\*\*\s*:\s*(.+)$/gm;
   let match;
@@ -576,13 +598,13 @@ function parseCommittedRequirements(markdown) {
   requirements.sort((left, right) => compareText(left.id, right.id));
 
   const traceability = [];
-  const traceSection = markdownSection(String(markdown || ""), "Traceability");
+  const traceSection = traceSections.length === 1 ? traceSections[0].body : "";
   for (const line of traceSection.split(/\r?\n/)) {
     const row = /^\|\s*([A-Z][A-Z0-9]*-\d+)\s*\|\s*Phase\s+([0-9.]+)\s*\|\s*([^|]+?)\s*\|$/.exec(line);
     if (row) traceability.push({ id: row[1], phase: row[2], status: row[3].trim() });
   }
   traceability.sort((left, right) => compareText(left.id, right.id));
-  return { requirements, traceability };
+  return { requirements, traceability, diagnostics };
 }
 
 function parseFrontmatter(markdown) {
@@ -947,9 +969,10 @@ function resolveActiveScope(snapshot) {
   const stateMilestones = frontmatterFieldValues(stateContent, "milestone").filter((value) => value.trim() !== "");
   const statePhases = frontmatterFieldValues(stateContent, "current_phase").filter((value) => value.trim() !== "");
   const stateStatusValid = stateStatuses.length === 1 && ["executing", "complete"].includes(stateStatuses[0]);
-  const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
   const roadmapMilestone = roadmap.activeMilestones.length === 1 ? roadmap.activeMilestones[0] : null;
+  const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"), roadmapMilestone);
   const stateMilestone = stateMilestones.length === 1 ? stateMilestones[0] : null;
+  diagnostics.push(...committed.diagnostics);
 
   if (stateMilestones.length !== 1) diagnostics.push(diagnostic({
     code: "PAUTH_STATE_MILESTONE_AMBIGUOUS", severity: "error", artifact: ".planning/STATE.md", field: "milestone",
@@ -1438,7 +1461,9 @@ function validateCompletionProof(snapshot, phaseNumber) {
   if (resolution.status !== "resolved") return [canonicalPhaseDirectoryDiagnostic(resolution, phaseNumber)];
   const phaseDirectory = resolution.directory;
   const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
-  const requirements = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
+  const activeMilestones = roadmap.activeMilestones;
+  const requirements = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"), activeMilestones.length === 1 ? activeMilestones[0] : null);
+  diagnostics.push(...requirements.diagnostics);
   const evidence = planningDocument(snapshot, ".planning/EVIDENCE.md");
   const phaseMatches = roadmap.phases.filter(({ number }) => number === String(phaseNumber));
   if (phaseMatches.length > 1) return [roadmapPhaseAmbiguityDiagnostic(roadmap, phaseNumber)];
