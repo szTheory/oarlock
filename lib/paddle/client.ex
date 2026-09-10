@@ -14,7 +14,9 @@ defmodule Paddle.Client do
 
   Invalid configuration raises `ArgumentError` before Req is built or a request
   is dispatched. Error messages identify only the invalid option and never its
-  value.
+  value. Inspecting a client leaves `environment` visible but replaces
+  `api_key`, `base_url`, and `req` wholesale with the stable `[REDACTED]`
+  marker; this representation does not change the stored runtime fields.
 
   ## Example Pipeline
 
@@ -201,5 +203,21 @@ defmodule Paddle.Client do
 
   defp validate_base_url!(_base_url) do
     raise ArgumentError, "client option :base_url must be an absolute HTTP(S) URL with a host"
+  end
+end
+
+defimpl Inspect, for: Paddle.Client do
+  import Inspect.Algebra
+
+  def inspect(client, opts) do
+    fields =
+      client
+      |> Map.from_struct()
+      |> Map.replace!(:api_key, "[REDACTED]")
+      |> Map.replace!(:base_url, "[REDACTED]")
+      |> Map.replace!(:req, "[REDACTED]")
+      |> Enum.sort()
+
+    concat(["%Paddle.Client{", to_doc(fields, opts), "}"])
   end
 end
