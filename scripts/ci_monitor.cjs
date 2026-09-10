@@ -8,6 +8,7 @@ const DEFAULT_REQUIRED_JOBS = [
   "demo PostgreSQL",
   "package smoke",
   "optional dependencies",
+  "planning truth",
   "CI contract",
 ];
 

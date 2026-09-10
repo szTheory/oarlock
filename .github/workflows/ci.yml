@@ -321,6 +321,7 @@ jobs:
       - demo-postgres
       - package-smoke
       - optional-deps
+      - planning-truth
     if: ${{ always() }}
     steps:
       - name: Assert required CI jobs passed
@@ -333,7 +334,7 @@ jobs:
         run: |
           node <<'NODE'
           const needs = JSON.parse(process.env.NEEDS_JSON);
-          const required = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps"];
+          const required = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"];
           const jobs = required.map((id) => ({
             id,
             result: needs[id] && needs[id].result,
