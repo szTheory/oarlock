@@ -23,6 +23,13 @@ defmodule Paddle.Customers.AddressesTest do
           assert request.method == :post
           assert request.url.path == "/customers/ctm_01/addresses"
 
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :create_customer_address,
+                   resource_id: "ctm_01",
+                   route: "/customers/:customer_id/addresses"
+                 }
+
           assert decode_json_body(request.body) == %{
                    "city" => "New York",
                    "country_code" => "US",
@@ -64,6 +71,12 @@ defmodule Paddle.Customers.AddressesTest do
           assert request.url.path == "/customers/ctm_01/addresses/add_01"
           assert request.body == nil
 
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_customer_address,
+                   route: "/customers/:customer_id/addresses/:address_id"
+                 }
+
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
 
@@ -102,6 +115,12 @@ defmodule Paddle.Customers.AddressesTest do
           assert request.url.path == "/customers/ctm_01/addresses"
           assert URI.decode_query(request.url.query) == %{}
           assert request.body == nil
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :list_customer_addresses,
+                   route: "/customers/:customer_id/addresses"
+                 }
 
           {request,
            Req.Response.new(status: 200, body: %{"data" => response_data, "meta" => meta})}
@@ -305,6 +324,13 @@ defmodule Paddle.Customers.AddressesTest do
           assert request.method == :patch
           assert request.url.path == "/customers/ctm_01/addresses/add_01"
 
+          assert request_context(request) == %{
+                   method: :patch,
+                   operation: :update_customer_address,
+                   resource_id: "add_01",
+                   route: "/customers/:customer_id/addresses/:address_id"
+                 }
+
           assert decode_json_body(request.body) == %{
                    "city" => "Brooklyn",
                    "country_code" => "US",
@@ -397,14 +423,36 @@ defmodule Paddle.Customers.AddressesTest do
               }} = Addresses.get(client, "ctm_01", "add_404")
     end
 
-    test "normalizes transport exceptions into Paddle.Error" do
+    test "makes address mutations once and exposes safe ambiguity without idempotency support" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
       client =
         client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+      assert {:error,
+              %Error{
+                type: "network_timeout",
+                network_error?: true,
+                ambiguous?: true,
+                retryable?: false,
+                operation: :update_customer_address,
+                resource_id: "add_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
                Addresses.update(client, "ctm_01", "add_01", %{city: "New York"})
+
+      assert Agent.get(attempts, & &1) == 1
+
+      assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+        Addresses.create(client, "ctm_01", %{country_code: "US"},
+          idempotency_key: "idem_forbidden"
+        )
+      end
+
+      assert Agent.get(attempts, & &1) == 1
     end
 
     test "normalizes list transport exceptions into Paddle.Error" do
@@ -454,6 +502,10 @@ defmodule Paddle.Customers.AddressesTest do
         assert URI.decode_query(request.url.query || "") == expected.query
         assert request.body == nil
 
+        if expected_context = expected[:context] do
+          assert request_context(request) == expected_context
+        end
+
         {request, expected.response}
       end)
 
@@ -469,6 +521,7 @@ defmodule Paddle.Customers.AddressesTest do
       %{
         path: "/customers/ctm_01/addresses",
         query: %{"status" => "active"},
+        context: list_request_context(),
         response:
           address_page(
             ["add_01"],
@@ -479,6 +532,7 @@ defmodule Paddle.Customers.AddressesTest do
       %{
         path: "/customers/ctm_01/addresses",
         query: %{"status" => "active", "after" => "cursor_1"},
+        context: list_request_context(),
         response:
           address_page(
             ["add_02"],
@@ -489,6 +543,7 @@ defmodule Paddle.Customers.AddressesTest do
       %{
         path: "/customers/ctm_01/addresses",
         query: %{"status" => "active", "after" => "cursor_2"},
+        context: list_request_context(),
         response:
           address_page(
             ["add_03"],
@@ -497,6 +552,18 @@ defmodule Paddle.Customers.AddressesTest do
           )
       }
     ]
+  end
+
+  defp list_request_context do
+    %{
+      method: :get,
+      operation: :list_customer_addresses,
+      route: "/customers/:customer_id/addresses"
+    }
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
   end
 
   defp address_page(ids, has_more, next) do
