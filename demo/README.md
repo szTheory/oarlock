@@ -69,15 +69,25 @@ The mock server is intentionally a development fixture, not a complete Paddle
 clone. It covers the demo and SDK integration paths, but it does not model every
 Paddle endpoint, error, rate-limit, or provider state transition.
 
+`Paddle.MockServer` proves deterministic local SDK/demo wiring only. Only real
+Paddle sandbox credentials establish sandbox provider-state evidence, and live
+provider verification remains operator-owned readiness. MockServer-backed demo
+tests are not live Paddle provider-state verification.
+
+## Proof Boundary
+
 The proof ladder is:
 
 - Unit and contract tests prove local SDK behavior.
 - `Paddle.MockServer` proves deterministic local SDK/demo wiring.
+- Package and downstream consumer checks prove build and named consumer-seam
+  compatibility, not provider behavior.
 - Paddle sandbox checks prove real provider-state behavior only when real Paddle
   sandbox credentials are used.
-- Live mode is operator-owned readiness before charging customers.
-
-MockServer-backed demo tests are not live Paddle provider-state verification.
+- Hosted CI proves only the exact commit and named workflow rows observed on the
+  host; local demo success is not hosted authority.
+- Live provider verification is operator-owned readiness before charging
+  customers and requires live credentials plus observed provider behavior.
 
 ## Webhook Flow
 

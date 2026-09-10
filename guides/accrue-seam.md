@@ -343,9 +343,16 @@ Use this ladder when describing evidence for the seam:
 - `Paddle.MockServer` proves deterministic local SDK/demo wiring. It is a
   development fixture, not a complete Paddle clone, and MockServer-backed tests
   are not live Paddle provider-state verification.
+- Package and downstream consumer checks prove that the assembled package and
+  named Accrue seam compile and pass; they do not establish provider behavior,
+  replay safety, or mutation deduplication.
 - Paddle sandbox checks prove real provider-state behavior only when they are
   run with real Paddle sandbox credentials and documented as such.
-- Live mode remains operator-owned readiness before charging customers.
+- Hosted CI proves only the exact commit and named workflow rows observed on the
+  hosting service. That evidence is owned by Phase 33, not inferred here.
+- Live provider verification remains operator-owned readiness before charging
+  customers and requires live credentials plus observed provider behavior.
 
 Do not treat offline or MockServer-backed checks as evidence that Paddle will
-create, retry, order, or deliver real provider state.
+create, retry, order, deduplicate, or deliver real provider state. A locally
+present idempotency-like header is not evidence of a provider replay contract.

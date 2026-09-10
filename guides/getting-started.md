@@ -28,9 +28,14 @@ Keep the evidence ladder explicit:
 - Unit and contract tests prove local SDK behavior.
 - `Paddle.MockServer` proves deterministic local SDK/demo wiring. It is not
   live Paddle provider-state verification and it is not a complete Paddle clone.
+- Package and downstream consumer checks prove build and named consumer-seam
+  compatibility, not provider behavior or mutation deduplication.
 - Paddle sandbox checks prove real provider-state behavior only when real Paddle
   sandbox credentials were used.
-- Live mode is an operator-owned readiness step before charging customers.
+- Hosted CI proves only the exact commit and workflow rows observed on the host;
+  local success does not manufacture that authority.
+- Live provider verification is an operator-owned readiness step before charging
+  customers and requires live credentials plus observed live behavior.
 
 ## The Happy Path
 

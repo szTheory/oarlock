@@ -33,10 +33,15 @@ Use the same proof ladder throughout an integration:
 - `Paddle.MockServer` proves deterministic local SDK/demo wiring when optional
   `plug` and `bandit` are available. It is not live Paddle provider-state
   verification.
+- Package and downstream consumer checks prove that the built package and named
+  consumer seam compile and pass against this SDK; they do not prove Paddle
+  provider behavior.
 - Paddle sandbox checks prove real provider-state behavior only when you run
   them with real Paddle sandbox credentials.
-- Live mode remains your operator-owned readiness step before charging
-  customers.
+- Hosted CI proves only the exact commit and workflow rows it actually ran; that
+  authority belongs to the hosted phase and is not inferred from local output.
+- Live provider verification remains your operator-owned readiness step before
+  charging customers and requires live credentials and observed live behavior.
 
 ## What This Library Is For
 

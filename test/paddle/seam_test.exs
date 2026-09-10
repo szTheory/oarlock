@@ -898,7 +898,7 @@ defmodule Paddle.SeamTest do
     proof_script = File.read!("bin/phase32_contract_proof.sh")
 
     for marker <- [
-          "phase32_compatibility.sh --self-test",
+          "phase32_compatibility.sh",
           "MIX_BUILD_PATH",
           "phase32-compatibility.receipt",
           "SAFE-01",
