@@ -4,6 +4,12 @@ defmodule Paddle.Customers.PortalSessions do
 
   Customer portal sessions allow customers to manage their own subscriptions and payment methods.
 
+  Portal-session creation always makes one attempt. `retry: true` and
+  `idempotency_key` are unsupported. Ambiguous transport or terminal HTTP
+  408/5xx failures return a non-retryable `%Paddle.Error{}` with the static
+  operation, validated customer resource ID, and fixed consumer reconciliation
+  actions. `Paddle.PortalSessions.create/2` delegates to this implementation.
+
   ## Example Pipeline
 
   ```elixir
@@ -27,7 +33,7 @@ defmodule Paddle.Customers.PortalSessions do
   alias Paddle.Internal.Attrs
 
   @type customer_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+  @type request_opt :: {:retry, boolean()}
 
   @create_allowlist ~w(subscription_ids)
 
@@ -35,6 +41,11 @@ defmodule Paddle.Customers.PortalSessions do
   Creates a customer portal session.
 
   Allows specifying `subscription_ids` to scope the generated portal session URLs.
+
+  This mutation makes one attempt. Its normalized telemetry route is
+  `/customers/:customer_id/portal-sessions`; the runtime customer ID is used
+  only for encoded dispatch and safe reconciliation context. Automatic replay
+  and idempotency keys are unsupported.
 
   ```elixir
   case Paddle.Customers.PortalSessions.create(client, "ctm_12345", subscription_ids: ["sub_123"]) do
@@ -64,7 +75,12 @@ defmodule Paddle.Customers.PortalSessions do
              client,
              :post,
              "/customers/#{encode_path_segment(customer_id)}/portal-sessions",
-             Keyword.merge([json: body], opts)
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_customer_portal_session,
+               route: "/customers/:customer_id/portal-sessions",
+               resource_id: customer_id
+             )
            ) do
       {:ok, Http.build_struct(PortalSession, data)}
     end
