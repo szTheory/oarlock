@@ -869,7 +869,18 @@ function validateMilestoneHistory(snapshot) {
     if (!statedTag) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_UNKNOWN", severity: "warning", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.gitTag`, expected: "local tag or explicit unknown", actual: fieldFromBlock(block, "Git tag"), authority: "local Git refs", evidence: "no local tag identity is asserted", repair: "Revisit when independent tag evidence is available; do not create or fetch refs from health tooling.", ...warningFields }));
     else {
       const identity = tags.get(statedTag);
-      if (!tagCollectionFailed && (!identity || identity.sourceSha !== statedSha)) diagnostics.push(historyDiagnostic({ code: "PIDENT_TAG_SHA_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.sourceSha`, expected: identity ? identity.sourceSha : "existing local tag", actual: statedSha, authority: "local Git refs", evidence: identity ? `peeled ${statedTag} target` : `${statedTag} is absent locally`, repair: "Propose updating only the mutable identity record from local refs; never fetch or mutate refs here." }));
+      if (!tagCollectionFailed && !identity) diagnostics.push(historyDiagnostic({
+        code: "PIDENT_TAG_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md",
+        field: `${expected.planningMilestone}.gitTag`, expected: "existing independently observed local tag",
+        actual: statedTag, authority: "local Git refs", evidence: `${statedTag} is absent locally; the stated source SHA cannot substitute for tag evidence`,
+        repair: "Propose updating only the mutable tag identity from local refs; never derive it from a source SHA or mutate refs here.",
+      }));
+      else if (!tagCollectionFailed && identity.sourceSha !== statedSha) diagnostics.push(historyDiagnostic({
+        code: "PIDENT_SOURCE_SHA_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md",
+        field: `${expected.planningMilestone}.sourceSha`, expected: identity.sourceSha,
+        actual: statedSha, authority: "peeled local Git tag target", evidence: `peeled ${statedTag} target; the valid tag name cannot substitute for its source SHA`,
+        repair: "Propose updating only the mutable source-SHA identity from the independently peeled tag target.",
+      }));
       if (identity && identity.packageVersionStatus !== "collection-error" && identity.declaredPackageVersion !== statedVersion) diagnostics.push(historyDiagnostic({ code: "PIDENT_PACKAGE_VERSION_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.declaredPackageVersion`, expected: identity.declaredPackageVersion, actual: statedVersion, authority: `${statedTag}:mix.exs`, evidence: "package version is parsed independently from the tagged source", repair: "Propose correcting the mutable identity record; do not infer it from the milestone or tag name." }));
     }
     if (!publication || /^unknown\b/i.test(publication)) diagnostics.push(historyDiagnostic({ code: "PIDENT_PUBLICATION_UNKNOWN", severity: "info", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.publicationStatus`, expected: "independent registry evidence or explicit unknown", actual: publication || null, authority: "publication registry evidence", evidence: "a local tag and package declaration do not prove publication", repair: "No repair unless independent publication evidence becomes available." }));
