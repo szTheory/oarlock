@@ -9,9 +9,21 @@ defmodule Paddle.NotificationSetting do
   retrieval requests (such as `get/2`, `list/2`, etc). You must store this 
   secret securely when it is first provisioned.
 
-  The `raw_data` field contains the original, unparsed response from the Paddle API.
+  Inspection keeps `id`, `description`, `type`, `active`, `api_version`,
+  `include_sensitive_fields`, and `subscribed_events` visible. It redacts
+  `destination`, `endpoint_secret_key`, and the entire `raw_data` provider
+  payload with `[REDACTED]`. Inspection changes only the rendered representation;
+  the stored runtime values remain unchanged and available to the caller.
   """
 
+  @typedoc """
+  A notification setting.
+
+  `Inspect` exposes the ordinary `id`, `description`, `type`, `active`,
+  `api_version`, `include_sensitive_fields`, and `subscribed_events` fields. It
+  redacts the capability-bearing `destination` and `endpoint_secret_key` fields
+  plus the complete `raw_data` container without modifying stored runtime data.
+  """
   @type t :: %__MODULE__{
           id: String.t() | nil,
           description: String.t() | nil,
@@ -37,4 +49,20 @@ defmodule Paddle.NotificationSetting do
     :endpoint_secret_key,
     :raw_data
   ]
+end
+
+defimpl Inspect, for: Paddle.NotificationSetting do
+  import Inspect.Algebra
+
+  def inspect(setting, opts) do
+    fields =
+      setting
+      |> Map.from_struct()
+      |> Map.replace!(:destination, "[REDACTED]")
+      |> Map.replace!(:endpoint_secret_key, "[REDACTED]")
+      |> Map.replace!(:raw_data, "[REDACTED]")
+      |> Enum.sort()
+
+    concat(["%Paddle.NotificationSetting{", to_doc(fields, opts), "}"])
+  end
 end
