@@ -641,7 +641,7 @@ function parseRoadmap(markdown) {
   const phasePattern = /^\s*[-*]\s+\[([ xX])\]\s+\*\*Phase\s+([0-9.]+)\s*:\s*([^*]+)\*\*/gm;
   let phaseMatch;
   while ((phaseMatch = phasePattern.exec(phaseSection)) !== null) {
-    phases.push({ number: phaseMatch[2], name: phaseMatch[3].trim(), complete: phaseMatch[1].toLowerCase() === "x", requirements: [], plans: [] });
+    phases.push({ number: phaseMatch[2], name: phaseMatch[3].trim(), complete: phaseMatch[1].toLowerCase() === "x", requirements: [], plans: [], planTotals: null });
   }
 
   for (const phase of phases) {
@@ -654,6 +654,8 @@ function parseRoadmap(markdown) {
     const details = next ? remainder.slice(0, next.index) : remainder;
     const requirements = /^\*\*Requirements\*\*:\s*(.+)$/m.exec(details);
     if (requirements) phase.requirements = requirements[1].split(",").map((value) => value.trim()).filter(Boolean).sort(compareText);
+    const totals = /^\*\*Plans\*\*:\s*(\d+)\s*\/\s*(\d+)\s+plans?\s+executed\b/im.exec(details);
+    if (totals) phase.planTotals = { executed: Number(totals[1]), declared: Number(totals[2]) };
     const planPattern = /^\s*[-*]\s+\[([ xX])\]\s+([0-9]+-[0-9]+-PLAN\.md)\b/gm;
     let planMatch;
     while ((planMatch = planPattern.exec(details)) !== null) phase.plans.push({ file: planMatch[2], complete: planMatch[1].toLowerCase() === "x" });
@@ -1472,6 +1474,28 @@ function validateCompletionProof(snapshot, phaseNumber) {
     "PCOMP_ROADMAP_NOT_ACCEPTED", ".planning/ROADMAP.md", "phase acceptance", "checked accepted phase", phase ? "not accepted" : "missing phase",
     ".planning/ROADMAP.md", `Phase ${phaseNumber} lacks explicit ROADMAP acceptance`, "Propose a ROADMAP acceptance patch only after all proof links pass.",
   ));
+
+  if (phase) {
+    const planCounts = new Map();
+    for (const plan of phase.plans) planCounts.set(plan.file, (planCounts.get(plan.file) || 0) + 1);
+    const duplicates = [...planCounts].filter(([, count]) => count !== 1).map(([file, count]) => ({ file, count }));
+    if (duplicates.length > 0) diagnostics.push(completionDiagnostic(
+      "PCOMP_PLAN_DECLARATION_AMBIGUOUS", ".planning/ROADMAP.md", "plan checklist",
+      "every plan filename declared exactly once", duplicates,
+      ".planning/ROADMAP.md", "duplicate plan rows can reuse one artifact as multiple completion proofs",
+      "Propose a unique canonical plan checklist after reconciling contradictory rows.",
+    ));
+    if (phase.planTotals) {
+      const uniquePlans = new Map();
+      for (const plan of phase.plans) if (!uniquePlans.has(plan.file)) uniquePlans.set(plan.file, plan);
+      const actual = { executed: [...uniquePlans.values()].filter(({ complete }) => complete).length, declared: uniquePlans.size };
+      if (phase.planTotals.executed !== actual.executed || phase.planTotals.declared !== actual.declared) diagnostics.push(completionDiagnostic(
+        "PCOMP_PLAN_TOTALS_MISMATCH", ".planning/ROADMAP.md", "plan totals", actual, phase.planTotals,
+        ".planning/ROADMAP.md", "declared plan totals disagree with the unique checklist",
+        "Propose totals derived from the reconciled unique plan checklist.",
+      ));
+    }
+  }
 
   for (const plan of phase ? phase.plans : []) {
     if (!plan.complete) diagnostics.push(completionDiagnostic(

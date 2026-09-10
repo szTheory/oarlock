@@ -465,6 +465,21 @@ test("completion: unchecked plans remain blocking even with complete summaries",
   assert.ok(validateCompletionProof(snapshot, "31").some(({ code, field }) => code === "PCOMP_PLAN_NOT_ACCEPTED" && field === "plan 31-02-PLAN.md"));
 });
 
+test("completion: duplicate plan filenames and totals cannot reuse one artifact", () => {
+  for (const duplicate of [
+    "- [x] 31-01-PLAN.md — duplicate",
+    "- [ ] 31-01-PLAN.md — contradictory duplicate",
+  ]) {
+    const snapshot = completedSnapshot();
+    snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content
+      .replace("**Plans**: 2/2 plans executed", "**Plans**: 3/3 plans executed")
+      .replace("- [x] 31-02-PLAN.md — health", `- [x] 31-02-PLAN.md — health\n${duplicate}`);
+    const codes = validateCompletionProof(snapshot, "31").map(({ code }) => code);
+    assert.ok(codes.includes("PCOMP_PLAN_DECLARATION_AMBIGUOUS"));
+    assert.ok(codes.includes("PCOMP_PLAN_TOTALS_MISMATCH"));
+  }
+});
+
 test("canonical completion: missing or ambiguous phase directory is incomplete", () => {
   const missing = completedSnapshot();
   missing.phaseArtifacts = [".planning/phases/99-decoy/31-01-SUMMARY.md"];
