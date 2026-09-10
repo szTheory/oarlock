@@ -15,6 +15,10 @@ defmodule Paddle.Http.TelemetryTest do
     end
   end
 
+  defmodule CanaryError do
+    defexception [:message]
+  end
+
   setup do
     handler_id = {__MODULE__, make_ref()}
 
@@ -148,6 +152,123 @@ defmodule Paddle.Http.TelemetryTest do
     assert_attempt_pairs(collect_events(8), [503, 503, 503, 503])
   end
 
+  test "all outcomes recursively exclude transport objects and secret-bearing canaries" do
+    canaries = [
+      "credential-canary",
+      "url-path-canary",
+      "query-canary",
+      "id-canary",
+      "header-canary",
+      "request-body-canary",
+      "response-body-canary",
+      "exception-canary",
+      "customer-canary",
+      "raw-data-canary"
+    ]
+
+    success_req =
+      canary_request(fn request ->
+        {request,
+         Req.Response.new(
+           status: 200,
+           body: %{
+             "customer" => "customer-canary",
+             "raw_data" => %{"secret" => "raw-data-canary"},
+             "body" => "response-body-canary"
+           }
+         )}
+      end)
+
+    assert {:ok, %Req.Response{status: 200}} = Req.request(success_req)
+    success_events = collect_events(2)
+
+    exception_req =
+      canary_request(
+        fn request -> {request, %CanaryError{message: "exception-canary"}} end,
+        retry: false
+      )
+
+    assert {:error, %CanaryError{}} = Req.request(exception_req)
+    exception_events = collect_events(2)
+
+    for {_event, measurements, metadata} <- success_events ++ exception_events do
+      refute contains_forbidden_struct?(measurements)
+      refute contains_forbidden_struct?(metadata)
+
+      for canary <- canaries do
+        refute contains_binary?(measurements, canary)
+        refute contains_binary?(metadata, canary)
+      end
+    end
+  end
+
+  test "parallel subscribers receive independent pairs and detach deterministically" do
+    requests = [{:two_attempts, [503, 200]}, {:one_attempt, [200]}]
+
+    results =
+      requests
+      |> Task.async_stream(
+        fn {name, statuses} ->
+          handler_id = {__MODULE__, name, make_ref()}
+          owner = self()
+
+          :ok =
+            :telemetry.attach_many(handler_id, @events, &__MODULE__.handle_event/4, owner)
+
+          {:ok, counter} = Agent.start_link(fn -> 0 end)
+
+          req =
+            request(fn request ->
+              index = Agent.get_and_update(counter, fn count -> {count, count + 1} end)
+              {request, Req.Response.new(status: Enum.at(statuses, index), body: %{})}
+            end)
+
+          try do
+            assert {:ok, %Req.Response{status: 200}} = Req.request(req)
+            events = collect_events(length(statuses) * 2)
+            {handler_id, statuses, events}
+          after
+            :ok = :telemetry.detach(handler_id)
+          end
+        end,
+        ordered: false
+      )
+      |> Enum.map(fn {:ok, result} -> result end)
+
+    for {handler_id, statuses, events} <- results do
+      assert_attempt_pairs(events, statuses)
+
+      refute Enum.any?(@events, fn event ->
+               Enum.any?(:telemetry.list_handlers(event), &(&1.id == handler_id))
+             end)
+    end
+  end
+
+  test "module documentation states the exact tested schema and normalized values" do
+    {:docs_v1, _, _, _, %{"en" => module_doc}, _, _} = Code.fetch_docs(Paddle.Http.Telemetry)
+
+    for text <- [
+          "[:paddle, :request, :start]",
+          "[:paddle, :request, :stop]",
+          "[:paddle, :request, :exception]",
+          "`:system_time`",
+          "`:duration`",
+          "`:method`",
+          "`:operation`",
+          "`:route`",
+          "`:host`",
+          "`:status`",
+          "`:error_class`",
+          "`:result`",
+          "`:attempt`",
+          "native monotonic-time units",
+          "`:transport_error`, `:http_error`, or `:exception`",
+          "`:ok` for 2xx responses and `:error` otherwise"
+        ] do
+      assert module_doc =~ text
+    end
+  end
+
   def handle_event(event, measurements, metadata, test_pid) do
     if self() == test_pid do
       send(test_pid, {:telemetry_event, event, measurements, metadata})
@@ -167,6 +288,25 @@ defmodule Paddle.Http.TelemetryTest do
     |> Req.Request.put_private(:paddle_request_context, %{
       method: :get,
       operation: :list_customers,
+      route: "/customers"
+    })
+    |> Paddle.Http.Telemetry.attach()
+  end
+
+  defp canary_request(adapter, opts \\ []) do
+    Req.new(
+      base_url: "https://credential-canary@sandbox-api.paddle.com",
+      method: :post,
+      url: "/url-path-canary/id-canary?filter=query-canary",
+      headers: [{"x-canary", "header-canary"}],
+      json: %{"body" => "request-body-canary"},
+      adapter: Adapter
+    )
+    |> Req.Request.merge_options(opts)
+    |> Req.Request.put_private(:paddle_test_adapter, adapter)
+    |> Req.Request.put_private(:paddle_request_context, %{
+      method: :post,
+      operation: :create_customer,
       route: "/customers"
     })
     |> Paddle.Http.Telemetry.attach()
@@ -197,4 +337,47 @@ defmodule Paddle.Http.TelemetryTest do
   end
 
   defp exact_keys(map), do: map |> Map.keys() |> Enum.sort()
+
+  defp contains_forbidden_struct?(%Req.Request{}), do: true
+  defp contains_forbidden_struct?(%Req.Response{}), do: true
+  defp contains_forbidden_struct?(%{__exception__: true}), do: true
+
+  defp contains_forbidden_struct?(term) when is_struct(term) do
+    term |> Map.from_struct() |> contains_forbidden_struct?()
+  end
+
+  defp contains_forbidden_struct?(term) when is_map(term) do
+    Enum.any?(term, fn {key, value} ->
+      contains_forbidden_struct?(key) or contains_forbidden_struct?(value)
+    end)
+  end
+
+  defp contains_forbidden_struct?(term) when is_list(term),
+    do: Enum.any?(term, &contains_forbidden_struct?/1)
+
+  defp contains_forbidden_struct?(term) when is_tuple(term),
+    do: term |> Tuple.to_list() |> contains_forbidden_struct?()
+
+  defp contains_forbidden_struct?(_term), do: false
+
+  defp contains_binary?(binary, canary) when is_binary(binary),
+    do: String.contains?(binary, canary)
+
+  defp contains_binary?(term, canary) when is_struct(term) do
+    term |> Map.from_struct() |> contains_binary?(canary)
+  end
+
+  defp contains_binary?(term, canary) when is_map(term) do
+    Enum.any?(term, fn {key, value} ->
+      contains_binary?(key, canary) or contains_binary?(value, canary)
+    end)
+  end
+
+  defp contains_binary?(term, canary) when is_list(term),
+    do: Enum.any?(term, &contains_binary?(&1, canary))
+
+  defp contains_binary?(term, canary) when is_tuple(term),
+    do: term |> Tuple.to_list() |> contains_binary?(canary)
+
+  defp contains_binary?(_term, _canary), do: false
 end
