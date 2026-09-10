@@ -591,6 +591,15 @@ function parseFrontmatter(markdown) {
   return values;
 }
 
+function frontmatterFieldValues(markdown, name) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(String(markdown || ""));
+  if (!match) return [];
+  return match[1].split(/\r?\n/).flatMap((line) => {
+    const field = /^([a-zA-Z0-9_]+):\s*(.*?)\s*$/.exec(line);
+    return field && field[1] === name ? [field[2].replace(/^['"]|['"]$/g, "")] : [];
+  });
+}
+
 function parseRoadmap(markdown) {
   const content = String(markdown || "");
   const milestones = markdownSection(content, "Milestones");
@@ -916,7 +925,10 @@ function planningDocument(snapshot, relativePath) {
 function resolveActiveScope(snapshot) {
   const diagnostics = [];
   const roadmap = parseRoadmap(planningDocument(snapshot, ".planning/ROADMAP.md"));
-  const state = parseFrontmatter(planningDocument(snapshot, ".planning/STATE.md"));
+  const stateContent = planningDocument(snapshot, ".planning/STATE.md");
+  const state = parseFrontmatter(stateContent);
+  const stateStatuses = frontmatterFieldValues(stateContent, "status");
+  const stateStatusValid = stateStatuses.length === 1 && ["executing", "complete"].includes(stateStatuses[0]);
   const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"));
   const roadmapMilestone = roadmap.activeMilestones.length === 1 ? roadmap.activeMilestones[0] : null;
   const stateMilestone = state.milestone || null;
@@ -939,6 +951,14 @@ function resolveActiveScope(snapshot) {
 
   const phaseMatches = roadmap.phases.filter(({ number }) => number === state.current_phase);
   const phase = phaseMatches.length === 1 ? phaseMatches[0] : null;
+  if (!stateStatusValid) {
+    diagnostics.push(diagnostic({
+      code: "PAUTH_STATE_STATUS_INVALID", severity: "error", artifact: ".planning/STATE.md", field: "status",
+      expected: "exactly one of: executing, complete", actual: stateStatuses,
+      authority: ".planning/STATE.md", evidence: "STATE frontmatter status is missing, duplicated, or unsupported",
+      repair: "Propose one supported STATE status consistent with the canonical ROADMAP phase checklist.",
+    }));
+  }
   if (state.current_phase && phaseMatches.length > 1) {
     diagnostics.push(roadmapPhaseAmbiguityDiagnostic(roadmap, state.current_phase));
   } else if (!state.current_phase || !phase) {
@@ -948,10 +968,10 @@ function resolveActiveScope(snapshot) {
       authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `STATE pointer ${state.current_phase || "missing"} is not a member of the ROADMAP graph`,
       repair: "Propose a supported state pointer or ROADMAP graph patch after maintainer review; do not infer from directories.",
     }));
-  } else if (phase.complete && state.status !== "complete") {
+  } else if (stateStatusValid && phase.complete !== (state.status === "complete")) {
     diagnostics.push(diagnostic({
       code: "PSCOPE_PHASE_STATUS_CONFLICT", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "phase status",
-      expected: "STATE complete when ROADMAP phase is complete", actual: { roadmap: "complete", state: state.status || null },
+      expected: phase.complete ? "complete" : "executing", actual: { roadmap: phase.complete ? "complete" : "incomplete", state: state.status },
       authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `Phase ${phase.number} status disagrees across canonical documents`,
       repair: "Propose a supported state/roadmap status patch after reviewing completion proof.",
     }));

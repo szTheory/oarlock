@@ -154,6 +154,26 @@ test("authority: ROADMAP graph and STATE pointer resolve one active scope", () =
   assert.deepEqual(scope.diagnostics, []);
 });
 
+test("authority: STATE status must be unique, supported, and consistent with ROADMAP", async (t) => {
+  for (const [name, stateDocument] of [
+    ["unknown", "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: nonsense\n---\n"],
+    ["missing", "---\nmilestone: v2.2\ncurrent_phase: 31\n---\n"],
+    ["duplicate", "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: executing\nstatus: complete\n---\n"],
+  ]) {
+    await t.test(name, () => {
+      const scope = resolveActiveScope(snapshotFrom({ ".planning/STATE.md": stateDocument }));
+      assert.equal(scope.active, null);
+      assert.ok(scope.diagnostics.some(({ code }) => code === "PAUTH_STATE_STATUS_INVALID"));
+    });
+  }
+
+  const contradiction = resolveActiveScope(snapshotFrom({
+    ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: complete\n---\n",
+  }));
+  assert.equal(contradiction.active, null);
+  assert.ok(contradiction.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
+});
+
 test("authority conflict: canonical disagreement blocks with both values and no selected winner", () => {
   const snapshot = snapshotFrom({
     ".planning/STATE.md": "---\nmilestone: v2.1\ncurrent_phase: 99\nstatus: executing\n---\n",
