@@ -1,0 +1,7 @@
+{
+  "name": "append a dated correction and a new archive",
+  "operation": "additive-history",
+  "archivePath": ".planning/milestones/v2.2-ROADMAP.md",
+  "archiveContent": "# Milestone v2.2\n\nFrozen at shipment.\n",
+  "correction": "| 2026-09-10 | v1.2 | Corrected current navigation | `.planning/milestones/v1.2-ROADMAP.md` | Additive navigation correction | Preserved archive and repaired the mutable index | Historical wording remains unchanged |"
+}

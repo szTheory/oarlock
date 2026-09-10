@@ -1,0 +1,6 @@
+{
+  "name": "rewrite a frozen milestone archive",
+  "operation": "rewrite-archive",
+  "path": ".planning/milestones/v1.2-ROADMAP.md",
+  "content": "# Milestone v1.2\n\nRewritten after shipment.\n"
+}
