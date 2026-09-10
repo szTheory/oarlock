@@ -386,6 +386,28 @@ test("completion: global pass plus narrative requirement mentions is not per-req
   ]);
 });
 
+test("completion: requirements traced to the phase cannot be omitted from its ROADMAP mapping", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace(
+    "**Requirements**: REPO-01, REPO-02",
+    "**Requirements**: REPO-01",
+  );
+  const diagnostics = validateCompletionProof(snapshot, "31");
+  assert.ok(diagnostics.some(({ code, field, actual }) => code === "PCOMP_ROADMAP_REQUIREMENT_MAPPING_INVALID"
+    && field === "REPO-02" && actual.roadmapOccurrences === 0));
+});
+
+test("completion: contradictory duplicate requirement and traceability rows are rejected before lookup", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/REQUIREMENTS.md"].content = snapshot.documents[".planning/REQUIREMENTS.md"].content
+    .replace("- [x] **REPO-01**: inventory", "- [ ] **REPO-01**: stale\n- [x] **REPO-01**: inventory")
+    .replace("| REPO-01 | Phase 31 | Complete |", "| REPO-01 | Phase 99 | Pending |\n| REPO-01 | Phase 31 | Complete |");
+  const codes = validateCompletionProof(snapshot, "31").map(({ code }) => code);
+  assert.ok(codes.includes("PCOMP_REQUIREMENT_DUPLICATE"));
+  assert.ok(codes.includes("PCOMP_TRACEABILITY_AMBIGUOUS"));
+  assert.ok(codes.includes("PCOMP_REQUIREMENT_UNLINKED"));
+});
+
 test("completion: unchecked plans remain blocking even with complete summaries", () => {
   const snapshot = completedSnapshot();
   snapshot.documents[".planning/ROADMAP.md"].content = snapshot.documents[".planning/ROADMAP.md"].content.replace("- [x] 31-02-PLAN.md", "- [ ] 31-02-PLAN.md");

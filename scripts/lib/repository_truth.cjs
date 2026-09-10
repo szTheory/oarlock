@@ -1450,8 +1450,58 @@ function validateCompletionProof(snapshot, phaseNumber) {
     ".planning/EVIDENCE.md + phase verification", "Verification artifact presence alone does not prove success", "Propose re-running verification and recording an explicit status or reviewed caveat.",
   ));
 
-  const requirementById = new Map(requirements.requirements.map((entry) => [entry.id, entry]));
-  const traceById = new Map(requirements.traceability.map((entry) => [entry.id, entry]));
+  const requirementRowsById = new Map();
+  for (const entry of requirements.requirements) {
+    const rows = requirementRowsById.get(entry.id) || [];
+    rows.push(entry);
+    requirementRowsById.set(entry.id, rows);
+  }
+  const traceRowsById = new Map();
+  for (const entry of requirements.traceability) {
+    const rows = traceRowsById.get(entry.id) || [];
+    rows.push(entry);
+    traceRowsById.set(entry.id, rows);
+  }
+  const roadmapRequirementCounts = new Map();
+  for (const id of phase ? phase.requirements : []) {
+    roadmapRequirementCounts.set(id, (roadmapRequirementCounts.get(id) || 0) + 1);
+  }
+
+  for (const [id, rows] of requirementRowsById) {
+    if (rows.length !== 1) diagnostics.push(completionDiagnostic(
+      "PCOMP_REQUIREMENT_DUPLICATE", ".planning/REQUIREMENTS.md", id,
+      "exactly one committed requirement row", rows,
+      ".planning/REQUIREMENTS.md", `${id} has ${rows.length} committed requirement rows`,
+      "Propose consolidating the contradictory committed requirement rows before accepting completion.",
+    ));
+    const traceRows = traceRowsById.get(id) || [];
+    if (traceRows.length !== 1) diagnostics.push(completionDiagnostic(
+      "PCOMP_TRACEABILITY_AMBIGUOUS", ".planning/REQUIREMENTS.md", id,
+      "exactly one traceability row", traceRows,
+      ".planning/REQUIREMENTS.md", `${id} has ${traceRows.length} traceability rows`,
+      "Propose one authoritative traceability row before accepting completion.",
+    ));
+  }
+  for (const [id, rows] of traceRowsById) {
+    if (rows.length > 1 && !requirementRowsById.has(id)) diagnostics.push(completionDiagnostic(
+      "PCOMP_TRACEABILITY_AMBIGUOUS", ".planning/REQUIREMENTS.md", id,
+      "exactly one traceability row", rows,
+      ".planning/REQUIREMENTS.md", `${id} has ${rows.length} traceability rows`,
+      "Propose one authoritative traceability row before accepting completion.",
+    ));
+    if (rows.some(({ phase: tracedPhase }) => tracedPhase === String(phaseNumber))) {
+      const roadmapCount = roadmapRequirementCounts.get(id) || 0;
+      if (roadmapCount !== 1) diagnostics.push(completionDiagnostic(
+        "PCOMP_ROADMAP_REQUIREMENT_MAPPING_INVALID", ".planning/ROADMAP.md + .planning/REQUIREMENTS.md", id,
+        { phase: String(phaseNumber), roadmapOccurrences: 1 }, { phase: String(phaseNumber), roadmapOccurrences: roadmapCount },
+        ".planning/ROADMAP.md + .planning/REQUIREMENTS.md", `${id} is traced to Phase ${phaseNumber} but appears ${roadmapCount} times in its ROADMAP requirements`,
+        "Propose a bijective ROADMAP requirement mapping after reviewing committed traceability.",
+      ));
+    }
+  }
+
+  const requirementById = new Map([...requirementRowsById].filter(([, rows]) => rows.length === 1).map(([id, rows]) => [id, rows[0]]));
+  const traceById = new Map([...traceRowsById].filter(([, rows]) => rows.length === 1).map(([id, rows]) => [id, rows[0]]));
   for (const requirementId of phase ? phase.requirements : []) {
     const requirement = requirementById.get(requirementId);
     const trace = traceById.get(requirementId);
