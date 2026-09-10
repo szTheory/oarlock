@@ -1,6 +1,14 @@
 defmodule Paddle.NotificationSettings do
   @moduledoc """
   Provides the interface for managing notification settings via the Paddle Billing API.
+
+  Reads use bounded retries for documented transient failures, including every
+  pagination continuation. Creates, updates, and deletes always make one
+  attempt; `retry: true` and `idempotency_key` are unsupported. Ambiguous
+  mutation failures expose only a static operation, an optional validated
+  notification-setting ID, and fixed consumer reconciliation actions. Runtime
+  IDs, filters, cursors, destinations, and endpoint secrets are never route
+  metadata.
   """
 
   alias Paddle.Client
@@ -10,7 +18,7 @@ defmodule Paddle.NotificationSettings do
   alias Paddle.Internal.Pagination
 
   @type notification_setting_id :: String.t()
-  @type request_opt :: {:idempotency_key, String.t()} | {:retry, boolean()}
+  @type request_opt :: {:retry, boolean()}
 
   @list_allowlist ~w(after id order_by per_page)
   @create_allowlist ~w(description destination type subscribed_events api_version include_sensitive_fields active)
@@ -18,6 +26,11 @@ defmodule Paddle.NotificationSettings do
 
   @doc """
   Creates a new notification setting.
+
+  This mutation makes one attempt. `retry: true` and `idempotency_key` are
+  rejected before dispatch. Ambiguous failures expose only the static
+  `:create_notification_setting` operation and fixed reconciliation actions;
+  destinations and endpoint secrets never enter request context.
   """
   @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
           {:ok, Paddle.NotificationSetting.t()}
@@ -31,7 +44,11 @@ defmodule Paddle.NotificationSettings do
              client,
              :post,
              "/notification-settings",
-             Keyword.merge([json: body], opts)
+             Keyword.merge(opts,
+               json: body,
+               operation: :create_notification_setting,
+               route: "/notification-settings"
+             )
            ) do
       {:ok, Http.build_struct(NotificationSetting, data)}
     end
@@ -39,6 +56,10 @@ defmodule Paddle.NotificationSettings do
 
   @doc """
   Retrieves a notification setting by ID.
+
+  This bounded read is labeled with the static `:get_notification_setting`
+  operation and `/notification-settings/:notification_setting_id` route. The
+  runtime ID is used only in the encoded dispatch path.
   """
   @spec get(Paddle.Client.t(), notification_setting_id()) ::
           {:ok, Paddle.NotificationSetting.t()}
@@ -46,13 +67,20 @@ defmodule Paddle.NotificationSettings do
   def get(%Client{} = client, id) do
     with :ok <- validate_id(id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, path(id)) do
+           Http.request(client, :get, path(id),
+             operation: :get_notification_setting,
+             route: "/notification-settings/:notification_setting_id"
+           ) do
       {:ok, Http.build_struct(NotificationSetting, data)}
     end
   end
 
   @doc """
   Lists notification settings.
+
+  The first page and every continuation are bounded reads labeled with the
+  static `:list_notification_settings` operation and `/notification-settings`
+  route. Filters and cursors remain dispatch-only.
   """
   @spec list(Paddle.Client.t(), map() | keyword()) ::
           {:ok, Paddle.Page.t()} | {:error, Paddle.Error.t() | :invalid_params}
@@ -60,13 +88,17 @@ defmodule Paddle.NotificationSettings do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, "/notification-settings", params: query) do
+           Http.request(client, :get, "/notification-settings",
+             params: query,
+             operation: :list_notification_settings,
+             route: "/notification-settings"
+           ) do
       {:ok, Pagination.build_page(NotificationSetting, data, meta)}
     end
   end
 
   @doc """
-  Returns a stream of notification settings.
+  Returns a stream of notification settings using bounded, statically labeled reads.
   """
   @spec stream(Paddle.Client.t(), map() | keyword()) :: Enumerable.t()
   def stream(%Client{} = client, params \\ []) do
@@ -78,6 +110,8 @@ defmodule Paddle.NotificationSettings do
 
   @doc """
   Retrieves all notification settings, automatically handling pagination.
+
+  Every page uses the bounded, statically labeled list-read contract.
   """
   @spec all(Paddle.Client.t(), map() | keyword()) ::
           {:ok, [Paddle.NotificationSetting.t()]} | {:error, Paddle.Error.t() | :invalid_params}
@@ -90,6 +124,10 @@ defmodule Paddle.NotificationSettings do
 
   @doc """
   Updates an existing notification setting.
+
+  This mutation makes one attempt. Ambiguous failures expose the static
+  `:update_notification_setting` operation, the validated setting ID, and fixed
+  reconciliation actions. Automatic replay and idempotency keys are unsupported.
   """
   @spec update(Paddle.Client.t(), notification_setting_id(), map() | keyword()) ::
           {:ok, Paddle.NotificationSetting.t()}
@@ -99,19 +137,33 @@ defmodule Paddle.NotificationSettings do
          {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @update_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :patch, path(id), json: body) do
+           Http.request(client, :patch, path(id),
+             json: body,
+             operation: :update_notification_setting,
+             route: "/notification-settings/:notification_setting_id",
+             resource_id: id
+           ) do
       {:ok, Http.build_struct(NotificationSetting, data)}
     end
   end
 
   @doc """
   Deletes an existing notification setting.
+
+  This mutation makes one attempt. Ambiguous failures expose the static
+  `:delete_notification_setting` operation, the validated setting ID, and fixed
+  reconciliation actions. Automatic replay and idempotency keys are unsupported.
   """
   @spec delete(Paddle.Client.t(), notification_setting_id()) ::
           :ok | {:error, Paddle.Error.t() | :invalid_notification_setting_id}
   def delete(%Client{} = client, id) do
     with :ok <- validate_id(id),
-         {:ok, _} <- Http.request(client, :delete, path(id)) do
+         {:ok, _} <-
+           Http.request(client, :delete, path(id),
+             operation: :delete_notification_setting,
+             route: "/notification-settings/:notification_setting_id",
+             resource_id: id
+           ) do
       :ok
     end
   end
@@ -150,9 +202,9 @@ defmodule Paddle.NotificationSettings do
   defp encode_path_segment(id), do: URI.encode(id, &URI.char_unreserved?/1)
 
   defp next_page(client, path) do
-    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, path) do
-      {:ok, Pagination.build_page(NotificationSetting, data, meta)}
-    end
+    Pagination.next_page(client, NotificationSetting, path,
+      operation: :list_notification_settings,
+      route: "/notification-settings"
+    )
   end
 end

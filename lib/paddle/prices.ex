@@ -4,6 +4,11 @@ defmodule Paddle.Prices do
 
   > **Important Note:** Custom prices created dynamically during checkout are NOT returned by this Catalog API. This API only returns predefined Catalog prices.
 
+  Price reads use bounded retries for documented transient failures. Request
+  observability uses only the literal `:get_price`/`:list_prices` operations and
+  normalized `/prices/:price_id`/`/prices` routes; runtime IDs, filters, and
+  pagination cursors remain dispatch-only. Idempotency keys are unsupported.
+
   ## Example Pipeline
 
   ```elixir
@@ -35,6 +40,10 @@ defmodule Paddle.Prices do
   @doc """
   Retrieves a specific price by ID.
 
+  This bounded read is labeled with the static `:get_price` operation and
+  `/prices/:price_id` route. The runtime price ID is used only in the encoded
+  dispatch path. Idempotency keys are not accepted.
+
   ## Examples
 
   ```elixir
@@ -65,13 +74,20 @@ defmodule Paddle.Prices do
   def get(%Client{} = client, price_id) do
     with :ok <- validate_price_id(price_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, price_path(price_id)) do
+           Http.request(client, :get, price_path(price_id),
+             operation: :get_price,
+             route: "/prices/:price_id"
+           ) do
       {:ok, Http.build_struct(Price, data)}
     end
   end
 
   @doc """
   Lists prices.
+
+  The first page and every continuation are bounded reads labeled with the
+  static `:list_prices` operation and `/prices` route. Filters and cursor values
+  are never copied into request context. Idempotency keys are not accepted.
 
   ## Examples
 
@@ -101,13 +117,19 @@ defmodule Paddle.Prices do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, "/prices", params: query) do
+           Http.request(client, :get, "/prices",
+             params: query,
+             operation: :list_prices,
+             route: "/prices"
+           ) do
       {:ok, Pagination.build_page(Price, data, meta)}
     end
   end
 
   @doc """
   Returns a stream of prices.
+
+  Every page uses the bounded, statically labeled list-read contract.
 
   ## Examples
 
@@ -128,12 +150,14 @@ defmodule Paddle.Prices do
   def stream(%Client{} = client, params \\ []) do
     Pagination.stream(
       fn -> list(client, params) end,
-      fn path -> Pagination.next_page(client, Price, path) end
+      fn path -> next_page(client, path) end
     )
   end
 
   @doc """
   Retrieves all prices, automatically handling pagination.
+
+  Every page uses the bounded, statically labeled list-read contract.
 
   ## Examples
 
@@ -159,7 +183,7 @@ defmodule Paddle.Prices do
   def all(%Client{} = client, params \\ []) do
     Pagination.all(
       fn -> list(client, params) end,
-      fn path -> Pagination.next_page(client, Price, path) end
+      fn path -> next_page(client, path) end
     )
   end
 
@@ -187,4 +211,11 @@ defmodule Paddle.Prices do
 
   defp normalize_params(params) when is_map(params), do: {:ok, Attrs.normalize_keys(params)}
   defp normalize_params(_params), do: {:error, :invalid_params}
+
+  defp next_page(client, path) do
+    Pagination.next_page(client, Price, path,
+      operation: :list_prices,
+      route: "/prices"
+    )
+  end
 end
