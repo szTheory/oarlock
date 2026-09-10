@@ -191,6 +191,22 @@ test("assert-ci reports completed-run lookup errors as blocked evidence", () => 
   assert.doesNotMatch(humanResult.stderr, /\n\s+at /);
 });
 
+test("assert-ci rejects non-finite, negative, and excessive timing options", () => {
+  for (const args of [
+    ["--timeout", "NaN"],
+    ["--timeout", "Infinity"],
+    ["--timeout", "-1"],
+    ["--poll", "NaN"],
+    ["--poll", "Infinity"],
+    ["--poll", "-1"],
+    ["--poll", "3601"],
+  ]) {
+    const result = runMonitor("success", args);
+    assert.equal(result.status, 2, args.join(" "));
+    assert.equal(JSON.parse(result.stdout).reason, "invalid_usage", args.join(" "));
+  }
+});
+
 test("assert-ci times out when the run is still in progress", () => {
   const result = runMonitor("in-progress");
   assert.equal(result.status, 124);

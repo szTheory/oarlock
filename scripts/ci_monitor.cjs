@@ -11,6 +11,7 @@ const DEFAULT_REQUIRED_JOBS = [
   "planning truth",
   "CI contract",
 ];
+const MAX_POLL_SECONDS = 3600;
 
 function usage() {
   return `Usage:
@@ -23,7 +24,7 @@ Options:
   --workflow <name>      Workflow name or file name. Default: CI
   --repo <owner/repo>    GitHub repository. Default: inferred by gh
   --timeout <seconds>    Max wait time. Default: 1800
-  --poll <seconds>       Poll interval. Default: 20
+  --poll <seconds>       Poll interval (0 = single shot, max 3600). Default: 20
   --required-job <name>  Required job name. Can be repeated.
   --required-jobs <csv>  Comma-separated required job names.
   --json                 Print machine-readable JSON evidence.
@@ -207,6 +208,17 @@ async function assertCi(args, options = {}) {
   const requiredJobs = args.requiredJobs.length > 0 ? args.requiredJobs : DEFAULT_REQUIRED_JOBS;
   const timeoutSeconds = Number(args.timeout ?? 1800);
   const pollSeconds = Number(args.poll ?? 20);
+  if (!Number.isFinite(timeoutSeconds) || timeoutSeconds < 0
+    || !Number.isFinite(pollSeconds) || pollSeconds < 0 || pollSeconds > MAX_POLL_SECONDS) {
+    return {
+      exitCode: 2,
+      evidence: {
+        verified: false,
+        reason: "invalid_usage",
+        message: `timeout must be finite and non-negative; poll must be finite and between 0 and ${MAX_POLL_SECONDS} seconds`,
+      },
+    };
+  }
   const repo = args.repo;
   const start = Date.now();
   let lastEvidence = null;
