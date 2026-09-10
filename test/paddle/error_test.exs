@@ -60,6 +60,84 @@ defmodule Paddle.ErrorTest do
     end
   end
 
+  describe "context-aware constructors" do
+    test "from_response/2 prefers body meta request_id and marks uncertain mutations" do
+      response =
+        Req.Response.new(
+          status: 503,
+          body: %{
+            "meta" => %{"request_id" => "body_req_503"},
+            "error" => %{"detail" => "Service unavailable"}
+          }
+        )
+        |> Req.Response.put_header("x-request-id", "header_req_503")
+
+      assert %Error{
+               request_id: "body_req_503",
+               ambiguous?: true,
+               retryable?: false,
+               operation: :create_transaction,
+               resource_id: "txn_01",
+               reconciliation: [:lookup, :webhook, :provider_dashboard]
+             } =
+               Error.from_response(response, %{
+                 method: :post,
+                 operation: :create_transaction,
+                 resource_id: "txn_01"
+               })
+    end
+
+    test "from_response/2 falls back to x-request-id and leaves definitive errors unambiguous" do
+      response =
+        Req.Response.new(status: 422, body: %{"meta" => %{}})
+        |> Req.Response.put_header("x-request-id", "header_req_422")
+
+      assert %Error{
+               request_id: "header_req_422",
+               ambiguous?: false,
+               reconciliation: []
+             } = Error.from_response(response, %{method: :post, operation: :create_customer})
+    end
+
+    test "from_transport/2 retains only documented reconciliation values" do
+      error =
+        Error.from_transport(%Req.TransportError{reason: :closed}, %{
+          method: :delete,
+          operation: :cancel_subscription,
+          resource_id: "sub_01"
+        })
+
+      assert error.ambiguous?
+      refute error.retryable?
+      assert error.reconciliation == [:lookup, :webhook, :provider_dashboard]
+      assert Enum.all?(error.reconciliation, &(&1 in [:lookup, :webhook, :provider_dashboard]))
+    end
+  end
+
+  describe "Inspect" do
+    test "redacts raw_data wholesale without altering stored error data" do
+      raw_data = %{
+        "authorization" => "Bearer raw_error_auth_canary",
+        "nested" => [%{"signed_url" => "https://error.test?token=raw_error_url_canary"}]
+      }
+
+      error = %Error{
+        message: "Safe public message",
+        operation: :create_transaction,
+        raw_data: raw_data
+      }
+
+      inspected = inspect(error)
+
+      assert inspected =~ "raw_data: \"[REDACTED]\""
+      assert inspected =~ "operation: :create_transaction"
+      assert inspected =~ "Safe public message"
+      refute inspected =~ "raw_error_auth_canary"
+      refute inspected =~ "raw_error_url_canary"
+      assert error.raw_data == raw_data
+    end
+  end
+
   describe "struct defaults" do
     test "network_error? defaults to false on a bare struct" do
       assert %Error{network_error?: false} = %Error{}
@@ -67,6 +145,11 @@ defmodule Paddle.ErrorTest do
 
     test "retryable? defaults to false on a bare struct" do
       assert %Error{retryable?: false} = %Error{}
+    end
+
+    test "ambiguity and reconciliation defaults are conservative" do
+      assert %Error{ambiguous?: false, operation: nil, resource_id: nil, reconciliation: []} =
+               %Error{}
     end
 
     test "network_error? defaults to false on from_response/1 result" do

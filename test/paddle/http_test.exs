@@ -252,6 +252,116 @@ defmodule Paddle.HttpTest do
     end
   end
 
+  describe "request/4 ambiguous mutation outcomes" do
+    test "transport failures are non-retryable ambiguity with safe reconciliation context" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :timeout}}
+        end)
+
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_customer,
+                resource_id: "ctm_safe_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
+               Http.request(client, :post, "/customers",
+                 operation: :create_customer,
+                 route: "/customers",
+                 resource_id: "ctm_safe_01"
+               )
+
+      assert Agent.get(attempts, & &1) == 1
+    end
+
+    test "408 and 5xx mutation responses are ambiguous without replay" do
+      for status <- [408, 500, 501, 502, 503, 504] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            {request, Req.Response.new(status: status, body: %{})}
+          end)
+
+        assert {:error, %Error{status_code: ^status, ambiguous?: true, retryable?: false}} =
+                 Http.request(client, :patch, "/subscriptions/sub_01",
+                   operation: :update_subscription,
+                   route: "/subscriptions/:subscription_id",
+                   resource_id: "sub_01"
+                 )
+
+        assert Agent.get(attempts, & &1) == 1
+      end
+    end
+
+    test "repeated dispatch of one mutation input never replays and returns the same contract" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :closed}}
+        end)
+
+      request = fn ->
+        Http.request(client, :post, "/transactions",
+          json: %{items: []},
+          operation: :create_transaction,
+          route: "/transactions"
+        )
+      end
+
+      assert {:error, %Error{} = first} = request.()
+      assert {:error, %Error{} = second} = request.()
+      assert first == second
+      assert first.ambiguous?
+      refute first.retryable?
+      assert Agent.get(attempts, & &1) == 2
+    end
+
+    test "parallel mutations retain independent context and terminal results" do
+      operations = [
+        {:create_customer, "ctm_01", :timeout},
+        {:update_subscription, "sub_02", :closed},
+        {:cancel_subscription, "sub_03", :econnrefused}
+      ]
+
+      results =
+        operations
+        |> Task.async_stream(fn {operation, resource_id, reason} ->
+          client =
+            client_with_adapter(fn request ->
+              {request, %Req.TransportError{reason: reason}}
+            end)
+
+          Http.request(client, :post, "/mutation",
+            operation: operation,
+            route: "/mutation",
+            resource_id: resource_id
+          )
+        end)
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.sort(
+               Enum.map(results, fn
+                 {:error, %Error{} = error} ->
+                   {error.operation, error.resource_id, error.ambiguous?, error.retryable?}
+               end)
+             ) ==
+               Enum.sort([
+                 {:create_customer, "ctm_01", true, false},
+                 {:update_subscription, "sub_02", true, false},
+                 {:cancel_subscription, "sub_03", true, false}
+               ])
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
