@@ -12,6 +12,7 @@ defmodule Paddle.AdjustmentsTest do
   alias Paddle.Adjustment
   alias Paddle.Adjustments
   alias Paddle.Client
+  alias Paddle.Error
   alias Paddle.Page
 
   describe "get/2" do
@@ -23,6 +24,11 @@ defmodule Paddle.AdjustmentsTest do
           assert request.method == :get
           assert request.url.path == "/adjustments/adj_01"
           assert request.body == nil
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_adjustment,
+                   route: "/adjustments/:adjustment_id"
+                 }
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -67,6 +73,11 @@ defmodule Paddle.AdjustmentsTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/adjustments"
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :create_adjustment,
+                   route: "/adjustments"
+                 }
 
           body = decode_json_body(request.body)
 
@@ -94,6 +105,42 @@ defmodule Paddle.AdjustmentsTest do
       assert adjustment.id == "adj_01"
       assert adjustment.transaction_id == "txn_01"
     end
+
+    test "makes one attempt and exposes safe ambiguity context without idempotency support" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :timeout}}
+        end)
+
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_adjustment,
+                resource_id: nil,
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
+               Adjustments.create(client, %{
+                 action: "refund",
+                 reason: "fraud",
+                 transaction_id: "txn_01"
+               })
+
+      assert Agent.get(attempts, & &1) == 1
+
+      assert_raise ArgumentError, ~r/idempotency_key is unsupported/, fn ->
+        Adjustments.create(
+          client,
+          %{action: "refund", reason: "fraud", transaction_id: "txn_01"},
+          idempotency_key: "idem_forbidden"
+        )
+      end
+
+      assert Agent.get(attempts, & &1) == 1
+    end
   end
 
   describe "list/2" do
@@ -105,6 +152,11 @@ defmodule Paddle.AdjustmentsTest do
           assert request.method == :get
           assert request.url.path == "/adjustments"
           assert request.url.query == "action=refund&status=pending"
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :list_adjustments,
+                   route: "/adjustments"
+                 }
 
           {request,
            Req.Response.new(
@@ -138,6 +190,10 @@ defmodule Paddle.AdjustmentsTest do
     body
     |> IO.iodata_to_binary()
     |> Jason.decode!()
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
   end
 
   defp adjustment_payload do
