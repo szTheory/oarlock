@@ -86,7 +86,7 @@ Plans:
   4. Safe reads retry only within documented bounds; ambiguous mutations are not blindly replayed and instead return enough guidance for a consumer to reconcile provider state.
   5. Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer base URLs continue to work, and public docs/types/examples describe that tested behavior accurately.
 
-**Plans**: 10/11 plans executed
+**Plans**: 11/11 plans executed
 
 Plans:
 **Wave 1**
@@ -125,7 +125,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 32-10-PLAN.md — Mechanically prove runtime/docs/types agreement, isolated concurrency, interruption rejection, and the final matrix.
+- [x] 32-10-PLAN.md — Mechanically prove runtime/docs/types agreement, isolated concurrency, interruption rejection, and the final matrix.
 
 ### Phase 33: Deterministic Green CI
 
@@ -206,7 +206,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
-| 32. Dependency & SDK Trust Boundary | v2.2 | 10/11 | In Progress|  |
+| 32. Dependency & SDK Trust Boundary | v2.2 | 11/11 | In Progress|  |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
 | 35. Review, Ownership & Worktree Operations | v2.2 | 0/TBD | Not started | - |

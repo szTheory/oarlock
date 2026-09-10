@@ -40,7 +40,7 @@ in the linked research files.
 - [x] **SAFE-03**: Inspecting any public secret-bearing struct redacts secrets from both promoted fields and nested raw provider payloads.
 - [x] **SAFE-04**: Safe reads use bounded, documented retry behavior, while ambiguous mutations are not blindly replayed and instead return actionable reconciliation guidance.
 - [x] **SAFE-05**: Client construction rejects blank credentials, unsupported environments, and invalid configuration while preserving deliberate custom-base-URL MockServer use.
-- [ ] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
+- [x] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
 
 ### Deterministic Green CI
 
@@ -135,7 +135,7 @@ promotes them through the provenance rules above.
 | SAFE-03 | Phase 32 | Complete |
 | SAFE-04 | Phase 32 | Complete |
 | SAFE-05 | Phase 32 | Complete |
-| SAFE-06 | Phase 32 | Pending |
+| SAFE-06 | Phase 32 | Complete |
 | CI-01 | Phase 33 | Pending |
 | CI-02 | Phase 33 | Pending |
 | CI-03 | Phase 33 | Pending |

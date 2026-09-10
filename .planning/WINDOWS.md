@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 1
+open_count: 0
 waived_count: 0
-fixed_count: 6
-total_count: 7
-last_updated: 2026-09-10T22:19:46.062Z
+fixed_count: 10
+total_count: 10
+last_updated: 2026-09-10T22:38:24.092Z
 ---
 
 # Broken Windows Ledger
@@ -20,8 +20,11 @@ last_updated: 2026-09-10T22:19:46.062Z
 | 3 | 32 | deviation | .planning/STATE.md |  | Reconciled skipped progress output and duplicate phase prefixes after standard state handlers | fixed |  | 2026-09-10T20:35:37.138Z | 2026-09-10T20:35:37.252Z |
 | 4 | 32 | deviation | .planning/STATE.md |  | Reconciled visible state after SDK handlers advanced authoritative counters | fixed |  | 2026-09-10T21:23:02.854Z | 2026-09-10T21:23:15.402Z |
 | 5 | 32 | deviation | .planning/STATE.md |  | Reconciled human-readable progress and next-step fields after state.update-progress skipped the unscoped in-progress phase. | fixed |  | 2026-09-10T22:06:29.226Z | 2026-09-10T22:06:49.737Z |
-| 6 | 32 | unmet-truth | test/paddle/seam_test.exs | 105 | Plan 32-10 owns three seam-contract transition failures left after Plan 32-08; focused telemetry and all non-seam runtime tests pass. | open |  | 2026-09-10T22:18:50.607Z |  |
+| 6 | 32 | unmet-truth | test/paddle/seam_test.exs | 105 | Plan 32-10 owns three seam-contract transition failures left after Plan 32-08; focused telemetry and all non-seam runtime tests pass. | fixed |  | 2026-09-10T22:18:50.607Z | 2026-09-10T22:37:20.219Z |
 | 7 | 32 | deviation | .planning/STATE.md |  | Reconciled Plan 32 visible state after dependency-ordered execution and skipped unscoped progress update. | fixed |  | 2026-09-10T22:19:28.718Z | 2026-09-10T22:19:46.062Z |
+| 8 | 32 | deviation | test/paddle/seam_test.exs |  | Repaired inherited idempotency, module-doc visibility, and contextual Paddle.Error seam transitions | fixed |  | 2026-09-10T22:36:57.327Z | 2026-09-10T22:37:20.300Z |
+| 9 | 32 | deviation | README.md |  | Extended all first-read proof boundaries to the full six-tier evidence ladder | fixed |  | 2026-09-10T22:36:57.409Z | 2026-09-10T22:37:20.379Z |
+| 10 | 32 | deviation | .planning/STATE.md |  | Reconciled visible execution progress after the state handler advanced to already-completed Plan 11 | fixed |  | 2026-09-10T22:38:23.982Z | 2026-09-10T22:38:24.092Z |
 
 ````json
 [
@@ -92,10 +95,10 @@ last_updated: 2026-09-10T22:19:46.062Z
     "file": "test/paddle/seam_test.exs",
     "line": 105,
     "description": "Plan 32-10 owns three seam-contract transition failures left after Plan 32-08; focused telemetry and all non-seam runtime tests pass.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-09-10T22:18:50.607Z",
-    "resolved_at": null
+    "resolved_at": "2026-09-10T22:37:20.219Z"
   },
   {
     "id": 7,
@@ -108,6 +111,42 @@ last_updated: 2026-09-10T22:19:46.062Z
     "reason": "",
     "recorded_at": "2026-09-10T22:19:28.718Z",
     "resolved_at": "2026-09-10T22:19:46.062Z"
+  },
+  {
+    "id": 8,
+    "kind": "deviation",
+    "phase": "32",
+    "file": "test/paddle/seam_test.exs",
+    "line": null,
+    "description": "Repaired inherited idempotency, module-doc visibility, and contextual Paddle.Error seam transitions",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:36:57.327Z",
+    "resolved_at": "2026-09-10T22:37:20.300Z"
+  },
+  {
+    "id": 9,
+    "kind": "deviation",
+    "phase": "32",
+    "file": "README.md",
+    "line": null,
+    "description": "Extended all first-read proof boundaries to the full six-tier evidence ladder",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:36:57.409Z",
+    "resolved_at": "2026-09-10T22:37:20.379Z"
+  },
+  {
+    "id": 10,
+    "kind": "deviation",
+    "phase": "32",
+    "file": ".planning/STATE.md",
+    "line": null,
+    "description": "Reconciled visible execution progress after the state handler advanced to already-completed Plan 11",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-10T22:38:23.982Z",
+    "resolved_at": "2026-09-10T22:38:24.092Z"
   }
 ]
 ````
