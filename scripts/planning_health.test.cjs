@@ -619,6 +619,62 @@ test("corroboration subprocess timeout makes the planning snapshot incomplete", 
   }
 });
 
+test("corroboration nonzero exit makes the planning snapshot incomplete", () => {
+  const root = writeFixture();
+  try {
+    const snapshot = collectPlanningSnapshot(root, {
+      gsdTools: __filename,
+      runner(command, args, options) {
+        if (command === process.execPath && args.includes("planning.inspect")) {
+          return { status: 1, signal: null, stdout: "", stderr: "query failed" };
+        }
+        return spawnSync(command, args, options);
+      },
+    });
+    assert.ok(snapshot.collectionErrors.some(({ code, evidence }) => code === "PAUTH_CORROBORATION_UNAVAILABLE" && evidence === "query failed"));
+    assert.equal(evaluatePlanningHealth(snapshot).conclusion.exitCode, 2);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("corroboration invalid JSON makes the planning snapshot incomplete", () => {
+  const root = writeFixture();
+  try {
+    const snapshot = collectPlanningSnapshot(root, {
+      gsdTools: __filename,
+      runner(command, args, options) {
+        if (command === process.execPath && args.includes("planning.inspect")) {
+          return { status: 0, signal: null, stdout: "not json", stderr: "" };
+        }
+        return spawnSync(command, args, options);
+      },
+    });
+    assert.ok(snapshot.collectionErrors.some(({ code, evidence }) => code === "PAUTH_CORROBORATION_UNAVAILABLE" && /invalid JSON/.test(evidence)));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("successful corroboration remains non-authoritative evidence", () => {
+  const root = writeFixture();
+  try {
+    const snapshot = collectPlanningSnapshot(root, {
+      gsdTools: __filename,
+      runner(command, args, options) {
+        if (command === process.execPath && args.includes("planning.inspect")) {
+          return { status: 0, signal: null, stdout: "{\"active\":{\"phase\":31}}", stderr: "" };
+        }
+        return spawnSync(command, args, options);
+      },
+    });
+    assert.deepEqual(snapshot.corroboration, [{ query: "planning.inspect", status: 0, output: "{\"active\":{\"phase\":31}}" }]);
+    assert.equal(snapshot.collectionErrors.some(({ code }) => code === "PAUTH_CORROBORATION_UNAVAILABLE"), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("concurrent snapshot: same-length rewrite with restored mtime is detected", () => {
   const root = writeFixture();
   try {

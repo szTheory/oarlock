@@ -1272,8 +1272,20 @@ function collectGsdCorroboration(root, options) {
         status: "collection-error",
         output: result.error ? result.error.message : `runtime query terminated by signal ${result.signal || "unknown"}`,
       });
+    } else if (result.status !== 0) {
+      entries.push({
+        query,
+        status: "collection-error",
+        output: String(result.stderr || result.stdout || `runtime query exited ${result.status}`).trim(),
+      });
     } else {
-      entries.push({ query, status: result.status, output: result.status === 0 ? String(result.stdout || "").trim() : String(result.stderr || "").trim() });
+      const output = String(result.stdout || "").trim();
+      try {
+        JSON.parse(output);
+        entries.push({ query, status: 0, output });
+      } catch (error) {
+        entries.push({ query, status: "collection-error", output: `runtime query returned invalid JSON: ${error.message}` });
+      }
     }
   }
   return entries;
