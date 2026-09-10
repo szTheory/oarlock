@@ -712,7 +712,9 @@ function milestoneBlocks(markdown) {
   for (let index = 0; index < matches.length; index += 1) {
     const start = matches[index].index;
     const end = index + 1 < matches.length ? matches[index + 1].index : String(markdown || "").length;
-    blocks.set(matches[index][1], String(markdown || "").slice(start, end));
+    const entries = blocks.get(matches[index][1]) || [];
+    entries.push({ heading: matches[index][2].trim(), content: String(markdown || "").slice(start, end) });
+    blocks.set(matches[index][1], entries);
   }
   return blocks;
 }
@@ -771,9 +773,14 @@ function historyDiagnostic(fields) {
 }
 
 function fieldFromBlock(block, label) {
+  const values = fieldValuesFromBlock(block, label);
+  return values.length === 1 ? values[0] : null;
+}
+
+function fieldValuesFromBlock(block, label) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = new RegExp(`^(?:-\\s+)?(?:\\*\\*)?${escaped}:(?:\\*\\*)?\\s*(.+)$`, "mi").exec(block || "");
-  return match ? match[1].trim() : null;
+  return [...String(block || "").matchAll(new RegExp(`^(?:-\\s+)?(?:\\*\\*)?${escaped}:(?:\\*\\*)?\\s*(.+)$`, "gmi"))]
+    .map((match) => match[1].trim());
 }
 
 function inlineValue(value) {
@@ -862,11 +869,31 @@ function validateMilestoneHistory(snapshot) {
         repair: "Propose linking the shipped entry to its own canonical roadmap archive.",
       }));
     }
-    const block = blocks.get(expected.planningMilestone);
-    if (!block) {
+    const matchingBlocks = blocks.get(expected.planningMilestone) || [];
+    if (matchingBlocks.length === 0) {
       diagnostics.push(historyDiagnostic({ code: "PHIST_INDEX_ENTRY_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "shipped milestone index entry", actual: null, authority: ".planning/ROADMAP.md + .planning/MILESTONES.md", evidence: `ROADMAP advertises ${expected.planningMilestone} as shipped`, repair: `Propose adding ${expected.planningMilestone} to the mutable .planning/MILESTONES.md index from preserved archives.` }));
       continue;
     }
+    if (matchingBlocks.length !== 1) {
+      diagnostics.push(historyDiagnostic({ code: "PHIST_INDEX_ENTRY_AMBIGUOUS", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "exactly one milestone heading", actual: matchingBlocks.length, authority: ".planning/MILESTONES.md", evidence: "duplicate milestone headings make release identity ambiguous", repair: "Propose one reconciled milestone history block; preserve immutable archives." }));
+      continue;
+    }
+    const record = matchingBlocks[0];
+    const block = record.content;
+    const heading = /^(.*?)\s+\(Shipped:\s*([^)]*)\)\s*$/.exec(record.heading);
+    const statedName = heading ? heading[1].trim() : record.heading.replace(/\s+—\s+pre-archival\s*$/, "").trim();
+    const statedDate = heading ? heading[2].trim() : null;
+    const validDate = statedDate && /^\d{4}-\d{2}-\d{2}$/.test(statedDate)
+      && Number.isFinite(Date.parse(`${statedDate}T00:00:00.000Z`))
+      && new Date(`${statedDate}T00:00:00.000Z`).toISOString().slice(0, 10) === statedDate;
+    if (statedName !== expected.name) diagnostics.push(historyDiagnostic({ code: "PHIST_NAME_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.name`, expected: expected.name, actual: statedName, authority: ".planning/ROADMAP.md", evidence: "milestone heading name contradicts the shipped ROADMAP entry", repair: "Propose correcting the mutable milestone index name after archive review." }));
+    if (!expected.preArchive && (!validDate || statedDate !== expected.shipped)) diagnostics.push(historyDiagnostic({ code: "PHIST_SHIPPED_DATE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.shippedDate`, expected: expected.shipped, actual: statedDate, authority: ".planning/ROADMAP.md", evidence: validDate ? "milestone heading shipment date contradicts ROADMAP" : "milestone heading shipment date is missing or calendar-invalid", repair: "Propose a calendar-valid shipment date matching the shipped ROADMAP entry." }));
+    const requiredFields = ["Status", "Phases", "Planning milestone", "Git tag", "Source SHA", "Declared Hex package version", "Publication status", ...(expected.preArchive ? [] : ["Roadmap", "Requirements"])];
+    const ambiguousFields = requiredFields.flatMap((label) => {
+      const values = fieldValuesFromBlock(block, label);
+      return values.length === 1 ? [] : [{ label, values }];
+    });
+    if (ambiguousFields.length > 0) diagnostics.push(historyDiagnostic({ code: "PHIST_FIELD_CARDINALITY_INVALID", severity: "error", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "exactly one value for every canonical milestone field", actual: ambiguousFields, authority: ".planning/MILESTONES.md", evidence: "missing or duplicate fields make milestone metadata ambiguous", repair: "Propose one reconciled value per canonical field after reviewing ROADMAP and archives." }));
     const statedPlanningMilestone = inlineValue(fieldFromBlock(block, "Planning milestone"));
     if (statedPlanningMilestone !== expected.planningMilestone) diagnostics.push(historyDiagnostic({
       code: "PIDENT_PLANNING_MILESTONE_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md",
@@ -885,7 +912,7 @@ function validateMilestoneHistory(snapshot) {
       authority: ".planning/ROADMAP.md", evidence: `ROADMAP shipped range is ${expected.phases}; milestone index field is ${actualPhases || "missing"}`,
       repair: "Propose correcting only the mutable milestone index after reviewing the archived roadmap.",
     }));
-    if (!/\*\*Status:\*\*\s*✅\s*Shipped/i.test(block)) diagnostics.push(historyDiagnostic({ code: "PHIST_SHIPPED_STATUS_CONTRADICTION", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.status`, expected: "Shipped", actual: fieldFromBlock(block, "Status"), authority: ".planning/ROADMAP.md", evidence: `${expected.planningMilestone} is advertised as shipped`, repair: "Propose correcting only the mutable current index; preserve archived wording and cite it in EVIDENCE.md." }));
+    if (!/^✅\s*Shipped(?:\s|$)/i.test(fieldFromBlock(block, "Status") || "")) diagnostics.push(historyDiagnostic({ code: "PHIST_SHIPPED_STATUS_CONTRADICTION", severity: "error", artifact: ".planning/MILESTONES.md", field: `${expected.planningMilestone}.status`, expected: "Shipped", actual: fieldValuesFromBlock(block, "Status"), authority: ".planning/ROADMAP.md", evidence: `${expected.planningMilestone} is advertised as shipped`, repair: "Propose correcting only the mutable current index; preserve archived wording and cite it in EVIDENCE.md." }));
 
     if (expected.preArchive) {
       diagnostics.push(historyDiagnostic({ code: "PHIST_PREARCHIVE_EXCEPTION", severity: "info", artifact: ".planning/MILESTONES.md", field: expected.planningMilestone, expected: "explicit pre-archive exception", actual: "phase artifacts retained; archive absent", authority: ".planning/MILESTONES.md", evidence: "v1.0 predates formal milestone archiving", repair: "No repair; retain this visible historical exception." }));

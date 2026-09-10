@@ -866,6 +866,23 @@ test("milestone identity: planning milestone must match the ROADMAP identity", (
   assert.equal(mismatch.actual, "v9.9");
 });
 
+test("milestone history: names, dates, blocks, and canonical fields are unambiguous", () => {
+  const mutations = [
+    ["Production Surface (Shipped", "Different Name (Shipped", "PHIST_NAME_MISMATCH"],
+    ["Shipped: 2026-06-09", "Shipped: 2026-06-10", "PHIST_SHIPPED_DATE_MISMATCH"],
+    ["Shipped: 2026-06-09", "Shipped: 2026-02-30", "PHIST_SHIPPED_DATE_MISMATCH"],
+    ["**Status:** ✅ Shipped", "**Status:** Failed\n**Status:** ✅ Shipped", "PHIST_FIELD_CARDINALITY_INVALID"],
+  ];
+  for (const [from, to, code] of mutations) {
+    const snapshot = historySnapshot();
+    snapshot.documents[".planning/MILESTONES.md"].content = snapshot.documents[".planning/MILESTONES.md"].content.replace(from, to);
+    assert.ok(validateMilestoneHistory(snapshot).some((diagnostic) => diagnostic.code === code), code);
+  }
+  const duplicate = historySnapshot();
+  duplicate.documents[".planning/MILESTONES.md"].content += "\n## v1.2 Duplicate (Shipped: 2026-06-09)\n\n**Status:** ✅ Shipped\n";
+  assert.ok(validateMilestoneHistory(duplicate).some(({ code }) => code === "PHIST_INDEX_ENTRY_AMBIGUOUS"));
+});
+
 test("milestone identity: positive publication claims require independent evidence", () => {
   const snapshot = historySnapshot();
   snapshot.documents[".planning/MILESTONES.md"].content = snapshot.documents[".planning/MILESTONES.md"].content.replace(
