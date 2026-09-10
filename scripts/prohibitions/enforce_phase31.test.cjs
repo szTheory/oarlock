@@ -124,4 +124,3 @@ test("clean proof rejects a failing control", () => {
   const result = tap({ id: EXPECTED_IDS[0], status: 1, pass: 0, fail: 1 });
   assert.throws(() => evaluateTapRun(result, EXPECTED_IDS[0], "clean"), /clean fixture did not produce non-vacuous named TAP success/i);
 });
-

@@ -224,4 +224,3 @@ module.exports = {
   parseDescriptors,
   runEnforcement,
 };
-
