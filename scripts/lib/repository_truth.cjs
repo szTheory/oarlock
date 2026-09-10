@@ -1326,13 +1326,13 @@ function acceptedProofRow(markdown, id, verificationArtifact) {
   const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
   const accepted = /^(?:pass(?:ed)?|complete(?:d)?|accepted|verified)$/i;
   if (cells.some((cell) => negative.test(cell)) || !cells.some((cell) => accepted.test(cell))) return false;
-  const expectedBasename = path.posix.basename(verificationArtifact || "");
   return cells.some((cell) => {
     const candidates = [...cell.matchAll(/`([^`]+)`|\[[^\]]+\]\(([^)]+)\)|((?:\.?\.?\/)?[^\s;,|]+\.md)\b/g)]
       .map((match) => match[1] || match[2] || match[3]);
     return candidates.some((candidate) => {
       if (!candidate || path.posix.isAbsolute(candidate) || candidate.split(/[\\/]/).includes("..")) return false;
-      return path.posix.basename(candidate) === expectedBasename;
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(".planning/EVIDENCE.md"), candidate));
+      return resolved === verificationArtifact;
     });
   });
 }

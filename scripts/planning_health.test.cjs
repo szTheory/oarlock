@@ -116,7 +116,7 @@ function completedDocuments(overrides = {}) {
     ".planning/REQUIREMENTS.md": `# Requirements\n\n## v2.2 Requirements\n\n- [x] **REPO-01**: inventory\n- [x] **REPO-02**: routing\n\n## Future Requirements\n\n- **FUTURE-01**: candidate\n\n## Traceability\n\n| Requirement | Phase | Status |\n|-------------|-------|--------|\n| REPO-01 | Phase 31 | Complete |\n| REPO-02 | Phase 31 | Complete |\n`,
     ".planning/ROADMAP.md": `# Roadmap\n\n## Milestones\n\n- 🚧 **v2.2 Trust** — active\n\n## Phases\n\n- [x] **Phase 31: Repository Truth**\n\n### Phase 31: Repository Truth\n\n**Requirements**: REPO-01, REPO-02\n**Plans**: 2/2 plans executed\n\n- [x] 31-01-PLAN.md — inventory\n- [x] 31-02-PLAN.md — health\n`,
     ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: complete\n---\n",
-    ".planning/EVIDENCE.md": "# Evidence\n\n| REPO-01 | 31-VERIFICATION.md | pass |\n| REPO-02 | 31-VERIFICATION.md | pass |\n",
+    ".planning/EVIDENCE.md": "# Evidence\n\n| REPO-01 | phases/31-repository-truth/31-VERIFICATION.md | pass |\n| REPO-02 | phases/31-repository-truth/31-VERIFICATION.md | pass |\n",
     ...overrides,
   });
 }
@@ -330,8 +330,17 @@ test("canonical completion: same-basename decoys and body-only status remain ine
 
 test("completion: failed evidence and verification rows never satisfy requirement proof", () => {
   const snapshot = completedSnapshot();
-  snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\n| REPO-01 | 31-VERIFICATION.md | failed |\n| REPO-02 | 31-VERIFICATION.md | pending |\n";
+  snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\n| REPO-01 | phases/31-repository-truth/31-VERIFICATION.md | failed |\n| REPO-02 | phases/31-repository-truth/31-VERIFICATION.md | pending |\n";
   snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = "---\nstatus: passed\n---\n\n| REPO-01 | failed |\n| REPO-02 | pending |\n";
+  assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
+    "PCOMP_REQUIREMENT_UNLINKED",
+  ]);
+});
+
+test("completion: same-basename evidence links outside the canonical phase are rejected", () => {
+  const snapshot = completedSnapshot();
+  snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\n| REPO-01 | decoy/31-VERIFICATION.md | pass |\n| REPO-02 | decoy/31-VERIFICATION.md | pass |\n";
   assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
     "PCOMP_REQUIREMENT_UNLINKED",
     "PCOMP_REQUIREMENT_UNLINKED",
