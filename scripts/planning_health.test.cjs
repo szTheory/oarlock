@@ -69,6 +69,31 @@ function writeFixture(files = planningDocuments()) {
   return root;
 }
 
+function invokePlanningCli(subject, root, argv = []) {
+  let stdout = "";
+  let stderr = "";
+  const status = subject.main(argv, {
+    cwd: root,
+    stdout: { write(value) { stdout += value; } },
+    stderr: { write(value) { stderr += value; } },
+    collectOptions: {
+      collectCorroboration: false,
+      runner: () => ({ status: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) }),
+    },
+  });
+  return { status, stdout, stderr };
+}
+
+function humanDiagnosticCodes(output) {
+  return [...String(output).matchAll(/^- \[[^\]]+\] ([A-Z][A-Z0-9_]+)/gm)].map((match) => match[1]);
+}
+
+function writeRelative(root, relative, content) {
+  const target = path.join(root, relative);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, content);
+}
+
 function completedDocuments() {
   return planningDocuments({
     ".planning/REQUIREMENTS.md": `# Requirements\n\n## v2.2 Requirements\n\n- [x] **REPO-01**: inventory\n- [x] **REPO-02**: routing\n\n## Future Requirements\n\n- **FUTURE-01**: candidate\n\n## Traceability\n\n| Requirement | Phase | Status |\n|-------------|-------|--------|\n| REPO-01 | Phase 31 | Complete |\n| REPO-02 | Phase 31 | Complete |\n`,
@@ -145,6 +170,60 @@ test("phantom scope: archives, caches, summaries, and future phase directories a
     ".planning/milestones/v9.9-ROADMAP.md",
   );
   assert.deepEqual(resolveActiveScope(withDecoys), baseline);
+});
+
+test("phantom authority CLI: generated, cached, archived, historical, and same-basename decoys stay inert", () => {
+  const decoyClasses = {
+    generated: [[".planning/state.json", "{\"milestone\":\"v9.9\",\"current_phase\":\"99\",\"status\":\"complete\"}\n"]],
+    cached: [[".planning/research/.cache/31-01-SUMMARY.md", "---\nstatus: complete\n---\n"]],
+    archived: [[".planning/milestones/v9.9-ROADMAP.md", "# Archived\n\n- [x] **Phase 99: Decoy**\n"]],
+    historical: [[".planning/phases/30-old/30-VERIFICATION.md", "---\nstatus: passed\n---\n"]],
+    sameBasename: [
+      [".planning/phases/99-decoy/31-01-SUMMARY.md", "---\nstatus: complete\n---\n"],
+      [".planning/phases/99-decoy/31-02-SUMMARY.md", "---\nstatus: complete\n---\n"],
+      [".planning/phases/99-decoy/31-VERIFICATION.md", "---\nstatus: passed\n---\nREPO-01 REPO-02\n"],
+    ],
+  };
+
+  for (const [name, files] of [...Object.entries(decoyClasses), ["combined", Object.values(decoyClasses).flat()]]) {
+    const root = writeFixture(completedDocuments());
+    try {
+      for (const [relative, content] of files) writeRelative(root, relative, content);
+      const human = invokePlanningCli({ main }, root);
+      const jsonRun = invokePlanningCli({ main }, root, ["--json"]);
+      const json = JSON.parse(jsonRun.stdout);
+
+      assert.equal(human.status, 1, `${name}: human status`);
+      assert.equal(jsonRun.status, 1, `${name}: JSON status`);
+      assert.deepEqual(json.activeScope.active, { milestone: "v2.2", phase: "31" }, `${name}: canonical scope`);
+      assert.deepEqual(humanDiagnosticCodes(human.stdout), json.conclusion.diagnosticCodes, `${name}: renderer parity`);
+      assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_SUMMARY_MISSING"), `${name}: summaries remain missing`);
+      assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_VERIFICATION_MISSING"), `${name}: verification remains missing`);
+      assert.equal(json.conclusion.diagnosticCodes.includes("PSCOPE_CANONICAL_PHASE_DIRECTORY_AMBIGUOUS"), false, `${name}: old directories are not canonical`);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test("phantom authority CLI: body-only canonical proof files cannot establish completion", () => {
+  const root = writeFixture(completedDocuments());
+  try {
+    writeRelative(root, ".planning/phases/31-repository-truth/31-02-SUMMARY.md", "# Summary\n\nstatus: complete\n");
+    writeRelative(root, ".planning/phases/31-repository-truth/31-VERIFICATION.md", "# Verification\n\nstatus: passed\n\nREPO-01 REPO-02\n");
+    const human = invokePlanningCli({ main }, root);
+    const jsonRun = invokePlanningCli({ main }, root, ["--json"]);
+    const json = JSON.parse(jsonRun.stdout);
+
+    assert.equal(human.status, 1);
+    assert.equal(jsonRun.status, 1);
+    assert.deepEqual(humanDiagnosticCodes(human.stdout), json.conclusion.diagnosticCodes);
+    assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_SUMMARY_UNPROVEN"));
+    assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_VERIFICATION_UNPROVEN"));
+    assert.ok(json.conclusion.diagnosticCodes.includes("PCOMP_REQUIREMENT_UNLINKED"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("authority diagnostic parity: human and JSON expose identical codes, severities, and conclusion", () => {
