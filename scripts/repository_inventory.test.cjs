@@ -209,6 +209,36 @@ test("ownership registry: invalid claims cannot classify observations", () => {
   assert.equal(result.dispositions[0].state, "unknown");
 });
 
+test("ownership registry: linked dirty-path claims identify one exact worktree", () => {
+  const linked = (worktreePath) => ({
+    path: worktreePath, role: "linked", head: "b".repeat(40), branch: "topic",
+    upstream: null, ahead: null, behind: null, detached: false, bare: false,
+    lock: null, prunable: null, processEvidence: null,
+    dirty: [{ kind: "untracked", path: "same.txt", originalPath: null, index: "?", worktree: "?" }],
+    collectionErrors: [],
+  });
+  const snapshot = {
+    schemaVersion: 1,
+    generatedAt: "2026-09-09T00:00:00.000Z",
+    repository: { root: "/fixture", commonDir: "/fixture/.git" },
+    worktrees: [linked("/fixture/linked-one"), linked("/fixture/linked-two")],
+    collectionErrors: [],
+  };
+  const claim = {
+    ...registryFor(["same.txt"]).claims[0],
+    selector: { kind: "dirty_path", worktree_role: "linked", worktree_path: "/fixture/linked-one", path: "same.txt" },
+  };
+  const result = evaluateRepositoryInventory(snapshot, { schema_version: 1, claims: [claim] });
+  assert.equal(result.dispositions.filter(({ state }) => state === "intentional").length, 1);
+  assert.equal(result.dispositions.filter(({ state }) => state === "unknown").length, 1);
+  assert.equal(result.dispositions.find(({ state }) => state === "intentional").artifact, "/fixture/linked-one:same.txt");
+
+  delete claim.selector.worktree_path;
+  const legacy = evaluateRepositoryInventory(snapshot, { schema_version: 1, claims: [claim] });
+  assert.ok(legacy.diagnostics.some(({ code }) => code === "RINV_CLAIM_INVALID"));
+  assert.equal(legacy.dispositions.every(({ state }) => state === "unknown"), true);
+});
+
 test("read-only: both CLI formats preserve repository bytes", (t) => {
   const root = makeRepository(t);
   fs.appendFileSync(path.join(root, "tracked.txt"), "dirty\n");

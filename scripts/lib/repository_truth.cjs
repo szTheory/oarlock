@@ -334,7 +334,12 @@ function registryDiagnostics(registry, acceptedClaims = []) {
     const dirtySelector = selector && !Array.isArray(selector) && selector.kind === "dirty_path"
       && ["main", "linked"].includes(selector.worktree_role)
       && typeof selector.path === "string" && selector.path.length > 0
-      && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "path", "worktree_role"]);
+      && (selector.worktree_role === "main"
+        ? JSON.stringify(selectorKeys) === JSON.stringify(["kind", "path", "worktree_role"])
+        : typeof selector.worktree_path === "string"
+          && path.isAbsolute(selector.worktree_path)
+          && path.resolve(selector.worktree_path) === selector.worktree_path
+          && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "path", "worktree_path", "worktree_role"]));
     const worktreeSelector = selector && !Array.isArray(selector) && ["worktree_lock", "worktree_prunable", "branch_divergence"].includes(selector.kind)
       && typeof selector.worktree_path === "string" && path.isAbsolute(selector.worktree_path)
       && JSON.stringify(selectorKeys) === JSON.stringify(["kind", "worktree_path"]);
@@ -364,7 +369,9 @@ function registryDiagnostics(registry, acceptedClaims = []) {
 function selectorMatches(selector, observation) {
   if (!selector || selector.kind !== observation.kind) return false;
   if (observation.kind === "dirty_path") {
-    return selector.worktree_role === observation.worktree.role && selector.path === observation.dirty.path;
+    return selector.worktree_role === observation.worktree.role
+      && selector.path === observation.dirty.path
+      && (observation.worktree.role === "main" || selector.worktree_path === path.resolve(observation.worktree.path));
   }
   return selector.worktree_path === observation.worktree.path;
 }
