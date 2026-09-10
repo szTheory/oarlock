@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-09-09)
+See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 **Core value:** A production-quality, idiomatic Elixir SDK for Paddle Billing serving as a pure, standalone foundation for Accrue's second-processor strategy.
-**Current focus:** Phase 31 — Repository & Planning Truth
+**Current focus:** Phase 32 — Dependency & SDK Trust Boundary
 
 ## Current Position
 
@@ -88,11 +88,10 @@ Progress: [██████████] 100%
 
 ### Pending Todos
 
-- Plan Phase 31 after approval.
+- Plan Phase 32 after context review.
 
 ### Blockers/Concerns
 
-- Existing dirty and locked worktree state is unclassified; Phase 31 must inventory it without destructive cleanup.
 - Local/remote divergence and remote CI failures need exact-SHA reconciliation; local success is not hosted proof.
 - Req 0.5.17 has known advisories; Phase 32 must compatibility-test the upgrade before treating it as resolved.
 - Hosted rulesets, CI history, release environment behavior, and automation credentials require phase-local verification.

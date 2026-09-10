@@ -110,6 +110,9 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 ## Requirements
 
 ### Validated
+- [x] **REPO-01..04**: Repository inventory, active-scope authority,
+  milestone-history integrity, and non-mutating planning-health checks are
+  fail-closed and continuously proven. *(Validated in Phase 31)*
 - [x] Explicit client passing with `Paddle.Client.new!/1` (Bearer auth, Paddle-Version). *(Phase 1)*
 - [x] HTTP transport via `req` with retries and telemetry. *(Phase 1)*
 - [x] Typed `{:ok, struct}` / `{:error, %Paddle.Error{}}` responses with `raw_data` forward compatibility. *(Phase 1, applied throughout)*
@@ -153,7 +156,6 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 
 ### Active
 
-- [ ] Repository and planning state are reconciled without losing existing user work or historical evidence.
 - [ ] Remote `main` is green and synchronized through reviewable changes with exact-SHA evidence.
 - [ ] CI, release, PR, triage, and worktree workflows enforce fast, clean, reproducible delivery.
 - [ ] Known SDK safety and contract-truth gaps are fixed before adding broad endpoint surface.
@@ -178,6 +180,9 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 | **Client Instantiation** | Explicit `client` passing supports multi-tenant apps and avoids global application config conflicts. | Explicit structs selected. |
 | **Mock Server** | Offline Mode using Bandit provides fast local integration proof without sandbox state leak. | Useful development fixture; not a complete Paddle clone. |
 | **Next Work Boundary** | The recurring SaaS lifecycle is mostly covered; broad API expansion now risks endpoint mirroring. | Prioritize adopter truth, CI/package proof, and Accrue consumption before more endpoints. |
+| **Repository Truth** | Planning and cleanup decisions need one bounded, non-mutating authority chain. | Phase 31 established fail-closed inventory, planning-health, history-integrity, and six recurring bad/clean prohibition proofs. |
+| **Planning Evidence** | Completion claims must be tied to exact canonical artifacts and per-requirement evidence. | Summaries, verification, requirement mappings, milestone identities, and archive links are validated independently; ambiguity blocks. |
+| **Planning-Truth CI** | Local green results cannot stand in for hosted exact-SHA proof. | CI now has a required planning-truth lane and the monitor requires its result for the exact commit SHA. |
 
 ## Integration Consumers
 
@@ -212,4 +217,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-09 after starting milestone v2.2*
+*Last updated: 2026-09-10 after Phase 31*
