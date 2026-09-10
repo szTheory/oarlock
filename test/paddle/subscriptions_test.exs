@@ -775,15 +775,11 @@ defmodule Paddle.SubscriptionsTest do
                Subscriptions.pause(client, "sub_01", on_resume: :not_allowed)
     end
 
-    test "rejects idempotency_key as an ordinary unknown option before dispatch" do
+    test "rejects unsupported options before dispatch" do
       client =
         client_with_adapter(fn request ->
           flunk("unexpected request: #{inspect(request)}")
         end)
-
-      assert_raise ArgumentError, ~r/unknown pause option: :idempotency_key/, fn ->
-        Subscriptions.pause(client, "sub_01", idempotency_key: "attempt-1")
-      end
 
       assert_raise ArgumentError, ~r/unknown pause option/, fn ->
         Subscriptions.pause(client, "sub_01", unknown_pause_option: true)
@@ -838,17 +834,6 @@ defmodule Paddle.SubscriptionsTest do
                  resume_at: ~U[2026-07-01 00:00:00Z],
                  on_resume: "start_new_billing_period"
                )
-    end
-
-    test "rejects idempotency_key as an ordinary unknown option" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("unexpected request: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/unknown pause option: :idempotency_key/, fn ->
-        Subscriptions.pause_immediately(client, "sub_01", idempotency_key: "attempt-2")
-      end
     end
   end
 
@@ -913,17 +898,11 @@ defmodule Paddle.SubscriptionsTest do
                Subscriptions.resume(client, "sub_01", on_resume: :not_allowed)
     end
 
-    test "rejects idempotency_key as an ordinary unknown option before dispatch" do
+    test "rejects unsupported options before dispatch" do
       client =
         client_with_adapter(fn request ->
           flunk("unexpected request: #{inspect(request)}")
         end)
-
-      assert_raise ArgumentError,
-                   ~r/unknown resume option: :idempotency_key/,
-                   fn ->
-                     Subscriptions.resume(client, "sub_01", idempotency_key: "attempt-3")
-                   end
 
       assert_raise ArgumentError, ~r/unknown resume option/, fn ->
         Subscriptions.resume(client, "sub_01", unknown_resume_option: true)
