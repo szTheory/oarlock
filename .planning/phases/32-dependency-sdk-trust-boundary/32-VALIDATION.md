@@ -39,12 +39,12 @@ created: "2026-09-10"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 32-W0-01 | TBD | 0 | SAFE-01 | T-32-01 | Req compatibility and advisory closure | integration | `mix test && mix hex.audit` | ⚠️ partial | ⬜ pending |
-| 32-W0-02 | TBD | 0 | SAFE-02 | T-32-02 | Telemetry allowlist and canary absence | unit | `mix test test/paddle/http/telemetry_test.exs` | ✅ | ⬜ pending |
-| 32-W0-03 | TBD | 0 | SAFE-03 | T-32-03 | Promoted and nested secret redaction | unit | `mix test test/paddle/inspection_safety_test.exs` | ❌ W0 | ⬜ pending |
-| 32-W0-04 | TBD | 0 | SAFE-04 | T-32-04 | Safe-read attempt matrix and no mutation replay | unit/integration | `mix test test/paddle/http_test.exs` | ✅ extend | ⬜ pending |
-| 32-W0-05 | TBD | 0 | SAFE-05 | T-32-05 | Constructor decision table and redacted failures | unit | `mix test test/paddle/client_test.exs` | ✅ extend | ⬜ pending |
-| 32-W0-06 | TBD | 0 | SAFE-06 | T-32-06 | Docs/types/runtime contract agreement | contract | `mix test test/paddle/seam_test.exs` | ✅ extend | ⬜ pending |
+| 32-W0-01 | 32-02 | 2 | SAFE-01 | T-32-01 | Req compatibility and advisory closure | integration | `ACCRUE_CHECKOUT=../accrue bin/phase32_compatibility.sh` | ⚠️ Plan 32-01/02 | ⬜ pending |
+| 32-W0-02 | 32-06 | 6 | SAFE-02 | T-32-02 | Telemetry allowlist and canary absence | unit | `mix test test/paddle/http/telemetry_test.exs` | ✅ extend | ⬜ pending |
+| 32-W0-03 | 32-07 | 5 | SAFE-03 | T-32-03 | Promoted and nested secret redaction | unit | `mix test test/paddle/inspection_safety_test.exs` | ❌ Plan 32-07 | ⬜ pending |
+| 32-W0-04 | 32-04 | 4 | SAFE-04 | T-32-04 | Safe-read attempt matrix and no mutation replay | unit/integration | `mix test test/paddle/http_test.exs` | ✅ extend | ⬜ pending |
+| 32-W0-05 | 32-03 | 3 | SAFE-05 | T-32-05 | Constructor decision table and redacted failures | unit | `mix test test/paddle/client_test.exs` | ✅ extend | ⬜ pending |
+| 32-W0-06 | 32-08 | 7 | SAFE-06 | T-32-07 | Docs/types/runtime contract agreement | contract | `mix test test/paddle/seam_test.exs` | ✅ extend | ⬜ pending |
 
 ---
 
@@ -66,11 +66,11 @@ created: "2026-09-10"
 
 ## Wave 0 Requirements
 
-- [ ] `test/paddle/inspection_safety_test.exs` — shared recursive canary walker and public secret-bearing-value inventory.
-- [ ] Extend deterministic retry adapter fixtures for method/status/transport/`Retry-After` matrices.
-- [ ] Add mechanical documentation assertions for removed idempotency options, retry policy, constructor examples, evidence tiers, Req/BEAM ranges, and migration notice.
-- [ ] Resolve and record the local Accrue seam command from the owning checkout's instructions.
-- [ ] Measure focused and full suite runtimes for the sampling record.
+- [ ] Plan 32-07 creates `test/paddle/inspection_safety_test.exs` with the shared recursive canary walker and public secret-bearing-value inventory.
+- [ ] Plan 32-04 extends deterministic retry adapter fixtures for method/status/transport/`Retry-After` matrices.
+- [ ] Plan 32-08 adds mechanical documentation assertions for removed idempotency options, retry policy, constructor examples, evidence tiers, Req/BEAM ranges, and migration notice.
+- [ ] Plan 32-02 runs and records `(cd "$ACCRUE_CHECKOUT/accrue" && mix test test/accrue/billing/subscription_projection_provider_test.exs)` from the owning checkout's Mix instructions.
+- [ ] Plans 32-01/02 measure focused and full suite runtimes for the sampling record; Plan 32-08 records the final comparison.
 
 ---
 
