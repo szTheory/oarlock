@@ -192,13 +192,11 @@ defmodule Paddle.InspectionSafetyTest do
 
     management_urls =
       Http.build_struct(ManagementUrls, %{
-        "update_payment_method" =>
-          "https://manage.test/update/promoted_management_update_canary",
+        "update_payment_method" => "https://manage.test/update/promoted_management_update_canary",
         "cancel" => "https://manage.test/cancel/promoted_management_cancel_canary",
         "provider_extension" => %{
           "signed_url" => "https://provider.test/nested_management_url_canary",
-          "credentials" =>
-            {"nested_management_tuple_canary", ["nested_management_list_canary"]}
+          "credentials" => {"nested_management_tuple_canary", ["nested_management_list_canary"]}
         }
       })
 
