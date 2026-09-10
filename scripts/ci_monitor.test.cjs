@@ -119,6 +119,14 @@ test("assert-ci exits 0 with exact SHA and all required jobs successful", () => 
   assert.equal(evidence.jobs.length, 7);
 });
 
+test("assert-ci accepts a workflow file selector when GitHub returns its display name", () => {
+  const result = runMonitor("success", ["--workflow", "ci.yml"]);
+  assert.equal(result.status, 0);
+  const evidence = JSON.parse(result.stdout);
+  assert.equal(evidence.workflow, "ci.yml");
+  assert.equal(evidence.run.workflowName, "CI");
+});
+
 test("assert-ci blocks when no pushed run exists for SHA", () => {
   const result = runMonitor("missing-run");
   assert.equal(result.status, 2);

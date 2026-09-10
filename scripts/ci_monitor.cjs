@@ -148,7 +148,7 @@ function findRun({ sha, workflow, repo }, options = {}) {
   }
 
   const runs = runGh(args, options);
-  return runs.find((run) => run.headSha === sha && run.workflowName === workflow) || null;
+  return runs.find((run) => run.headSha === sha) || null;
 }
 
 function viewRun({ runId, repo }, options = {}) {
