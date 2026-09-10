@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 31
 current_phase_name: Repository & Planning Truth
 status: executing
-stopped_at: Completed 31-08-PLAN.md
-last_updated: "2026-09-10T02:47:32.350Z"
+stopped_at: Completed 31-09-PLAN.md
+last_updated: "2026-09-10T03:21:18.885Z"
 last_activity: 2026-09-09
 last_activity_desc: Phase 31 execution started
-state_head: 426c916daac5980d1ae10912846c09dd0c3ae687
+state_head: edbd18c95ffb27cde668c15d396c118d398af4b9
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: `.planning/PROJECT.md` (updated 2026-09-09)
 ## Current Position
 
 Phase: 31 (Repository & Planning Truth) — EXECUTING
-Plan: 8 of 9
-Status: Ready to execute
+Plan: 9 of 9
+Status: Ready for verification
 Last activity: 2026-09-09 — Phase 31 execution started
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [█████████░] 89%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 8
+- Plans completed: 9
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -56,6 +56,7 @@ Progress: [█████████░] 89%
 | Phase 31 P06 | 8min | 2 tasks | 6 files |
 | Phase 31 P07 | 13min | 2 tasks | 6 files |
 | Phase 31 P08 | 9min | 2 tasks | 8 files |
+| Phase 31 P09 | 18min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Progress: [█████████░] 89%
 - [Phase 31]: Git observation failure is incomplete evidence with bounded command/status/cause details, never successful absence or an inferred mismatch.
 - [Phase 31]: Frozen history is evaluated from explicit base/head Git objects; a clean candidate worktree is not preservation evidence.
 - [Phase 31]: Tag existence and peeled source SHA use distinct PIDENT diagnostics so neither authority can substitute for the other.
+- [Phase 31]: Treat all six prohibition descriptors as untrusted repository input and require exact IDs, resolved test metadata, repository-contained regular files, and named non-vacuous TAP red/green proof.
+- [Phase 31]: Fetch and assert actual historical tags in ephemeral CI while preserving v1.5 as explicitly absent rather than creating or guessing its identity.
+- [Phase 31]: Require planning truth by workflow job ID in the aggregate and display name in the exact-SHA hosted monitor.
 
 ### Pending Todos
 
@@ -104,8 +108,8 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T02:47:32.246Z
-Stopped at: Completed 31-08-PLAN.md
+Last session: 2026-09-10T03:21:18.780Z
+Stopped at: Completed 31-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

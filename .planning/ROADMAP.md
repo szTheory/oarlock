@@ -44,14 +44,14 @@ remain guidance and require explicit promotion through a later discovery cycle.
   3. Maintainer can navigate a continuous milestone history whose shipped status, phase range, archive links, planning identifiers, and package-version semantics agree.
   4. Maintainer can run a non-mutating planning-health check and receive actionable failures for stale active artifacts, broken references, archive contradictions, or completion claims without proof.
 
-**Plans**: 8/9 plans executed (5 executed, 3 gap closure)
+**Plans**: 9/9 plans executed (5 original, 4 gap closure)
 
 Plans:
 
 - [x] 31-06-PLAN.md
 - [x] 31-07-PLAN.md
 - [x] 31-08-PLAN.md
-- [ ] 31-09-PLAN.md
+- [x] 31-09-PLAN.md
 
 **Wave 1**
 
@@ -166,7 +166,7 @@ Requirements** and are intentionally absent from the committed phase mappings.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 31. Repository & Planning Truth | v2.2 | 8/9 | In Progress|  |
+| 31. Repository & Planning Truth | v2.2 | 9/9 | In Progress|  |
 | 32. Dependency & SDK Trust Boundary | v2.2 | 0/TBD | Not started | - |
 | 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
