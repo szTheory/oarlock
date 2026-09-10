@@ -4,7 +4,7 @@ milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
-status: planning
+status: executing
 stopped_at: Phase 31 complete, ready to plan Phase 32
 last_updated: "2026-09-10T06:57:55.276Z"
 last_activity: 2026-09-10
@@ -113,5 +113,5 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Run `$gsd-discuss-phase 31` to gather implementation context, or
-  `$gsd-plan-phase 31` to plan directly.
+- Run `$gsd-discuss-phase 32` to gather implementation context, or
+  `$gsd-plan-phase 32` to plan directly.
