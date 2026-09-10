@@ -800,6 +800,7 @@ function validateMilestoneHistory(snapshot) {
   for (const expected of roadmap) {
     if (!expected.preArchive) {
       const field = `${expected.planningMilestone}.roadmapArchiveLink`;
+      const expectedTarget = `.planning/milestones/${expected.planningMilestone}-ROADMAP.md`;
       const roadmapBase = path.join(snapshot.root, ".planning");
       const resolved = expected.roadmapLink ? path.resolve(roadmapBase, expected.roadmapLink) : null;
       const root = path.resolve(snapshot.root);
@@ -829,6 +830,12 @@ function validateMilestoneHistory(snapshot) {
         expected: "existing tracked roadmap archive", actual: target,
         authority: ".planning/ROADMAP.md + immutable archives", evidence: "ROADMAP archive target is absent from the bounded snapshot",
         repair: "Propose correcting the shipped entry to an existing tracked archive.",
+      }));
+      else if (target !== expectedTarget) diagnostics.push(historyDiagnostic({
+        code: "PARCHIVE_LINK_MISMATCH", severity: "error", artifact: ".planning/ROADMAP.md", field,
+        expected: expectedTarget, actual: target, authority: ".planning/ROADMAP.md + immutable archives",
+        evidence: "shipped ROADMAP navigation targets another milestone or archive kind",
+        repair: "Propose linking the shipped entry to its own canonical roadmap archive.",
       }));
     }
     const block = blocks.get(expected.planningMilestone);
@@ -865,14 +872,18 @@ function validateMilestoneHistory(snapshot) {
       const raw = fieldFromBlock(block, kind);
       const target = inlineValue(raw);
       const field = `${expected.planningMilestone}.${kind.toLowerCase()}Link`;
+      const expectedTarget = `.planning/milestones/${expected.planningMilestone}-${kind.toUpperCase()}.md`;
       if (!target) {
-        diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: `.planning/milestones/${expected.planningMilestone}-${kind.toUpperCase()}.md`, actual: null, authority: ".planning/MILESTONES.md + immutable archives", evidence: `${kind} navigation is absent`, repair: "Propose adding the tracked immutable archive link to the mutable index." }));
+        diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_MISSING", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: expectedTarget, actual: null, authority: ".planning/MILESTONES.md + immutable archives", evidence: `${kind} navigation is absent`, repair: "Propose adding the tracked immutable archive link to the mutable index." }));
       } else {
         const resolved = path.resolve(snapshot.root, target);
         const root = path.resolve(snapshot.root);
+        const normalizedTarget = resolved === root || resolved.startsWith(`${root}${path.sep}`)
+          ? path.relative(root, resolved).split(path.sep).join("/") : null;
         if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_ESCAPE", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: "repository-bounded immutable archive", actual: target, authority: ".planning/MILESTONES.md", evidence: "normalized link target escapes the repository root", repair: "Propose a repository-relative immutable archive link; do not follow the escaped target." }));
-        else if (!target.startsWith(".planning/milestones/")) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_MUTABLE_LINK", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: ".planning/milestones/* immutable snapshot", actual: target, authority: ".planning/MILESTONES.md", evidence: "root planning authorities are mutable", repair: "Propose redirecting the mutable index to its tracked frozen archive; do not edit the archive." }));
-        else if (!archivePaths.has(target)) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_BROKEN", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: "existing tracked archive", actual: target, authority: ".planning/MILESTONES.md + immutable archives", evidence: "archive target is absent from the bounded snapshot", repair: "Propose correcting the mutable index to an existing tracked archive." }));
+        else if (!normalizedTarget.startsWith(".planning/milestones/")) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_MUTABLE_LINK", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: ".planning/milestones/* immutable snapshot", actual: normalizedTarget, authority: ".planning/MILESTONES.md", evidence: "root planning authorities are mutable", repair: "Propose redirecting the mutable index to its tracked frozen archive; do not edit the archive." }));
+        else if (!archivePaths.has(normalizedTarget)) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_BROKEN", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: "existing tracked archive", actual: normalizedTarget, authority: ".planning/MILESTONES.md + immutable archives", evidence: "archive target is absent from the bounded snapshot", repair: "Propose correcting the mutable index to an existing tracked archive." }));
+        else if (normalizedTarget !== expectedTarget) diagnostics.push(historyDiagnostic({ code: "PARCHIVE_LINK_MISMATCH", severity: "error", artifact: ".planning/MILESTONES.md", field, expected: expectedTarget, actual: normalizedTarget, authority: ".planning/MILESTONES.md + immutable archives", evidence: `${kind} navigation targets another milestone or archive kind`, repair: `Propose linking ${kind.toLowerCase()} navigation to this milestone's canonical ${kind.toLowerCase()} archive.` }));
       }
     }
 

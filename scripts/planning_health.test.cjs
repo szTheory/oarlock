@@ -858,6 +858,30 @@ test("milestone archive: shipped ROADMAP links are independently bounded and ver
   assert.ok(validateMilestoneHistory(broken).some(({ code, artifact }) => code === "PARCHIVE_LINK_BROKEN" && artifact === ".planning/ROADMAP.md"));
 });
 
+test("milestone archive: shipped links cannot cross milestones or swap archive kinds", () => {
+  const archives = { ...historySnapshot().milestoneArchives, ".planning/milestones/v2.1-ROADMAP.md": "# Other roadmap\n" };
+  const roadmapCrossLink = historySnapshot({ milestoneArchives: archives });
+  roadmapCrossLink.documents[".planning/ROADMAP.md"].content = roadmapCrossLink.documents[".planning/ROADMAP.md"].content.replace("milestones/v1.2-ROADMAP.md", "milestones/v2.1-ROADMAP.md");
+  assert.ok(validateMilestoneHistory(roadmapCrossLink).some(({ code, artifact }) => code === "PARCHIVE_LINK_MISMATCH" && artifact === ".planning/ROADMAP.md"));
+
+  const roadmapSwappedKind = historySnapshot();
+  roadmapSwappedKind.documents[".planning/ROADMAP.md"].content = roadmapSwappedKind.documents[".planning/ROADMAP.md"].content.replace("milestones/v1.2-ROADMAP.md", "milestones/v1.2-REQUIREMENTS.md");
+  assert.ok(validateMilestoneHistory(roadmapSwappedKind).some(({ code, artifact }) => code === "PARCHIVE_LINK_MISMATCH" && artifact === ".planning/ROADMAP.md"));
+
+  const indexCrossLink = historySnapshot({ milestoneArchives: archives });
+  indexCrossLink.documents[".planning/MILESTONES.md"].content = indexCrossLink.documents[".planning/MILESTONES.md"].content.replace(".planning/milestones/v1.2-ROADMAP.md", ".planning/milestones/v2.1-ROADMAP.md");
+  assert.ok(validateMilestoneHistory(indexCrossLink).some(({ code, field }) => code === "PARCHIVE_LINK_MISMATCH" && field === "v1.2.roadmapLink"));
+
+  const indexSwappedKinds = historySnapshot();
+  indexSwappedKinds.documents[".planning/MILESTONES.md"].content = indexSwappedKinds.documents[".planning/MILESTONES.md"].content.replace(
+    "- Roadmap: `.planning/milestones/v1.2-ROADMAP.md`\n- Requirements: `.planning/milestones/v1.2-REQUIREMENTS.md`",
+    "- Roadmap: `.planning/milestones/v1.2-REQUIREMENTS.md`\n- Requirements: `.planning/milestones/v1.2-ROADMAP.md`",
+  );
+  assert.deepEqual(validateMilestoneHistory(indexSwappedKinds).filter(({ code }) => code === "PARCHIVE_LINK_MISMATCH").map(({ field }) => field), [
+    "v1.2.roadmapLink", "v1.2.requirementsLink",
+  ]);
+});
+
 test("milestone archive: generic undated correction mentions do not satisfy evidence", () => {
   const snapshot = historySnapshot();
   snapshot.documents[".planning/EVIDENCE.md"].content = "# Evidence\n\nv1.2 archive status correction\n";
