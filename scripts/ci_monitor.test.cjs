@@ -167,3 +167,31 @@ test("ci workflow defines an always-running contract over required proof jobs", 
     assert.match(contract, new RegExp(`- ${job}`));
   }
 });
+
+test("ci workflow defines the exact required planning-truth lane", () => {
+  const workflow = readFileSync(join(__dirname, "..", ".github", "workflows", "ci.yml"), "utf8");
+  const start = workflow.indexOf("  planning-truth:");
+  const end = workflow.indexOf("\n  ci-contract:", start);
+  assert.notEqual(start, -1, "planning-truth job id is required");
+  assert.notEqual(end, -1, "planning-truth must be a separate job before the aggregate");
+  const lane = workflow.slice(start, end);
+
+  assert.match(workflow, /permissions:\s*\n\s+contents:\s+read/);
+  assert.match(lane, /name:\s+planning truth/);
+  assert.match(lane, /fetch-depth:\s+0/);
+  assert.match(lane, /git[",\s]+fetch/);
+  assert.match(lane, /refs\/tags\/\*:refs\/tags\/\*/);
+  assert.match(lane, /v1\.1/);
+  assert.match(lane, /v1\.2/);
+  assert.match(lane, /v1\.3/);
+  assert.match(lane, /v1\.4/);
+  assert.match(lane, /v2\.0/);
+  assert.match(lane, /v2\.1/);
+  assert.match(lane, /v1\.5/);
+  assert.match(lane, /merge-base/);
+  assert.match(lane, /github\.event\.before/);
+  assert.match(lane, /node --test scripts\/\*\.test\.cjs scripts\/prohibitions\/\*\.test\.cjs/);
+  assert.match(lane, /node scripts\/prohibitions\/enforce_phase31\.cjs/);
+  assert.match(lane, /node scripts\/history_integrity\.cjs.*--base.*--head/s);
+  assert.match(lane, /node scripts\/planning_health\.cjs --json/);
+});
