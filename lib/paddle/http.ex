@@ -1,13 +1,47 @@
 defmodule Paddle.Http do
-  @moduledoc false
+  @moduledoc """
+  Central request and response boundary for the Paddle SDK.
 
+  Only `GET` and `HEAD` requests retry documented transient outcomes, with at
+  most four physical attempts. Mutations always make one attempt; `retry: true`
+  cannot enable replay, while `retry: false` can restrict a read.
+
+  Static `:operation` and `:route` context remains separate from runtime cursor
+  URLs. `:resource_id` is optional safe context. `:idempotency_key` is
+  unsupported and is never converted into a request header.
+  """
+
+  @type request_opt ::
+          {:retry, boolean()}
+          | {:operation, atom()}
+          | {:route, String.t()}
+          | {:resource_id, String.t()}
+
+  @safe_methods [:get, :head]
+  @retryable_statuses [408, 429, 500, 502, 503, 504]
+  @retryable_transport_reasons [:timeout, :econnrefused, :closed]
+  @max_retry_after_ms 60_000
+
+  @doc """
+  Dispatches a request and normalizes its terminal result.
+
+  Eligible safe reads use three retries/four total attempts. `retry: false`
+  disables read retries. Enabling mutation retry or passing a non-boolean retry
+  value raises before dispatch. Static context options are consumed here rather
+  than sent to Req, and `:idempotency_key` is unsupported.
+  """
+  @spec request(Paddle.Client.t(), atom(), String.t(), keyword()) ::
+          {:ok, term()} | {:error, Paddle.Error.t() | term()}
   def request(%Paddle.Client{} = client, method, path, opts \\ []) do
-    idempotency_key_present? = Keyword.has_key?(opts, :idempotency_key)
-    {idempotency_key, opts} = Keyword.pop(opts, :idempotency_key)
+    reject_idempotency_key!(opts)
+    {retry_options, opts} = retry_options!(method, opts)
+    {context, opts} = request_context(opts)
     opts = Keyword.merge(opts, method: method, url: path)
-    opts = maybe_add_idempotency_header(opts, idempotency_key, idempotency_key_present?)
+    opts = Keyword.merge(opts, retry_options)
 
-    case Req.request(client.req, opts) do
+    request = Req.Request.put_private(client.req, :paddle_request_context, context)
+
+    case Req.request(request, opts) do
       {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
         {:ok, body}
 
@@ -22,33 +56,67 @@ defmodule Paddle.Http do
     end
   end
 
-  defp maybe_add_idempotency_header(opts, nil, false), do: opts
+  defp retry_options!(method, opts) do
+    retry_values = Keyword.get_values(opts, :retry)
+    opts = Keyword.delete(opts, :retry)
 
-  defp maybe_add_idempotency_header(_opts, nil, true) do
-    raise ArgumentError, "idempotency_key must be a non-empty string, got: nil"
-  end
+    retry =
+      case retry_values do
+        [] -> :default
+        [value] when is_boolean(value) -> value
+        [_value] -> raise ArgumentError, "retry must be a boolean"
+        _values -> raise ArgumentError, "retry may be supplied only once"
+      end
 
-  defp maybe_add_idempotency_header(opts, key, true) when is_binary(key) do
-    trimmed = String.trim(key)
+    cond do
+      method in @safe_methods and retry != false ->
+        {[retry: &retry_decision/2, max_retries: 3], opts}
 
-    if trimmed == "" do
-      raise ArgumentError,
-            "idempotency_key must be a non-empty string, got: #{inspect(key)}"
-    else
-      Keyword.update(
-        opts,
-        :headers,
-        [{"Idempotency-Key", key}],
-        &[{"Idempotency-Key", key} | &1]
-      )
+      method in @safe_methods ->
+        {[retry: false], opts}
+
+      retry == true ->
+        raise ArgumentError, "retry cannot enable mutation replay for #{method} requests"
+
+      true ->
+        {[retry: false], opts}
     end
   end
 
-  defp maybe_add_idempotency_header(_opts, key, true) do
-    raise ArgumentError,
-          "idempotency_key must be a non-empty string, got: #{inspect(key)}"
+  defp retry_decision(%Req.Request{method: method}, outcome) when method in @safe_methods do
+    case outcome do
+      %Req.Response{status: 429} = response ->
+        case Req.Response.get_retry_after(response) do
+          delay when is_integer(delay) -> {:delay, min(delay, @max_retry_after_ms)}
+          nil -> true
+        end
+
+      %Req.Response{status: status} when status in @retryable_statuses ->
+        true
+
+      %Req.TransportError{reason: reason} when reason in @retryable_transport_reasons ->
+        true
+
+      _outcome ->
+        false
+    end
   end
 
+  defp retry_decision(_request, _outcome), do: false
+
+  defp request_context(opts) do
+    {context, opts} = Keyword.split(opts, [:operation, :route, :resource_id])
+    {Map.new(context), opts}
+  end
+
+  defp reject_idempotency_key!(opts) do
+    if Keyword.has_key?(opts, :idempotency_key) do
+      raise ArgumentError, "idempotency_key is not supported"
+    end
+  end
+
+  @doc false
+  @spec build_struct(module(), map()) :: struct()
   def build_struct(struct_module, data) when is_map(data) do
     base_struct = struct(struct_module)
     valid_keys = Map.keys(base_struct) |> Enum.map(&to_string/1)

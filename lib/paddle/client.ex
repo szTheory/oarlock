@@ -18,6 +18,11 @@ defmodule Paddle.Client do
   `api_key`, `base_url`, and `req` wholesale with the stable `[REDACTED]`
   marker; this representation does not change the stored runtime fields.
 
+  Retry eligibility is owned by `Paddle.Http` for each request. Only `GET` and
+  `HEAD` may retry documented transient failures; mutations cannot opt into
+  replay, and `retry: false` can further restrict a read. The unsupported
+  `idempotency_key` option is never converted into a request header.
+
   ## Example Pipeline
 
   ```elixir
@@ -90,8 +95,7 @@ defmodule Paddle.Client do
         base_url: base_url,
         auth: {:bearer, api_key},
         headers: [{"Paddle-Version", "1"}],
-        retry: :transient,
-        max_retries: 3
+        retry: false
       )
       |> Paddle.Http.Telemetry.attach()
 

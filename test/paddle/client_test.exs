@@ -47,6 +47,7 @@ defmodule Paddle.ClientTest do
 
       assert client.api_key == "sk_test_123"
       assert client.req.options.auth == {:bearer, "sk_test_123"}
+      assert client.req.options.retry == false
       assert client.req.headers["paddle-version"] == ["1"]
       assert Keyword.has_key?(client.req.request_steps, :paddle_telemetry_start)
       assert Keyword.has_key?(client.req.response_steps, :paddle_telemetry_stop)

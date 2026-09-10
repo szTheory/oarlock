@@ -68,7 +68,7 @@ defmodule Paddle.HttpTest do
               retryable?: true,
               type: "network_timeout",
               raw_data: %Req.TransportError{reason: :timeout}
-            }} = Http.request(client, :get, "/customers")
+            }} = Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps nxdomain to network_nxdomain type" do
@@ -79,7 +79,7 @@ defmodule Paddle.HttpTest do
 
     assert {:error,
             %Paddle.Error{type: "network_nxdomain", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps closed to network_closed type" do
@@ -89,7 +89,7 @@ defmodule Paddle.HttpTest do
       end)
 
     assert {:error, %Paddle.Error{type: "network_closed", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps unknown transport reason to network_unknown type" do
@@ -100,7 +100,7 @@ defmodule Paddle.HttpTest do
 
     assert {:error,
             %Paddle.Error{type: "network_unknown", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "build_struct/2 maps known string keys into the target struct" do
@@ -278,6 +278,7 @@ defmodule Paddle.HttpTest do
           retry: :transient,
           max_retries: 3,
           retry_delay: 0,
+          retry_log_level: false,
           adapter: Adapter
         )
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
