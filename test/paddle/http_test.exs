@@ -115,180 +115,140 @@ defmodule Paddle.HttpTest do
     assert %SampleStruct{raw_data: ^data} = Http.build_struct(SampleStruct, data)
   end
 
-  describe "request/4 idempotency_key opt" do
-    test "forwards the supplied key as Idempotency-Key header on POST" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == ["my-key-123"]
-          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_1"}})}
-        end)
+  test "request/4 rejects unsupported idempotency_key before dispatch" do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
-      assert {:ok, _} =
-               Http.request(client, :post, "/customers",
-                 json: %{name: "x"},
-                 idempotency_key: "my-key-123"
-               )
+    client =
+      client_with_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: 201, body: %{})}
+      end)
+
+    assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+      Http.request(client, :post, "/customers", idempotency_key: "unsupported-canary")
     end
 
-    test "sends no Idempotency-Key header when the opt is absent" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == []
-          {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-        end)
-
-      assert {:ok, _} = Http.request(client, :get, "/customers")
-    end
-
-    test "raises ArgumentError when idempotency_key is nil" do
-      client =
-        client_with_adapter(fn request ->
-          flunk(
-            "adapter should not be called when idempotency_key is invalid; got: #{inspect(request)}"
-          )
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: nil)
-      end
-    end
-
-    test "raises ArgumentError when idempotency_key is the empty string" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "")
-      end
-    end
-
-    test "raises ArgumentError when idempotency_key is whitespace-only" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "   ")
-      end
-    end
-
-    test "raises ArgumentError when idempotency_key is not a binary" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: 12345)
-      end
-    end
-
-    test "Paddle.Customers.create/3 forwards idempotency_key as Idempotency-Key header" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == [
-                   "accrue:job:42:attempt:1"
-                 ]
-
-          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_999"}})}
-        end)
-
-      assert {:ok, %Paddle.Customer{id: "cus_999"}} =
-               Paddle.Customers.create(client, %{email: "x@example.com", name: "X"},
-                 idempotency_key: "accrue:job:42:attempt:1"
-               )
-    end
+    assert Agent.get(attempts, & &1) == 0
   end
 
   describe "request/4 retry policy" do
-    test "retries on 503 then succeeds" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "eligible GET and HEAD status failures stop after four attempts" do
+      for method <- [:get, :head], status <- [408, 429, 500, 502, 503, 504] do
+        {result, attempts} = persistent_response(method, status)
+        assert {:error, %Error{status_code: ^status}} = result
+        assert attempts == 4
+      end
+    end
 
-      client =
-        client_with_retry_adapter(fn request ->
-          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+    test "eligible GET and HEAD transport failures stop after four attempts" do
+      for method <- [:get, :head], reason <- [:timeout, :econnrefused, :closed] do
+        {result, attempts} = persistent_transport(method, reason)
+        assert {:error, %Error{network_error?: true}} = result
+        assert attempts == 4
+      end
+    end
 
-          if count == 0 do
+    test "ineligible status and transport failures execute once" do
+      for status <- [400, 401, 404, 409, 422, 501] do
+        {result, attempts} = persistent_response(:get, status)
+        assert {:error, %Error{status_code: ^status}} = result
+        assert attempts == 1
+      end
+
+      for reason <- [:nxdomain, :enetunreach, :unknown] do
+        {result, attempts} = persistent_transport(:get, reason)
+        assert {:error, %Error{network_error?: true}} = result
+        assert attempts == 1
+      end
+    end
+
+    test "mutations and retry: false reads execute exactly once" do
+      for method <- [:post, :patch, :put, :delete] do
+        {result, attempts} = persistent_response(method, 503)
+        assert {:error, %Error{status_code: 503}} = result
+        assert attempts == 1
+      end
+
+      {result, attempts} = persistent_response(:get, 503, retry: false)
+      assert {:error, %Error{status_code: 503}} = result
+      assert attempts == 1
+    end
+
+    test "retry: true cannot enable mutation replay and invalid values fail before dispatch" do
+      for {method, retry} <- [
+            {:post, true},
+            {:patch, true},
+            {:put, true},
+            {:delete, true},
+            {:get, :always}
+          ] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_retry_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
             {request, Req.Response.new(status: 503, body: %{})}
-          else
-            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-          end
-        end)
+          end)
 
-      assert {:ok, _} = Http.request(client, :get, "/customers")
-      assert Agent.get(agent, & &1) == 2
-      Agent.stop(agent)
+        assert_raise ArgumentError, ~r/retry/, fn ->
+          Http.request(client, method, "/resource", retry: retry)
+        end
+
+        assert Agent.get(attempts, & &1) == 0
+      end
     end
 
-    test "does not retry on 422 validation error" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "only 429 Retry-After is honored and capped at 60000 ms" do
+      parent = self()
 
       client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 422, body: %{"error" => %{"detail" => "invalid"}})}
+        client_with_adapter(fn request ->
+          retry = Req.Request.get_option(request, :retry)
+
+          retry_after =
+            Req.Response.new(status: 429)
+            |> Req.Response.put_header("retry-after", "120")
+
+          service_unavailable =
+            Req.Response.new(status: 503)
+            |> Req.Response.put_header("retry-after", "120")
+
+          send(
+            parent,
+            {:decisions, retry.(request, retry_after), retry.(request, service_unavailable)}
+          )
+
+          {request, Req.Response.new(status: 200, body: %{})}
         end)
 
-      assert {:error, %Error{status_code: 422}} =
-               Http.request(client, :post, "/customers", json: %{})
-
-      assert Agent.get(agent, & &1) == 1
-      Agent.stop(agent)
+      assert {:ok, %{}} = Http.request(client, :get, "/customers")
+      assert_receive {:decisions, {:delay, 60_000}, true}
     end
 
-    test "retries on 429 then succeeds" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "parallel callers keep independent attempt counters and terminal outcomes" do
+      requests = [
+        {:get, 503, 4},
+        {:head, 408, 4},
+        {:post, 503, 1},
+        {:delete, 429, 1},
+        {:get, 422, 1}
+      ]
 
-      client =
-        client_with_retry_adapter(fn request ->
-          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+      results =
+        requests
+        |> Task.async_stream(
+          fn {method, status, expected_attempts} ->
+            {result, attempts} = persistent_response(method, status)
+            {status, expected_attempts, attempts, result}
+          end,
+          ordered: false
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
 
-          if count == 0 do
-            {request,
-             Req.Response.new(status: 429, body: %{"error" => %{"code" => "too_many_requests"}})}
-          else
-            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-          end
-        end)
-
-      assert {:ok, _} = Http.request(client, :get, "/customers")
-      assert Agent.get(agent, & &1) == 2
-      Agent.stop(agent)
-    end
-
-    test "per-call retry: false disables retry on 5xx" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
-
-      client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 503, body: %{})}
-        end)
-
-      assert {:error, %Error{status_code: 503}} =
-               Http.request(client, :get, "/customers", retry: false)
-
-      assert Agent.get(agent, & &1) == 1
-      Agent.stop(agent)
-    end
-
-    test "caps retries at 3 on persistent 5xx (max-3 ceiling)" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
-
-      client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 503, body: %{})}
-        end)
-
-      assert {:error, %Error{status_code: 503}} =
-               Http.request(client, :get, "/customers")
-
-      assert Agent.get(agent, & &1) == 4
-      Agent.stop(agent)
+      for {status, expected_attempts, attempts, result} <- results do
+        assert attempts == expected_attempts
+        assert {:error, %Error{status_code: ^status}} = result
+      end
     end
   end
 
@@ -322,5 +282,31 @@ defmodule Paddle.HttpTest do
         )
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp persistent_response(method, status, opts \\ []) do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_retry_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: status, body: %{})}
+      end)
+
+    result = Http.request(client, method, "/resource", opts)
+    {result, Agent.get(attempts, & &1)}
+  end
+
+  defp persistent_transport(method, reason) do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_retry_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, %Req.TransportError{reason: reason}}
+      end)
+
+    result = Http.request(client, method, "/resource")
+    {result, Agent.get(attempts, & &1)}
   end
 end
