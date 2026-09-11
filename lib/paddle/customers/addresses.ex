@@ -94,6 +94,8 @@ defmodule Paddle.Customers.Addresses do
           {:ok, Paddle.Address.t()}
           | {:error, Paddle.Error.t() | :invalid_customer_id | :invalid_attrs}
   def create(%Paddle.Client{} = client, customer_id, attrs, opts \\ []) do
+    opts = Http.validate_public_request_opts!(opts)
+
     with :ok <- validate_customer_id(customer_id),
          {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
