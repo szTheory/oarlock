@@ -105,16 +105,16 @@ defmodule Paddle.Error do
   @spec from_response(Req.Response.t(), context()) :: t()
   def from_response(%Req.Response{status: status, body: body} = resp, context) do
     body = if is_map(body), do: body, else: %{}
-    error_body = Map.get(body, "error", %{})
+    error_body = normalize_error_body(Map.get(body, "error"))
     ambiguous? = ambiguous_response?(status, context)
 
     %__MODULE__{
       status_code: status,
       request_id: provider_request_id(body, resp),
-      type: error_body["type"],
-      code: error_body["code"],
-      message: Map.get(error_body, "detail", "Unknown Paddle Error"),
-      errors: Map.get(error_body, "errors", []),
+      type: binary_or_nil(Map.get(error_body, "type")),
+      code: binary_or_nil(Map.get(error_body, "code")),
+      message: error_message(Map.get(error_body, "detail")),
+      errors: normalize_errors(Map.get(error_body, "errors")),
       raw_data: body,
       ambiguous?: ambiguous?,
       operation: context[:operation],
@@ -166,6 +166,18 @@ defmodule Paddle.Error do
 
   defp reconciliation(true), do: @reconciliation_actions
   defp reconciliation(false), do: []
+
+  defp normalize_error_body(error_body) when is_map(error_body), do: error_body
+  defp normalize_error_body(_error_body), do: %{}
+
+  defp binary_or_nil(value) when is_binary(value), do: value
+  defp binary_or_nil(_value), do: nil
+
+  defp error_message(value) when is_binary(value), do: value
+  defp error_message(_value), do: "Unknown Paddle Error"
+
+  defp normalize_errors(errors) when is_list(errors), do: Enum.filter(errors, &is_map/1)
+  defp normalize_errors(_errors), do: []
 
   defp provider_request_id(body, response) do
     case body_request_id(body) do
