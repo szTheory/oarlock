@@ -1,233 +1,206 @@
 ---
 phase: 32-dependency-sdk-trust-boundary
-verified: 2026-09-10T22:51:18Z
+verified: 2026-09-11T02:26:51Z
 status: gaps_found
-score: 4/7 must-haves verified
+score: 6/9 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
+re_verification:
+  previous_status: gaps_found
+  previous_score: 4/7
+  gaps_closed:
+    - "Public mutation create APIs reject caller transport authority before dispatch."
+    - "Malformed nested provider error envelopes normalize to conservative Paddle.Error values."
+    - "Address stream documentation now matches bare-element and raised-error runtime behavior."
+  gaps_remaining:
+    - "The documented bounded contract proof is not reliably complete within 30 seconds."
+  regressions:
+    - "A failed full-matrix preflight leaves a stale passing compatibility receipt in place."
+    - "Subscription pause/resume silently collapse duplicate :retry options instead of rejecting them."
 gaps:
-  - truth: "Public SDK mutation options cannot redirect a validated client's bearer credential to another origin."
+  - truth: "A failed or interrupted compatibility run cannot leave an acceptance receipt that can be mistaken for current success."
     status: failed
-    reason: "Public mutation functions pass caller options through to Req; an independent Customers.create/3 probe changed the effective URL to attacker.example while retaining Authorization: Bearer secret-canary."
-    artifacts:
-      - path: "lib/paddle/http.ex"
-        issue: "Unknown request options survive context extraction and are forwarded to Req.request/2."
-      - path: "lib/paddle/customers.ex"
-        issue: "Caller opts are merged directly into the central request option list despite the public type allowing only :retry."
-      - path: "lib/paddle/adjustments.ex"
-        issue: "Same unvalidated public mutation-option pattern."
-      - path: "lib/paddle/customers/addresses.ex"
-        issue: "Same unvalidated public mutation-option pattern."
-      - path: "lib/paddle/customers/portal_sessions.ex"
-        issue: "Same unvalidated public mutation-option pattern."
-      - path: "lib/paddle/notification_settings.ex"
-        issue: "Same unvalidated public mutation-option pattern."
-      - path: "lib/paddle/transactions.ex"
-        issue: "Same unvalidated public mutation-option pattern."
-    missing:
-      - "Validate each public request option list as a unique keyword list containing only :retry before dispatch."
-      - "Reject Req transport options such as :base_url, :auth, :headers, and :adapter before any request is sent."
-      - "Add regression tests proving rejection occurs before adapter dispatch and no credential can cross to an overridden origin."
-  - truth: "Ambiguous mutation outcomes always return a conservative Paddle.Error with actionable reconciliation guidance instead of crashing."
-    status: failed
-    reason: "Paddle.Error.from_response/2 assumes body[\"error\"] is a map. A 502 response with %{\"error\" => \"bad-shape\"} raises FunctionClauseError in Access.get/3, bypassing the documented error/ambiguity contract."
-    artifacts:
-      - path: "lib/paddle/error.ex"
-        issue: "error_body is not type-checked before bracket access and Map.get/3 calls."
-      - path: "test/paddle/error_test.exs"
-        issue: "Covers non-map outer bodies but not non-map nested error values."
-    missing:
-      - "Normalize the nested error member to an empty map unless it is a map."
-      - "Add nil/string/list/unexpected-map nested-error tests, including an ambiguous mutation status."
-  - truth: "Public docs, examples, types, and migration guidance agree with tested runtime behavior."
-    status: failed
-    reason: "Paddle.Customers.Addresses.stream/3 documents {:ok, address}/{:error, error} elements, but the shared pagination implementation yields Address structs directly and raises on page errors. An independent one-page probe returned a bare %Paddle.Address{}."
-    artifacts:
-      - path: "lib/paddle/customers/addresses.ex"
-        issue: "Stream example and Errors section contradict runtime enumeration semantics."
-      - path: "lib/paddle/internal/pagination.ex"
-        issue: "stream_next/1 emits page.data directly and raises errors, confirming the documentation mismatch."
-      - path: "test/paddle/seam_test.exs"
-        issue: "The contract suite does not assert this public stream example/behavior."
-    missing:
-      - "Document bare address elements and raised enumeration failures, or deliberately change the shared stream contract across all resources."
-      - "Add a contract/doctest assertion for the documented stream element and error shape."
-  - truth: "The documented compatibility and final contract proof runners complete and publish acceptance under the verifier probe contract."
-    status: failed
-    reason: "Both documented runners were executed with the required 30-second timeout. phase32_compatibility.sh timed out during focused-customer-adapters after its 21-second root row; phase32_contract_proof.sh timed out during its first nested matrix. Neither produced a complete acceptance receipt in the verifier run."
+    reason: "run_matrix validates ACCRUE_CHECKOUT before deleting the destination receipt. A verifier probe seeded a passing receipt, invoked --full with an empty ACCRUE_CHECKOUT, observed exit 2, and found the stale passing receipt unchanged."
     artifacts:
       - path: "bin/phase32_compatibility.sh"
-        issue: "The complete 13-row probe did not finish within 30 seconds in this verification process."
-      - path: "bin/phase32_contract_proof.sh"
-        issue: "The proof invokes two complete matrices and did not finish within 30 seconds."
+        issue: "FULL_RECEIPT_PATH is removed only after preflight checks at lines 168-175 can return."
     missing:
-      - "Make the documented probes complete within the verification timeout or define a bounded, authoritative focused probe that can do so."
-      - "Re-run both probes successfully and record fresh receipts after the blockers are fixed."
+      - "Invalidate or quarantine the full receipt before every preflight capable of failing."
+      - "Extend --self-test with a seeded stale receipt plus failed-preflight assertion."
+  - truth: "The bounded Phase 32 contract proof reliably completes within the documented 30-second verifier budget and publishes acceptance only when the wrapped command succeeds."
+    status: failed
+    reason: "Three fresh exact-wrapper runs took the entire budget. Two exited zero at approximately 29.4-29.9 seconds; the third was terminated by the 30-second wrapper after printing success. The third run had already published phase32-contract-verifier.receipt, so the external command failed while an acceptance artifact remained."
+    artifacts:
+      - path: "bin/phase32_contract_proof.sh"
+        issue: "run_verify performs concurrent compilation/docs, receipt self-test, a time-bearing 72-test bounded suite, and online audit with no reliable timeout margin; it publishes before EXIT cleanup completes."
+      - path: "bin/phase32_compatibility.sh"
+        issue: "run_bounded_mix includes real jittered retry waits, producing variable multi-second latency inside the fixed 30-second proof."
+    missing:
+      - "Remove wall-clock retry waits from bounded verifier evidence or narrow the proof to deterministic tagged/named tests while retaining independent retry-decision coverage."
+      - "Require meaningful cold-run margin and ensure timeout/nonzero termination cannot leave a passing contract receipt."
+  - truth: "Every public mutation option list rejects duplicate retry keys before dispatch, independent of key order."
+    status: failed
+    reason: "normalize_pause_opts/1 and normalize_resume_opts/1 use Keyword.pop/2, which collapses all duplicate :retry entries to the first value. Independent probes showed [retry: false, retry: true] dispatches successfully for both pause and resume, while the reversed order raises, making validation order-dependent."
+    artifacts:
+      - path: "lib/paddle/subscriptions.ex"
+        issue: "Pause and resume normalization remove duplicate :retry entries without checking uniqueness."
+      - path: "test/paddle/subscriptions_test.exs"
+        issue: "Covers retry: false and unknown options, but has no duplicate-retry rejection matrix for pause/resume."
+    missing:
+      - "Reject more than one :retry entry before body normalization and Http dispatch for pause and resume."
+      - "Add both conflicting orders for both APIs and assert zero adapter dispatches."
 ---
 
 # Phase 32: Dependency & SDK Trust Boundary Verification Report
 
 **Phase Goal:** SDK consumers can use oarlock without known Req advisories, credential disclosure, unsafe mutation replay, invalid client state, or misleading contract guidance.
-**Verified:** 2026-09-10T22:51:18Z
+**Verified:** 2026-09-11T02:26:51Z
 **Status:** gaps_found
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after Plans 32-12 and 32-13 gap closure
 
 ## Goal Achievement
 
 ### Observable Truths
 
-The five roadmap success criteria are preserved below. Two goal-level concerns were separated from criterion 5 so credential containment and documentation truthfulness could not hide behind otherwise-correct constructor behavior.
+The five roadmap success criteria remain non-negotiable. Four plan-level truths are kept separate so acceptance-artifact integrity, verifier boundedness, and complete mutation-option validation cannot hide behind otherwise-green runtime tests.
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | Consumers resolve Req `~> 0.7.4`, retain supported adapter compatibility, and receive a clean Hex audit. | ✓ VERIFIED | `mix.exs` constrains `~> 0.7.4`; root and demo locks resolve 0.7.4; `mix hex.audit` reported no retired or security advisory packages; 260-test suite passed. |
-| 2 | Telemetry exposes stable allowlisted facts without forbidden credentials, bodies, URLs, requests/responses, secrets, or customer canaries. | ✓ VERIFIED | `Telemetry.attach/1` projects exact keys; named retry-pair and concurrent-subscriber tests each passed; recursive canary test is active in the passing suite. |
-| 3 | Every current public secret-bearing value redacts promoted and nested raw-provider secrets without mutating stored values. | ✓ VERIFIED | Named six-value inspection test passed; explicit Inspect implementations redact protected fields and `raw_data`. The inventory gate has a future-coverage warning below. |
-| 4 | Safe reads retry only within documented bounds; ambiguous mutations are never blindly replayed and always return reconciliation guidance. | ✗ FAILED (BLOCKER) | Bounded/single-attempt tests pass, but malformed nested provider errors crash `from_response/2`, so the promised Paddle.Error/reconciliation result is not total. |
-| 5 | Client construction rejects invalid state and preserves deliberate custom MockServer URLs. | ✓ VERIFIED | Constructor validates unique known options, credential, environment, and absolute HTTP(S) host before `Req.new/1`; full client tests passed. |
-| 6 | Public mutation options cannot override the validated outbound origin or disclose the bearer credential. | ✗ FAILED (BLOCKER) | Independent probe dispatched `Paddle.Customers.create/3` to `https://attacker.example/customers` with `Authorization: Bearer secret-canary`. |
-| 7 | Public docs/types/examples describe tested runtime behavior accurately. | ✗ FAILED (BLOCKER) | Address stream docs promise tuples while runtime emits bare structs and raises errors; the full proof runners also did not complete within the mandated probe timeout. |
+| 1 | Consumers resolve Req `~> 0.7.4`, retain supported compatibility, and receive a clean Hex audit. | ✓ VERIFIED | `mix.exs`, root `mix.lock`, and `demo/mix.lock` select Req 0.7.4. Each fresh bounded run executed 72 gap-sensitive tests with 0 failures and `mix hex.audit` reported no advisory packages. A preserved 13-row receipt records a complete full matrix. |
+| 2 | Telemetry exposes only stable allowlisted facts and preserves independent per-attempt event pairing under retry/concurrency. | ✓ VERIFIED | `Paddle.Http.Telemetry` projects exact measurement/metadata keys and is wired before retry consumption. The current bounded suite repeatedly passed the recursive canary, attempt-pairing, and process-owned subscriber tests. |
+| 3 | Every current public secret-bearing value redacts promoted and nested raw-provider secrets without mutating stored values. | ✓ VERIFIED | Six custom Inspect implementations replace capability fields/raw containers wholesale; the AST-scoped inventory, sibling-module discovery fixture, provider hydration, recursive canaries, and immutability assertions pass in the bounded suite. |
+| 4 | Safe reads retry only within documented bounds; ambiguous mutations execute once and return conservative reconciliation guidance. | ✓ VERIFIED | `Paddle.Http` method-gates the exact transient set with `max_retries: 3` and a 60,000 ms 429 cap. Malformed nested error cases normalize through `Paddle.Error`; bounded tests passed. Duplicate pause/resume input validation is separated as truth 9. |
+| 5 | Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer URLs work. | ✓ VERIFIED | Validation helpers execute before `Req.new/1`; current client tests in the bounded suite cover the decision table, pre-dispatch rejection, custom URL dispatch, and secret-safe failures. |
+| 6 | Public docs, examples, types, retry guidance, stream semantics, evidence tiers, and migration notes agree with tested runtime behavior. | ✓ VERIFIED | Compiled seam tests pass, including direct address elements and raised enumeration errors; required/forbidden claims and fetched docs/types/specs are mechanically checked. The malformed Inspect rendering shape is a warning, not a secret-disclosure or contract contradiction. |
+| 7 | Failed or interrupted full compatibility runs cannot leave stale acceptance. | ✗ FAILED (BLOCKER) | Seeded-receipt preflight probe exited 2 for missing `ACCRUE_CHECKOUT` but left `phase32_compatibility=passed` and `commit=stale` intact. |
+| 8 | The bounded contract proof reliably completes within 30 seconds and only a successful wrapped command leaves acceptance. | ✗ FAILED (BLOCKER) | Exact wrapper runs finished at ~29.4s and ~29.9s, then timed out on the third run. The timed-out run had already published a passing contract receipt. |
+| 9 | Every public mutation option list rejects duplicate `:retry` keys before dispatch regardless of order. | ✗ FAILED (BLOCKER) | Both pause and resume dispatched for `[retry: false, retry: true]`; reversing the entries raised `ArgumentError` without dispatch. |
 
-**Score:** 4/7 truths verified (0 present, behavior-unverified)
-
-### Plan Must-Have Resolution
-
-| Plan | Truths | Resolution |
-|---|---:|---|
-| 32-01 | 3 | VERIFIED — secure dependency line, root adapter request, demo lock/audit separation. |
-| 32-02 | 1 | VERIFIED — migrated adapter fixtures are active in the passing suite. |
-| 32-03 | 4 | VERIFIED — constructor decision table, custom URL classification, pre-Req validation, and Client inspection. |
-| 32-04 | 6 | 5 VERIFIED; 1 FAILED — malformed nested error bodies bypass the total Paddle.Error ambiguity seam. |
-| 32-05 | 3 | 2 VERIFIED; 1 FAILED — mutation guidance is not total, and public mutation opts can override Req transport configuration. |
-| 32-06 | 3 | 2 VERIFIED; 1 FAILED — notification create has the same option injection/error normalization gaps. |
-| 32-07 | 3 | 2 VERIFIED; 1 FAILED — normal one-attempt behavior passes, but transaction mutation normalization is not total. |
-| 32-08 | 4 | VERIFIED — exact schemas, per-attempt ordering, recursive absence, concurrency, and cleanup have active behavioral coverage. |
-| 32-09 | 3 | 2 VERIFIED; 1 WARNING — current capability values redact correctly, but the source inventory is not structurally exhaustive per module. |
-| 32-10 | 5 | 2 VERIFIED; 3 FAILED — address docs drift and both complete proof executions timed out. |
-| 32-11 | 4 | 3 VERIFIED; 1 FAILED — fixtures and atomic self-test pass, but the complete matrix did not finish in the verifier window. |
+**Score:** 6/9 truths verified (0 present-but-behavior-unverified)
 
 ## Required Artifacts
 
-The automated artifact query reported 42/42 declared artifact checks passing at existence/substance level. Manual wiring exposed the behavioral defects below.
+Automated plan-frontmatter checks report **50/50 artifacts** present and substantive. Manual wiring/behavior checks expose the three defects below.
 
 | Artifact group | Expected | Status | Details |
 |---|---|---|---|
-| `mix.exs`, root/demo locks | Secure Req resolution | ✓ VERIFIED | All select Req 0.7.4. |
-| `lib/paddle/client.ex`, client tests | Validated client trust root | ✓ VERIFIED | Substantive, invoked by all public resources, and behaviorally tested. |
-| `lib/paddle/http.ex`, `lib/paddle/error.ex` | Central retry and normalization boundary | ✗ PARTIAL | Wired and substantive; unsafe Req option passthrough and non-total nested error parsing remain. |
-| Resource modules Plans 05–07 | Static context, bounded reads, one-attempt mutations | ✗ PARTIAL | Normal paths are wired/tested; six public mutation option lists can inject Req options, and malformed errors defeat guidance. |
-| Telemetry implementation/tests | Attempt-scoped allowlist | ✓ VERIFIED | Wired into Client Req construction and covered by exact-key, retry, concurrency, and canary tests. |
-| Inspect implementations/tests | Secret-safe public representation | ⚠️ WARNING | Current values pass; inventory discovery can miss a second module in a source file. |
-| README/guides/changelog/seam tests | Accurate public contract | ✗ PARTIAL | Most contract assertions pass, but address stream docs contradict shared pagination behavior. |
-| Compatibility/proof scripts | Complete atomic acceptance | ✗ FAILED | Self-test passes; complete verifier executions timed out and produced no fresh receipt. |
+| Root/demo manifests and locks | Secure Req resolution | ✓ VERIFIED | Root constraint and both generated locks select Req 0.7.4. |
+| `lib/paddle/client.ex` and client tests | Validated explicit client | ✓ VERIFIED | Substantive, pre-Req validation is wired, custom URLs work, and secret-bearing fields redact. |
+| `lib/paddle/http.ex`, `lib/paddle/error.ex` | Central bounded retry and total ambiguity seam | ✓ VERIFIED | Exact retry policy and malformed-envelope normalization are wired and behaviorally exercised. |
+| Resource modules | Static context and one-attempt mutations | ✗ PARTIAL | Normal lifecycle behavior passes, but subscription pause/resume duplicate retry validation is incomplete. |
+| Telemetry implementation/tests | Attempt-scoped exact allowlist | ✓ VERIFIED | Wired into Req steps and covered by exact-key, canary, retry, concurrency, and cleanup tests. |
+| Inspect implementations/tests | Secret-safe public representations | ⚠ WARNING | Redaction is effective, but all six custom Inspect implementations emit malformed struct-like syntax such as `%Paddle.Client{[api_key: ...]}`. |
+| Docs/seam tests | Runtime-accurate public contract | ✓ VERIFIED | Address stream and evidence-boundary corrections are compiled and tested. |
+| Compatibility/proof scripts | Fail-closed, bounded atomic acceptance | ✗ FAILED | Full preflight preserves stale success; bounded proof is deadline-fragile and can leave a receipt after wrapper termination. |
 
 ## Key Link Verification
 
-The automated key-link query reported 25/25 declared pattern links present. Presence did not prove safety at two links.
+Automated plan-frontmatter checks report **32/32 key-link patterns** present. Behavioral inspection changes two links from nominally present to unsafe.
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| Public mutation APIs | `Paddle.Http.request/4` | Caller options plus internal JSON/context | ✗ UNSAFE | Caller `:base_url`, `:adapter`, `:auth`, or `:headers` can reach Req. |
-| `Paddle.Http` | `Paddle.Error` | Non-2xx response normalization | ✗ PARTIAL | Connected, but non-map nested `error` values crash. |
-| Client | Req | Validated constructor before Req creation | ✓ WIRED | Constructor controls initial base URL and bearer auth. |
-| Resource reads | Pagination/Http | Static operation/route, cursor dispatch | ✓ WIRED | Runtime cursor remains separate from telemetry context. |
-| Http telemetry | Req request/response/error steps | Pre-retry terminal instrumentation | ✓ WIRED | Ordering and per-attempt behavior covered by named tests. |
-| Inspection tests | Hydration/Inspect implementations | `Http.build_struct/2` and canaries | ✓ WIRED | Current six secret-bearing values are hydrated and redacted. |
-| Seam tests | Public docs/types/specs | Contract assertions | ⚠️ PARTIAL | Does not cover the inaccurate address stream contract. |
+| Public create mutations | `Paddle.Http.validate_public_request_opts!/1` | Validation before normalization/merge | ✓ WIRED | Six create APIs reject transport authority and duplicate/malformed retry options before dispatch. |
+| Subscription pause/resume | `Paddle.Http.request/4` | Resource-local normalization then central request policy | ✗ PARTIAL | Resource normalization collapses duplicate retry entries before central validation can see them. |
+| `Paddle.Http` | `Paddle.Error` | Terminal error normalization | ✓ WIRED | Malformed nested envelopes reach conservative `Paddle.Error` values. |
+| Client | Req | Preconstruction validation | ✓ WIRED | Credential/environment/base URL validation precedes `Req.new/1`. |
+| Telemetry | Req request/response/error steps | Pre-retry terminal instrumentation | ✓ WIRED | Request-local attempt state and exact projections are behaviorally covered. |
+| Contract proof | Compatibility verifier and receipt | Nested bounded evidence | ✗ UNSAFE | Receipt publication can precede the wrapper's final successful termination; total duration has no stable margin. |
 
 ## Data-Flow Trace (Level 4)
 
-This is a core-library phase, not a rendered-data phase. The relevant trust flows are outbound requests and public representations.
+Phase 32 is an SDK/core-library phase with no rendered UI data. The relevant flows are authority, provider errors, telemetry, and inspection.
 
-| Artifact | Data | Source → Sink | Produces Real Behavior | Status |
-|---|---|---|---|---|
-| `Paddle.Customers.create/3` | API key and base URL | Client Req defaults + caller opts → Req adapter | Yes, including unsafe overridden origin | ✗ FLOWING UNSAFELY |
-| `Paddle.Error.from_response/2` | Provider error body | Req response → Paddle.Error | Crashes for non-map nested error | ✗ BROKEN |
-| `Paddle.Http.Telemetry` | Operational metadata | request-private static context → telemetry subscriber | Exact allowlisted values | ✓ FLOWING |
-| Inspect implementations | Secret-bearing values | hydrated structs → `inspect/1` | Protected fields replaced in representation | ✓ FLOWING |
+| Artifact | Data | Source → Sink | Status |
+|---|---|---|---|
+| Public create APIs | Caller request options | Public function → shared validator → Req | ✓ CONTAINED |
+| Subscription pause/resume | Duplicate retry entries | Public function → `Keyword.pop/2` → central request | ✗ COLLAPSED / ORDER-DEPENDENT |
+| `Paddle.Error.from_response/2` | Arbitrary provider body | Req response → typed conservative public error | ✓ FLOWING SAFELY |
+| `Paddle.Http.Telemetry` | Operational request facts | Request-private static context → subscriber allowlist | ✓ FLOWING SAFELY |
+| Inspect implementations | Capability-bearing structs | Hydrated stored term → redacted representation | ✓ FLOWING SAFELY (format warning) |
+| Compatibility/proof scripts | Process verdict | Preconditions/tests → atomic receipt | ✗ STALE/PREMATURE ACCEPTANCE POSSIBLE |
 
 ## Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Full workspace behavior | `mix test` | 260 tests, 0 failures | ✓ PASS |
-| Clean advisory result | `mix hex.audit` | No retired or security advisory packages found | ✓ PASS |
-| Telemetry retry pairing | `mix test test/paddle/http/telemetry_test.exs:133` | 1 test, 0 failures | ✓ PASS |
-| Telemetry subscriber isolation | `mix test test/paddle/http/telemetry_test.exs:205` | 1 test, 0 failures | ✓ PASS |
-| Six-value inspection redaction | `mix test test/paddle/inspection_safety_test.exs:99` | 1 test, 0 failures | ✓ PASS |
-| One-attempt mutations | `mix test test/paddle/http_test.exs:165` | 1 test, 0 failures | ✓ PASS |
-| Ambiguous normal 408/5xx mutations | `mix test test/paddle/http_test.exs:282` | 1 test, 0 failures | ✓ PASS |
-| Malformed nested provider error | `mix run -e '... %{\"error\" => \"bad-shape\"} ...'` | `FunctionClauseError: no function clause matching in Access.get/3` | ✗ FAIL |
-| Mutation origin/credential containment | `mix run -e '... Customers.create(..., base_url: ..., adapter: ...) ...'` | URL attacker.example; auth `Bearer secret-canary` | ✗ FAIL |
-| Address stream element contract | one-page adapter + `Enum.take/2` | Returned bare `%Paddle.Address{}`, not `{:ok, address}` | ✗ FAIL |
+| Current workspace suite | `mix test` | 272 tests, 0 failures in the execute-phase post-merge gate | ✓ PASS |
+| Prior-phase regression corpus | Node regression gate | 133 tests, 0 failures | ✓ PASS |
+| Bounded SAFE corpus and audit | nested `phase32_compatibility.sh --verify` | 72 tests, 0 failures; audit clean on each verifier attempt | ✓ PASS |
+| Full receipt stale on failed preflight | Seed receipt, run `--full` with empty `ACCRUE_CHECKOUT` | Exit 2; stale passing receipt remains unchanged | ✗ FAIL |
+| Duplicate pause retry options | Public pause calls with both key orders | `false,true` dispatched and returned `{:ok, _}`; `true,false` raised before dispatch | ✗ FAIL |
+| Duplicate resume retry options | Public resume calls with both key orders | `false,true` dispatched and returned `{:ok, _}`; `true,false` raised before dispatch | ✗ FAIL |
+| Inspect representation shape | Inspect current Client and Error | `%Module{[key: value]}` malformed struct-like syntax | ⚠ WARNING |
 
 ## Probe Execution
 
 | Probe | Command | Result | Status |
 |---|---|---|---|
-| Atomic receipt self-test | `bin/phase32_compatibility.sh --self-test` | Passed | ✓ PASS |
-| Complete compatibility matrix | `gsd-tools run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_compatibility.sh` | Root row passed; timed out in focused customer row; no receipt | ✗ FAILED |
-| Final contract proof | `gsd-tools run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_contract_proof.sh` | Concurrent readers and self-test passed; timed out in first nested matrix | ✗ FAILED |
+| Compatibility interruption/failure self-test | nested `bin/phase32_compatibility.sh --self-test` | Passed on all three contract-verifier attempts, but does not cover stale preflight receipts | ⚠ INCOMPLETE |
+| Bounded compatibility | nested exact `--verify` mode | 72 tests and online audit passed; atomic verifier receipt present | ✓ PASS |
+| Bounded contract proof run 1 | exact 30-second wrapper | Exit 0 at ~29.4s; receipt present | ⚠ MARGINAL |
+| Bounded contract proof run 2 | exact 30-second wrapper | Exit 0 at ~29.9s; receipt present | ⚠ MARGINAL |
+| Bounded contract proof run 3 | exact 30-second wrapper | Terminated at 30s after printing success; receipt already present | ✗ FAILED |
+| Full 13-row acceptance | preserved receipt from fresh Plan 13 execution | 13 named rows recorded at implementation commit; current code still passes 272 tests | ⚠ RECEIPT INTEGRITY GAP |
 
 ## Requirements Coverage
 
 | Requirement | Source Plans | Status | Evidence |
 |---|---|---|---|
-| SAFE-01 | 01, 02, 10, 11 | ✓ SATISFIED (with probe gap) | Req 0.7.4 is resolved and audit is clean; tests pass. Complete acceptance scripts did not finish within verifier timeout. |
-| SAFE-02 | 08, 10 | ✓ SATISFIED | Exact allowlist, recursive canaries, paired attempts, concurrency, and cleanup are behaviorally tested. |
-| SAFE-03 | 03, 04, 09, 10 | ✓ SATISFIED (warning) | All current identified secret-bearing public values redact promoted/raw secrets; inventory future-exhaustiveness is weak. |
-| SAFE-04 | 04, 05, 06, 07, 10 | ✗ BLOCKED | Normal retry/replay behavior passes, but malformed error envelopes crash instead of returning actionable ambiguity. |
-| SAFE-05 | 03, 10 | ✓ SATISFIED | Client constructor rejects invalid state and preserves validated custom base URLs. The broader goal-level request-option credential gap remains a blocker. |
-| SAFE-06 | 10 | ✗ BLOCKED | Address stream docs/examples disagree with runtime behavior; proof runners did not complete in verifier execution. |
+| SAFE-01 | 01, 02, 10, 11, 13 | ✓ SATISFIED (receipt warning) | Req 0.7.4 is installed, bounded compatibility is green, and online audit is clean. Stale full receipts weaken evidence integrity but do not negate the actual dependency result. |
+| SAFE-02 | 08, 10, 13 | ✓ SATISFIED | Exact allowlists, recursive canaries, paired attempts, concurrency, and cleanup are active in the passing bounded corpus. |
+| SAFE-03 | 03, 04, 09, 10, 13 | ✓ SATISFIED (format warning) | AST inventory and six provider-hydrated redaction proofs pass; stored terms are unchanged. Inspect output shape is malformed but does not disclose secrets. |
+| SAFE-04 | 04-07, 10, 12, 13 | ✗ BLOCKED | Core retry/ambiguity behavior passes, but public subscription mutation options accept duplicate retry configuration in one ordering and dispatch instead of rejecting it. |
+| SAFE-05 | 03, 10, 12 | ✓ SATISFIED | Constructor validation and create-mutation authority containment are tested; deliberate custom MockServer URLs remain supported. |
+| SAFE-06 | 10, 13 | ✗ BLOCKED | Public prose/runtime alignment passes, but the documented bounded proof is unreliable and can publish acceptance despite wrapper failure. |
 
-No Phase 32 requirements are orphaned: SAFE-01 through SAFE-06 appear in plan frontmatter and REQUIREMENTS.md maps only those six to Phase 32.
+No Phase 32 requirements are orphaned. SAFE-01 through SAFE-06 appear in plan frontmatter and REQUIREMENTS.md maps only those six to Phase 32.
 
 ## Test Quality Audit
 
-| Test File | Linked Req | Active | Skipped | Circular | Assertion Level | Verdict |
-|---|---|---:|---:|---|---|---|
-| `test/paddle/http_test.exs` | SAFE-01, SAFE-04 | 20 | 0 | No | Behavioral | PARTIAL — strong normal retry tests, no malformed nested error or Req-option containment case. |
-| `test/paddle/http/telemetry_test.exs` | SAFE-02 | 7 | 0 | No | Behavioral/exact value | PASS |
-| `test/paddle/inspection_safety_test.exs` | SAFE-03 | 3 | 0 | No | Value/behavioral | WARNING — source regex is file-level and selects only the first module. |
-| `test/paddle/client_test.exs` | SAFE-05 | 10 | 0 | No | Behavioral/value | PASS |
-| `test/paddle/seam_test.exs` | SAFE-01–06 | 9 | 0 | No | Contract/value | PARTIAL — misses address stream semantics. |
+| Test area | Linked Req | Disabled | Circular | Assertion Level | Verdict |
+|---|---|---:|---|---|---|
+| Dependency/compatibility and receipts | SAFE-01, SAFE-06 | 0 | No | Integration/behavioral | ✗ INCOMPLETE — self-test omits stale preflight and wrapper-termination receipt cases. |
+| HTTP/error/retry | SAFE-04 | 0 | No | Behavioral/value | ✓ PASS for central policy and malformed envelopes. |
+| Subscription lifecycle | SAFE-04 | 0 | No | Behavioral | ✗ INCOMPLETE — no duplicate-retry tests for pause/resume. |
+| Telemetry | SAFE-02 | 0 | No | Behavioral/exact value | ✓ PASS |
+| Inspection safety | SAFE-03 | 0 | No | Behavioral/value | ⚠ WARNING — redaction is strong; exact valid-struct formatting is unasserted. |
+| Client construction | SAFE-05 | 0 | No | Behavioral/value | ✓ PASS |
+| Public seam/docs | SAFE-01-06 | 0 | No | Contract/value | ✓ PASS for documented runtime semantics; shell text-presence checks do not prove timing reliability. |
 
-**Disabled tests on requirements:** 0.  
-**Circular expected-value generation:** 0. Receipt files are execution outputs, not expected fixtures generated by the system under test.  
-**Insufficient assertions:** 3 coverage gaps: request-option containment, malformed nested provider errors, and address stream docs/runtime agreement.
+No disabled requirement tests or circular expected-value generators were found.
 
 ## Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |---|---:|---|---|---|
-| `lib/paddle/http.ex` | 40–45 | Unrecognized public options forwarded into Req | 🛑 BLOCKER | Lets callers replace transport origin/config while bearer auth remains attached. |
-| `lib/paddle/error.ex` | 108–117 | Nested provider value assumed to be a map | 🛑 BLOCKER | Malformed provider/intermediary payload crashes the public error boundary. |
-| `lib/paddle/customers/addresses.ex` | 229–245 | Example/error text contradicts implementation | 🛑 BLOCKER | Consumers matching documented tuples fail on successful elements and cannot receive documented error tuples. |
-| `test/paddle/inspection_safety_test.exs` | 72–91 | File-level regex records only first module | ⚠️ WARNING | A later second public raw-data struct in the same file could escape inventory classification. |
+| `bin/phase32_compatibility.sh` | 168-179 | Receipt invalidation occurs after failing preflight | 🛑 BLOCKER | A previous success can survive a failed current run. |
+| `bin/phase32_contract_proof.sh` | 166-198 | Acceptance publishes before total wrapped-process completion with deadline-fragile work | 🛑 BLOCKER | Timeout can coexist with a passing receipt. |
+| `lib/paddle/subscriptions.ex` | 478-562 | `Keyword.pop/2` silently collapses duplicate `:retry` keys | 🛑 BLOCKER | Mutation option validation is inconsistent and order-dependent. |
+| `lib/paddle/client.ex` and five peer Inspect implementations | 213+ | Keyword-list document wrapped in struct braces | ⚠ WARNING | Logs render malformed struct-like syntax, reducing debuggability. |
 
-No unreferenced `TBD`, `FIXME`, or `XXX` debt markers and no disabled requirement tests were found in the Phase 32 implementation/test set.
+No unreferenced `TBD`, `FIXME`, or `XXX` markers exist in the Phase 32 implementation/test scope.
 
 ## Prohibition Review
 
-The plan prohibition entries remain marked `status: unresolved`, `verification: null`, and `flagged_unverified: true`. Current behavioral evidence supports the no-authority-inflation, no-global-config, no-auto-reconcile, telemetry allowlist/cardinality, and no-data-destruction prohibitions. Two prohibitions are observably violated: the false-certainty/error-seam prohibition is defeated by the malformed-body crash, and the split-contract prohibition is defeated by the address-stream documentation. These violations are included as blocking gaps rather than silently passed.
+Behavioral evidence supports the no-authority-inflation, telemetry-disclosure, raw-data-destruction, automatic-reconciliation, and split-doc-contract prohibitions. The receipt-integrity and unique-option prohibitions are observably violated and are represented as blocking gaps above. No separate human-only prohibition decision can lower the `gaps_found` verdict.
 
 ## Decision Coverage
 
-All 19 trackable `32-CONTEXT.md` decisions are reported honored by the non-blocking decision-coverage query. The runtime defects above show why decision substring coverage is not behavioral proof.
+All 19 trackable `32-CONTEXT.md` decisions are reported honored by the non-blocking decision-coverage query. This is substring coverage only; the three behavioral blockers above supersede it as goal evidence.
 
 ## Human Verification Required
 
-N/A — infrastructure/core-library phase with no user-facing visual elements. All relevant outcomes are programmatically testable; the unresolved items are observable code/probe failures, not manual-UAT questions.
+N/A — infrastructure/core-library phase with no user-facing visual elements. Every unresolved item was reproduced programmatically; `behavior_unverified: 0`.
 
 ## Deferred Items
 
-None. Phases 33–36 cover CI authority, release integrity, operations, and trajectory/handoff; none specifically owns mutation option validation, provider-error normalization, or the incorrect address stream contract.
+None. Phases 33-36 cover hosted CI authority, release publication, contribution operations, and durable trajectory. None specifically owns Phase 32 receipt invalidation, bounded local verifier timing, or subscription option uniqueness.
 
 ## Gaps Summary
 
-Phase 32 does not achieve its stated trust-boundary goal. The current SDK can disclose a validated client's bearer credential to a caller-selected origin, malformed provider error envelopes can escape the promised ambiguity/reconciliation result by crashing, and a public stream example misstates both success and failure semantics. The phase's broad test suite remains green because it does not exercise these paths. In addition, neither complete documented proof runner finished within the verifier's required 30-second execution window, so fresh final acceptance was not produced.
+Plans 32-12 and 32-13 close the earlier credential-redirection, malformed-error, and address-stream documentation gaps. The phase still cannot pass its trust-boundary goal: failed full preflight can preserve stale acceptance, the bounded proof is not reliably bounded and can leave a passing receipt after timeout, and subscription pause/resume silently accept duplicate retry configuration in one order. The 272-test current suite and 133-test regression gate are green because they do not exercise these three paths.
 
 ---
 
-_Verified: 2026-09-10T22:51:18Z_  
+_Verified: 2026-09-11T02:26:51Z_
 _Verifier: the agent (gsd-verifier)_
