@@ -1053,6 +1053,23 @@ defmodule Paddle.SeamTest do
     end
   end
 
+  test "Phase 32 full receipt invalidation precedes every Accrue preflight" do
+    compatibility = File.read!("bin/phase32_compatibility.sh")
+
+    for marker <- [
+          "preflight-missing",
+          "preflight-invalid",
+          "run_matrix_preflight",
+          "invalidate_full_receipt"
+        ] do
+      assert compatibility =~ marker
+    end
+
+    {invalidate_at, _} = :binary.match(compatibility, "invalidate_full_receipt")
+    {preflight_at, _} = :binary.match(compatibility, "ACCRUE_CHECKOUT is required")
+    assert invalidate_at < preflight_at
+  end
+
   defp markdown_section!(markdown, heading) do
     pattern = Regex.compile!("^#{Regex.escape(heading)}\\n(?<body>.*?)(?=^## |\\z)", "ms")
 
