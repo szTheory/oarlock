@@ -58,6 +58,46 @@ defmodule Paddle.ErrorTest do
                raw_data: %{}
              } = Error.from_response(response)
     end
+
+    test "normalizes malformed nested error members without raising" do
+      for malformed <- [nil, "bad-shape", ["bad-shape"], 42] do
+        body = %{"error" => malformed, "outer" => "retained"}
+        response = Req.Response.new(status: 502, body: body)
+
+        assert %Error{
+                 status_code: 502,
+                 type: nil,
+                 code: nil,
+                 message: "Unknown Paddle Error",
+                 errors: [],
+                 raw_data: ^body
+               } = Error.from_response(response)
+      end
+    end
+
+    test "normalizes atom-keyed and type-invalid nested maps to documented field shapes" do
+      malformed_maps = [
+        %{type: "atom-type", code: "atom-code", detail: "atom-detail", errors: [%{}]},
+        %{
+          "type" => :invalid,
+          "code" => 123,
+          "detail" => ["invalid"],
+          "errors" => "invalid"
+        }
+      ]
+
+      for malformed <- malformed_maps do
+        body = %{"error" => malformed}
+
+        assert %Error{
+                 type: nil,
+                 code: nil,
+                 message: "Unknown Paddle Error",
+                 errors: [],
+                 raw_data: ^body
+               } = Error.from_response(Req.Response.new(status: 422, body: body))
+      end
+    end
   end
 
   describe "context-aware constructors" do

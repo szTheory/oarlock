@@ -288,6 +288,42 @@ defmodule Paddle.HttpTest do
   end
 
   describe "request/4 ambiguous mutation outcomes" do
+    test "malformed provider errors preserve one-attempt ambiguity and reconciliation guidance" do
+      for malformed <- [nil, "bad-shape", ["bad-shape"], %{type: "atom-keyed"}] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+        body = %{"error" => malformed, "outer_secret" => "provider-canary"}
+
+        client =
+          client_with_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            {request, Req.Response.new(status: 502, body: body)}
+          end)
+
+        assert {:error,
+                %Error{
+                  status_code: 502,
+                  type: nil,
+                  code: nil,
+                  message: "Unknown Paddle Error",
+                  errors: [],
+                  raw_data: ^body,
+                  ambiguous?: true,
+                  retryable?: false,
+                  operation: :create_customer,
+                  resource_id: "ctm_safe_01",
+                  reconciliation: [:lookup, :webhook, :provider_dashboard]
+                } = error} =
+                 Http.request(client, :post, "/customers",
+                   operation: :create_customer,
+                   route: "/customers",
+                   resource_id: "ctm_safe_01"
+                 )
+
+        assert Agent.get(attempts, & &1) == 1
+        refute inspect(error) =~ "provider-canary"
+      end
+    end
+
     test "transport failures are non-retryable ambiguity with safe reconciliation context" do
       {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
