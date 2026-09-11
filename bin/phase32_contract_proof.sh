@@ -44,13 +44,20 @@ input_manifest() {
   )
 }
 
-run_isolated_reader_and_docs() {
+run_isolated_seam_reader() {
   local workspace="$1"
   (
     cd "$workspace"
     MIX_DEPS_PATH="$ROOT_DIR/deps" MIX_BUILD_PATH="$workspace/_build_contract" \
       MIX_ENV=test mix do compile --warnings-as-errors + \
       test --warnings-as-errors test/paddle/seam_test.exs
+  )
+}
+
+run_isolated_docs_builder() {
+  local workspace="$1"
+  (
+    cd "$workspace"
     MIX_DEPS_PATH="$ROOT_DIR/deps" MIX_BUILD_PATH="$workspace/_build_contract" \
       MIX_ENV=dev mix docs
   )
@@ -104,9 +111,9 @@ run_concurrent_readers() {
     return 1
   }
 
-  run_isolated_reader_and_docs "$reader_one" >"$PROOF_DIR/reader-one.log" 2>&1 &
+  run_isolated_seam_reader "$reader_one" >"$PROOF_DIR/reader-one.log" 2>&1 &
   reader_one_pid=$!
-  run_isolated_reader_and_docs "$reader_two" >"$PROOF_DIR/reader-two.log" 2>&1 &
+  run_isolated_docs_builder "$reader_two" >"$PROOF_DIR/reader-two.log" 2>&1 &
   reader_two_pid=$!
 
   reader_one_status=0
@@ -124,7 +131,7 @@ run_concurrent_readers() {
     return 1
   fi
 
-  printf 'Concurrent isolated seam readers and docs builds passed\n'
+  printf 'Concurrent isolated seam reader and docs build passed\n'
 }
 
 require_verifier_receipt() {
