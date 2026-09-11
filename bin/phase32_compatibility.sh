@@ -82,6 +82,27 @@ publish_receipt() {
   trap - RETURN
 }
 
+invalidate_full_receipt() {
+  FULL_RECEIPT_PATH="$EVIDENCE_DIR/phase32-compatibility.receipt"
+  RECEIPT_PATH="$FULL_RECEIPT_PATH"
+  mkdir -p "$EVIDENCE_DIR"
+  rm -f "$FULL_RECEIPT_PATH"
+}
+
+run_matrix_preflight() {
+  # A new full attempt revokes its old local acceptance before any prerequisite can fail.
+  invalidate_full_receipt
+
+  [[ -n "$ACCRUE_CHECKOUT" ]] || {
+    printf 'ACCRUE_CHECKOUT is required\n' >&2
+    return 2
+  }
+  [[ -f "$ACCRUE_CHECKOUT/accrue/mix.exs" ]] || {
+    printf 'ACCRUE_CHECKOUT must contain the tracked accrue/mix.exs project\n' >&2
+    return 2
+  }
+}
+
 fake_matrix() {
   local mode="$1"
   local ready_path="$2"
@@ -111,14 +132,43 @@ fake_matrix() {
 }
 
 self_test() {
-  local self_test_dir failure_dir interrupted_dir success_dir ready_path interrupted_pid receipt_count
+  local self_test_dir failure_dir interrupted_dir success_dir preflight_missing_dir preflight_invalid_dir
+  local ready_path interrupted_pid receipt_count
   self_test_dir="$(mktemp -d)"
   trap 'rm -rf "$self_test_dir"' RETURN
 
   failure_dir="$self_test_dir/failure"
   interrupted_dir="$self_test_dir/interrupted"
   success_dir="$self_test_dir/success"
-  mkdir -p "$failure_dir" "$interrupted_dir" "$success_dir"
+  preflight_missing_dir="$self_test_dir/preflight-missing"
+  preflight_invalid_dir="$self_test_dir/preflight-invalid"
+  mkdir -p "$failure_dir" "$interrupted_dir" "$success_dir" "$preflight_missing_dir" "$preflight_invalid_dir"
+
+  for case_name in preflight-missing preflight-invalid; do
+    local case_dir case_checkout
+    case_dir="$preflight_missing_dir"
+    case_checkout=""
+    if [[ "$case_name" == "preflight-invalid" ]]; then
+      case_dir="$preflight_invalid_dir"
+      case_checkout="$self_test_dir/not-an-accrue-checkout"
+      mkdir -p "$case_checkout"
+    fi
+
+    EVIDENCE_DIR="$case_dir"
+    FULL_RECEIPT_PATH="$EVIDENCE_DIR/phase32-compatibility.receipt"
+    RECEIPT_PATH="$FULL_RECEIPT_PATH"
+    ACCRUE_CHECKOUT="$case_checkout"
+    printf 'phase32_compatibility=passed stale=true\n' >"$FULL_RECEIPT_PATH"
+
+    if run_matrix >/dev/null 2>&1; then
+      printf 'Self-test %s full preflight unexpectedly succeeded\n' "$case_name" >&2
+      return 1
+    fi
+    [[ ! -e "$FULL_RECEIPT_PATH" ]] || {
+      printf 'Self-test %s preserved a stale full acceptance receipt\n' "$case_name" >&2
+      return 1
+    }
+  done
 
   EVIDENCE_DIR="$failure_dir"
   RECEIPT_PATH="$EVIDENCE_DIR/phase32-compatibility.receipt"
@@ -165,18 +215,7 @@ self_test() {
 run_matrix() {
   local before_diff after_diff receipt_body
 
-  [[ -n "$ACCRUE_CHECKOUT" ]] || {
-    printf 'ACCRUE_CHECKOUT is required\n' >&2
-    return 2
-  }
-  [[ -f "$ACCRUE_CHECKOUT/accrue/mix.exs" ]] || {
-    printf 'ACCRUE_CHECKOUT must contain the tracked accrue/mix.exs project\n' >&2
-    return 2
-  }
-
-  mkdir -p "$EVIDENCE_DIR"
-  RECEIPT_PATH="$FULL_RECEIPT_PATH"
-  rm -f "$RECEIPT_PATH"
+  run_matrix_preflight || return $?
   before_diff="$(tracked_diff_fingerprint)"
 
   run_row "root-suite" run_root_mix
