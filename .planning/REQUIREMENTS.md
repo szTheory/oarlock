@@ -35,12 +35,12 @@ in the linked research files.
 
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
-- [ ] **SAFE-01**: SDK consumer can install a compatibility-tested Req release that resolves the known advisories, while `mix hex.audit` passes.
+- [x] **SAFE-01**: SDK consumer can install a compatibility-tested Req release that resolves the known advisories, while `mix hex.audit` passes.
 - [ ] **SAFE-02**: Telemetry subscriber receives stable allowlisted metadata without request/response objects, API credentials, bodies, signed URLs, secrets, or raw customer data.
 - [ ] **SAFE-03**: Inspecting any public secret-bearing struct redacts secrets from both promoted fields and nested raw provider payloads.
 - [ ] **SAFE-04**: Safe reads use bounded, documented retry behavior, while ambiguous mutations are not blindly replayed and instead return actionable reconciliation guidance.
 - [ ] **SAFE-05**: Client construction rejects blank credentials, unsupported environments, and invalid configuration while preserving deliberate custom-base-URL MockServer use.
-- [ ] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
+- [x] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
 
 ### Deterministic Green CI
 
@@ -130,12 +130,12 @@ promotes them through the provenance rules above.
 | REPO-02 | Phase 31 | Complete |
 | REPO-03 | Phase 31 | Complete |
 | REPO-04 | Phase 31 | Complete |
-| SAFE-01 | Phase 32 | Gaps Found |
+| SAFE-01 | Phase 32 | Complete |
 | SAFE-02 | Phase 32 | Gaps Found |
 | SAFE-03 | Phase 32 | Gaps Found |
 | SAFE-04 | Phase 32 | Gaps Found |
 | SAFE-05 | Phase 32 | Gaps Found |
-| SAFE-06 | Phase 32 | Gaps Found |
+| SAFE-06 | Phase 32 | Complete |
 | CI-01 | Phase 33 | Pending |
 | CI-02 | Phase 33 | Pending |
 | CI-03 | Phase 33 | Pending |
