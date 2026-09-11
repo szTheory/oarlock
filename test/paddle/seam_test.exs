@@ -716,6 +716,19 @@ defmodule Paddle.SeamTest do
     assert migration =~ "constructor validation"
   end
 
+  test "address stream documentation matches direct elements and raised enumeration failures" do
+    docs =
+      Paddle.Customers.Addresses
+      |> function_doc!(:stream, 3)
+      |> normalize_markdown()
+
+    assert docs =~ "bare `%Paddle.Address{}` values"
+    assert docs =~ "raises `%Paddle.Error{}` during enumeration"
+    assert docs =~ "validation failures raise `ArgumentError` during enumeration"
+    refute docs =~ "`{:ok, %Paddle.Address{}}`"
+    refute docs =~ "`{:error, error}` elements"
+  end
+
   test "compiled docs types and specs agree with the Phase 32 decision tables" do
     documented_modules = [
       Paddle.Client,
@@ -1016,6 +1029,26 @@ defmodule Paddle.SeamTest do
   end
 
   defp normalized_moduledoc!(module), do: module |> moduledoc!() |> normalize_markdown()
+
+  defp function_doc!(module, name, arity) do
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, _, _, docs} ->
+        case Enum.find(docs, fn {{kind, doc_name, doc_arity}, _, _, _, _} ->
+               kind == :function and doc_name == name and doc_arity == arity
+             end) do
+          {{:function, ^name, ^arity}, _, _, %{"en" => doc}, _} ->
+            doc
+
+          other ->
+            flunk(
+              "expected English docs for #{inspect(module)}.#{name}/#{arity}, got: #{inspect(other)}"
+            )
+        end
+
+      other ->
+        flunk("expected compiled docs for #{inspect(module)}, got: #{inspect(other)}")
+    end
+  end
 
   defp spec_arities(module) do
     {:ok, specs} = Code.Typespec.fetch_specs(module)
