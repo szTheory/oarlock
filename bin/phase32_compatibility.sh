@@ -4,7 +4,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE_DIR="${PHASE32_EVIDENCE_DIR:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/oarlock-phase32-evidence}"
-RECEIPT_PATH="$EVIDENCE_DIR/phase32-compatibility.receipt"
+FULL_RECEIPT_PATH="$EVIDENCE_DIR/phase32-compatibility.receipt"
+VERIFY_RECEIPT_PATH="$EVIDENCE_DIR/phase32-verifier.receipt"
+RECEIPT_PATH="$FULL_RECEIPT_PATH"
 ACCRUE_CHECKOUT="${ACCRUE_CHECKOUT:-}"
 declare -a ROW_RESULTS=()
 
@@ -36,6 +38,18 @@ run_root_mix() {
   (cd "$ROOT_DIR" && MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors "$@")
 }
 
+run_bounded_mix() {
+  run_root_mix \
+    test/paddle/error_test.exs \
+    test/paddle/http_test.exs \
+    test/paddle/client_test.exs \
+    test/paddle/http/telemetry_test.exs \
+    test/paddle/inspection_safety_test.exs \
+    test/paddle/customers/addresses_test.exs:198 \
+    test/paddle/customers/addresses_test.exs:211 \
+    test/paddle/seam_test.exs
+}
+
 run_package_smoke() {
   local elixir_version erlang_version
   elixir_version="$(awk '$1 == "elixir" {print $2}' "$ROOT_DIR/.tool-versions")"
@@ -57,13 +71,14 @@ run_accrue_seam() {
 }
 
 publish_receipt() {
-  local content="$1"
+  local receipt_path="$1"
+  local content="$2"
   local receipt_tmp
   mkdir -p "$EVIDENCE_DIR"
-  receipt_tmp="$(mktemp "$EVIDENCE_DIR/.phase32-compatibility.receipt.XXXXXX")"
+  receipt_tmp="$(mktemp "$EVIDENCE_DIR/.phase32-receipt.XXXXXX")"
   trap 'rm -f "${receipt_tmp:-}"' RETURN
   printf '%s\n' "$content" >"$receipt_tmp"
-  mv "$receipt_tmp" "$RECEIPT_PATH"
+  mv "$receipt_tmp" "$receipt_path"
   trap - RETURN
 }
 
@@ -86,7 +101,7 @@ fake_matrix() {
       ;;
     complete)
       run_row "fake-downstream" true
-      publish_receipt "phase32_compatibility=passed rows=${#ROW_RESULTS[@]}"
+      publish_receipt "$RECEIPT_PATH" "phase32_compatibility=passed rows=${#ROW_RESULTS[@]}"
       ;;
     *)
       printf 'Unknown fake matrix mode: %s\n' "$mode" >&2
@@ -160,6 +175,7 @@ run_matrix() {
   }
 
   mkdir -p "$EVIDENCE_DIR"
+  RECEIPT_PATH="$FULL_RECEIPT_PATH"
   rm -f "$RECEIPT_PATH"
   before_diff="$(tracked_diff_fingerprint)"
 
@@ -202,20 +218,62 @@ completed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 tracked_diff_sha256=$after_diff
 rows=${#ROW_RESULTS[@]}
 $(printf '%s\n' "${ROW_RESULTS[@]}")"
-  publish_receipt "$receipt_body"
+  publish_receipt "$RECEIPT_PATH" "$receipt_body"
   printf '\nPhase 32 compatibility matrix passed (%s rows)\n' "${#ROW_RESULTS[@]}"
   printf 'Acceptance receipt: %s\n' "$RECEIPT_PATH"
+}
+
+run_verifier() {
+  local before_diff after_diff receipt_body
+
+  mkdir -p "$EVIDENCE_DIR"
+  rm -f "$VERIFY_RECEIPT_PATH"
+  before_diff="$(tracked_diff_fingerprint)"
+  ROW_RESULTS=()
+
+  # bounded verifier evidence is fresh local evidence subordinate to the full 13-row D-03 acceptance
+  # matrix. It establishes no hosted, sandbox,
+  # live-provider, release, or publication authority.
+  run_row "bounded-root-suite" run_bounded_mix
+  run_row "online-hex-audit" bash -c 'cd "$1" && mix hex.audit' _ "$ROOT_DIR"
+
+  after_diff="$(tracked_diff_fingerprint)"
+  [[ "$before_diff" == "$after_diff" ]] || {
+    printf 'Tracked repository diff changed during bounded compatibility verification\n' >&2
+    return 1
+  }
+
+  receipt_body="phase32_verifier=passed
+commit=$(git -C "$ROOT_DIR" rev-parse HEAD)
+completed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+tracked_diff_sha256=$after_diff
+checks=${#ROW_RESULTS[@]}
+$(printf '%s\n' "${ROW_RESULTS[@]}")
+SAFE-01=pass dependency resolution and online audit
+SAFE-02=pass allowlisted process-owned telemetry isolation
+SAFE-03=pass exhaustive Inspect inventory and recursive canaries
+SAFE-04=pass total errors bounded reads and one-attempt mutations
+SAFE-05=pass secret-safe client construction and request authority
+SAFE-06=pass resource docs specs seams and local no-drift contract"
+
+  publish_receipt "$VERIFY_RECEIPT_PATH" "$receipt_body"
+  printf '\nPhase 32 bounded compatibility verifier passed\n'
+  printf 'Verifier receipt: %s\n' "$VERIFY_RECEIPT_PATH"
+  printf 'This receipt does not replace full 13-row D-03 acceptance.\n'
 }
 
 case "${1:-}" in
   --self-test)
     self_test
     ;;
-  "")
+  --verify)
+    run_verifier
+    ;;
+  --full)
     run_matrix
     ;;
   *)
-    printf 'Usage: %s [--self-test]\n' "${0##*/}" >&2
+    printf 'Usage: %s --verify|--full|--self-test\n' "${0##*/}" >&2
     exit 2
     ;;
 esac

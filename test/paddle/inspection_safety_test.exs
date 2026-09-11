@@ -141,6 +141,65 @@ defmodule Paddle.InspectionSafetyTest do
     end
   end
 
+  defp raw_data_modules_from_source!(source) do
+    source
+    |> Code.string_to_quoted!()
+    |> collect_raw_data_modules([])
+    |> Enum.reverse()
+  end
+
+  defp collect_raw_data_modules(
+         {:defmodule, _meta, [module_ast, [do: body]]},
+         modules
+       ) do
+    modules =
+      if owns_raw_data_declaration?(body) do
+        [Macro.to_string(module_ast) | modules]
+      else
+        modules
+      end
+
+    collect_raw_data_modules(body, modules)
+  end
+
+  defp collect_raw_data_modules(ast, modules) when is_tuple(ast) do
+    ast
+    |> Tuple.to_list()
+    |> Enum.reduce(modules, &collect_raw_data_modules/2)
+  end
+
+  defp collect_raw_data_modules(ast, modules) when is_list(ast) do
+    Enum.reduce(ast, modules, &collect_raw_data_modules/2)
+  end
+
+  defp collect_raw_data_modules(_ast, modules), do: modules
+
+  defp owns_raw_data_declaration?({:defmodule, _meta, _args}), do: false
+
+  defp owns_raw_data_declaration?({kind, _meta, args})
+       when kind in [:defstruct, :defexception] do
+    Enum.any?(args, &declares_raw_data_field?/1)
+  end
+
+  defp owns_raw_data_declaration?(ast) when is_tuple(ast) do
+    ast |> Tuple.to_list() |> Enum.any?(&owns_raw_data_declaration?/1)
+  end
+
+  defp owns_raw_data_declaration?(ast) when is_list(ast) do
+    Enum.any?(ast, &owns_raw_data_declaration?/1)
+  end
+
+  defp owns_raw_data_declaration?(_ast), do: false
+
+  defp declares_raw_data_field?(:raw_data), do: true
+  defp declares_raw_data_field?({:raw_data, _default}), do: true
+
+  defp declares_raw_data_field?(fields) when is_list(fields) do
+    Enum.any?(fields, &declares_raw_data_field?/1)
+  end
+
+  defp declares_raw_data_field?(_field), do: false
+
   defp inspection_cases do
     client =
       Client.new!(
