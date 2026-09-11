@@ -35,19 +35,29 @@ run_row() {
 }
 
 run_root_mix() {
-  (cd "$ROOT_DIR" && MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors "$@")
+  if [[ -n "${PHASE32_MIX_BUILD_PATH:-}" ]]; then
+    (
+      cd "$ROOT_DIR" && MIX_ENV=test MIX_BUILD_PATH="$PHASE32_MIX_BUILD_PATH" \
+        mix do compile --warnings-as-errors + test --warnings-as-errors "$@"
+    )
+  else
+    (cd "$ROOT_DIR" && MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors "$@")
+  fi
 }
 
 run_bounded_mix() {
   run_root_mix \
-    test/paddle/error_test.exs \
-    test/paddle/http_test.exs \
-    test/paddle/client_test.exs \
-    test/paddle/http/telemetry_test.exs \
-    test/paddle/inspection_safety_test.exs \
+    test/paddle/error_test.exs:104 \
+    test/paddle/http_test.exs:137 \
+    test/paddle/http_test.exs:236 \
+    test/paddle/client_test.exs:154 \
+    test/paddle/http/telemetry_test.exs:43 \
+    test/paddle/inspection_safety_test.exs:119 \
     test/paddle/customers/addresses_test.exs:198 \
-    test/paddle/customers/addresses_test.exs:211 \
-    test/paddle/seam_test.exs
+    test/paddle/customers/addresses_test.exs:185 \
+    test/paddle/seam_test.exs:1008 \
+    test/paddle/seam_test.exs:1056 \
+    test/paddle/seam_test.exs:1073
 }
 
 run_package_smoke() {

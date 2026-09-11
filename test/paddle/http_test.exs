@@ -233,7 +233,7 @@ defmodule Paddle.HttpTest do
       end
     end
 
-    test "only 429 Retry-After is honored and capped at 60000 ms" do
+    test "retry decisions are deterministic, safe-read-only, and cap only 429 Retry-After" do
       parent = self()
 
       client =
@@ -248,16 +248,26 @@ defmodule Paddle.HttpTest do
             Req.Response.new(status: 503)
             |> Req.Response.put_header("retry-after", "120")
 
+          unretryable = Req.Response.new(status: 422)
+          transport = %Req.TransportError{reason: :closed}
+          mutation_request = %{request | method: :post}
+
           send(
             parent,
-            {:decisions, retry.(request, retry_after), retry.(request, service_unavailable)}
+            {:decisions,
+             retry.(request, retry_after),
+             retry.(request, Req.Response.new(status: 429)),
+             retry.(request, service_unavailable),
+             retry.(request, unretryable),
+             retry.(request, transport),
+             retry.(mutation_request, service_unavailable)}
           )
 
           {request, Req.Response.new(status: 200, body: %{})}
         end)
 
       assert {:ok, %{}} = Http.request(client, :get, "/customers")
-      assert_receive {:decisions, {:delay, 60_000}, true}
+      assert_receive {:decisions, {:delay, 60_000}, true, true, false, true, false}
     end
 
     test "parallel callers keep independent attempt counters and terminal outcomes" do

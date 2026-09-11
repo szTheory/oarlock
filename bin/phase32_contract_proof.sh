@@ -7,11 +7,37 @@ ACCRUE_CHECKOUT="${ACCRUE_CHECKOUT:-}"
 EVIDENCE_DIR="${PHASE32_EVIDENCE_DIR:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/oarlock-phase32-evidence}"
 VERIFY_RECEIPT_PATH="$EVIDENCE_DIR/phase32-contract-verifier.receipt"
 PROOF_DIR="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/oarlock-phase32-contract.XXXXXX")"
+VERIFY_RECEIPT_CANDIDATE=""
+VERIFY_COMPLETE=0
 
 cleanup() {
   rm -rf "$PROOF_DIR"
 }
-trap cleanup EXIT INT TERM
+
+discard_verifier_receipt() {
+  if [[ -n "$VERIFY_RECEIPT_CANDIDATE" ]]; then
+    rm -f "$VERIFY_RECEIPT_CANDIDATE"
+  fi
+  rm -f "$VERIFY_RECEIPT_PATH"
+}
+
+finalize_verifier_receipt() {
+  local status="$1"
+  trap - EXIT INT TERM
+
+  if [[ "$status" == "0" && "$VERIFY_COMPLETE" == "1" && -f "$VERIFY_RECEIPT_CANDIDATE" ]]; then
+    mv "$VERIFY_RECEIPT_CANDIDATE" "$VERIFY_RECEIPT_PATH"
+  elif [[ "$status" != "0" || -n "$VERIFY_RECEIPT_CANDIDATE" ]]; then
+    discard_verifier_receipt
+  fi
+
+  cleanup
+  exit "$status"
+}
+
+trap 'finalize_verifier_receipt $?' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 tracked_diff_fingerprint() {
   local snapshot
@@ -82,15 +108,49 @@ require_one_receipt() {
   }
 }
 
-publish_receipt() {
-  local content="$1"
-  local receipt_tmp
+stage_verifier_receipt() {
   mkdir -p "$EVIDENCE_DIR"
-  receipt_tmp="$(mktemp "$EVIDENCE_DIR/.phase32-contract-verifier.receipt.XXXXXX")"
-  trap 'rm -f "${receipt_tmp:-}"' RETURN
-  printf '%s\n' "$content" >"$receipt_tmp"
-  mv "$receipt_tmp" "$VERIFY_RECEIPT_PATH"
-  trap - RETURN
+  rm -f "$VERIFY_RECEIPT_PATH"
+  VERIFY_RECEIPT_CANDIDATE="$(mktemp "$EVIDENCE_DIR/.phase32-contract-verifier.receipt.XXXXXX")"
+}
+
+write_verifier_receipt() {
+  local content="$1"
+  printf '%s\n' "$content" >"$VERIFY_RECEIPT_CANDIDATE"
+}
+
+run_bounded_concurrent_readers() {
+  local archive reader_one reader_two reader_one_pid reader_two_pid
+  local reader_one_status reader_two_status
+
+  archive="$(snapshot_contract)"
+  reader_one="$PROOF_DIR/bounded-reader-one"
+  reader_two="$PROOF_DIR/bounded-reader-two"
+  mkdir -p "$reader_one" "$reader_two"
+  tar -C "$reader_one" -xf "$archive"
+  tar -C "$reader_two" -xf "$archive"
+
+  input_manifest "$reader_one" >"$PROOF_DIR/bounded-reader-one.inputs" &
+  reader_one_pid=$!
+  input_manifest "$reader_two" >"$PROOF_DIR/bounded-reader-two.inputs" &
+  reader_two_pid=$!
+
+  reader_one_status=0
+  reader_two_status=0
+  wait "$reader_one_pid" || reader_one_status=$?
+  wait "$reader_two_pid" || reader_two_status=$?
+
+  [[ "$reader_one_status" == "0" && "$reader_two_status" == "0" ]] || {
+    printf 'Bounded concurrent readers failed: reader-one=%s reader-two=%s\n' \
+      "$reader_one_status" "$reader_two_status" >&2
+    return 1
+  }
+  cmp -s "$PROOF_DIR/bounded-reader-one.inputs" "$PROOF_DIR/bounded-reader-two.inputs" || {
+    printf 'Bounded isolated reader inputs are not byte-identical\n' >&2
+    return 1
+  }
+
+  printf 'Bounded concurrent isolated readers passed\n'
 }
 
 run_concurrent_readers() {
@@ -165,17 +225,18 @@ safe_verdicts() {
 
 run_verify() {
   local before_diff after_diff compatibility_dir receipt_body
+  stage_verifier_receipt
   before_diff="$(tracked_diff_fingerprint)"
-  rm -f "$VERIFY_RECEIPT_PATH"
 
   # bounded verifier evidence remains subordinate to full D-03 acceptance and
   # establishes no hosted, sandbox, live-provider, release, or publication authority.
-  run_concurrent_readers
+  run_bounded_concurrent_readers
   "$ROOT_DIR/bin/phase32_compatibility.sh" --self-test
 
   compatibility_dir="$PROOF_DIR/compatibility-verifier"
   mkdir -p "$compatibility_dir"
-  PHASE32_EVIDENCE_DIR="$compatibility_dir" ACCRUE_CHECKOUT="$ACCRUE_CHECKOUT" \
+  PHASE32_MIX_BUILD_PATH="$PROOF_DIR/bounded-mix-build" \
+    PHASE32_EVIDENCE_DIR="$compatibility_dir" ACCRUE_CHECKOUT="$ACCRUE_CHECKOUT" \
     "$ROOT_DIR/bin/phase32_compatibility.sh" --verify
   require_verifier_receipt "$compatibility_dir"
 
@@ -191,11 +252,69 @@ completed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 tracked_diff_sha256=$after_diff
 compatibility_receipt_sha256=$(shasum -a 256 "$compatibility_dir/phase32-verifier.receipt" | awk '{print $1}')
 $(safe_verdicts)"
-  publish_receipt "$receipt_body"
+  write_verifier_receipt "$receipt_body"
+  VERIFY_COMPLETE=1
   safe_verdicts
   printf 'Phase 32 bounded contract verifier passed\n'
   printf 'Verifier receipt: %s\n' "$VERIFY_RECEIPT_PATH"
   printf 'This bounded verifier evidence does not replace full D-03 acceptance.\n'
+}
+
+pause_after_candidate() {
+  [[ -n "${PHASE32_CANDIDATE_READY:-}" ]] || {
+    printf 'PHASE32_CANDIDATE_READY is required\n' >&2
+    return 2
+  }
+
+  stage_verifier_receipt
+  : >"$PHASE32_CANDIDATE_READY"
+  while [[ ! -f "${PHASE32_CANDIDATE_READY}.release" ]]; do
+    sleep 0.05
+  done
+}
+
+self_test_termination() {
+  local self_test_dir evidence_dir ready_path child_pid child_status
+  self_test_dir="$(mktemp -d)"
+  evidence_dir="$self_test_dir/evidence"
+  ready_path="$self_test_dir/candidate-ready"
+  mkdir -p "$evidence_dir"
+  printf 'phase32_contract_verifier=passed stale=true\n' >"$evidence_dir/phase32-contract-verifier.receipt"
+
+  PHASE32_EVIDENCE_DIR="$evidence_dir" PHASE32_CANDIDATE_READY="$ready_path" \
+    "$0" --pause-after-candidate >/dev/null 2>&1 &
+  child_pid=$!
+
+  while [[ ! -f "$ready_path" ]]; do
+    kill -0 "$child_pid" 2>/dev/null || {
+      printf 'Termination self-test child exited before candidate readiness\n' >&2
+      rm -rf "$self_test_dir"
+      return 1
+    }
+    sleep 0.05
+  done
+
+  kill -TERM "$child_pid"
+  child_status=0
+  wait "$child_pid" || child_status=$?
+  [[ "$child_status" != "0" ]] || {
+    printf 'Termination self-test child unexpectedly exited zero\n' >&2
+    rm -rf "$self_test_dir"
+    return 1
+  }
+  [[ ! -e "$evidence_dir/phase32-contract-verifier.receipt" ]] || {
+    printf 'Termination self-test preserved a passing receipt\n' >&2
+    rm -rf "$self_test_dir"
+    return 1
+  }
+  if find "$evidence_dir" -maxdepth 1 -type f -name '.phase32-contract-verifier.receipt.*' | grep -q .; then
+    printf 'Termination self-test preserved a staged receipt candidate\n' >&2
+    rm -rf "$self_test_dir"
+    return 1
+  fi
+
+  rm -rf "$self_test_dir"
+  printf 'Phase 32 contract receipt termination self-test passed\n'
 }
 
 run_full() {
@@ -246,8 +365,14 @@ case "${1:-}" in
   --full)
     run_full
     ;;
+  --self-test-termination)
+    self_test_termination
+    ;;
+  --pause-after-candidate)
+    pause_after_candidate
+    ;;
   *)
-    printf 'Usage: %s --verify|--full\n' "${0##*/}" >&2
+    printf 'Usage: %s --verify|--full|--self-test-termination\n' "${0##*/}" >&2
     exit 2
     ;;
 esac
