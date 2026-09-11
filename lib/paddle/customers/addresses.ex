@@ -227,24 +227,26 @@ defmodule Paddle.Customers.Addresses do
   Provider cursor values remain dispatch-only; every page retains the literal
   `:list_customer_addresses` request context.
 
-  This is useful when you want to iterate over all addresses lazily, without pulling them all into memory at once.
+  Successful enumeration yields bare `%Paddle.Address{}` values. This is useful
+  when you want to iterate over all addresses lazily, without pulling them all
+  into memory at once.
 
   ```elixir
   stream = Paddle.Customers.Addresses.stream(client, "ctm_12345", status: "active")
 
   # Process each address
-  Enum.each(stream, fn
-    {:ok, %Paddle.Address{} = address} ->
-      IO.puts("Processing address: \#{address.id}")
-
-    {:error, %Paddle.Error{} = error} ->
-      IO.puts("Failed to fetch page: \#{error.message}")
+  Enum.each(stream, fn %Paddle.Address{} = address ->
+    IO.puts("Processing address: \#{address.id}")
   end)
   ```
 
   ## Errors
-  - Since this returns a `Stream`, API errors are yielded as `{:error, error}` elements during enumeration.
-  - Validation errors (e.g., `:invalid_customer_id`, `:invalid_params`) will be returned immediately as `{:error, atom}` by the underlying `list/3` call when iteration begins, making the first element in the stream an error tuple.
+  - An initial or later provider failure raises `%Paddle.Error{}` during enumeration.
+  - Initial validation failures raise `ArgumentError` during enumeration.
+
+  The stream is lazy, so earlier address values may already have been consumed
+  before a later page raises. Consumers that perform side effects should make
+  those effects idempotent.
 
   ## Related Paddle docs
   https://developer.paddle.com/api-reference/addresses/list-addresses
