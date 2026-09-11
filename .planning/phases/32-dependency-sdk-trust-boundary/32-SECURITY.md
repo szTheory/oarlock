@@ -90,8 +90,11 @@ verified: "2026-09-10"
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-09-10 | 38 | 38 | 0 | gsd-security-auditor |
+| 2026-09-10 | 38 | 38 | 0 | execute-phase gap closure |
 
 Fresh audit evidence: 70 focused security tests passed with 0 failures; the compatibility interruption/failure self-test passed; `mix hex.audit` reported no retired or security-advisory packages. No implementation files were modified by the audit.
+
+Gap-closure evidence: Plan 32-14 strengthened T-32-34/T-32-35 with stale-receipt preflight rejection, exit-only publication, cold bounded verification, the full matrix, and double-manifest proof. Plan 32-15 strengthened T-32-29 with both-order duplicate lifecycle retry rejection and zero-dispatch tests. All 38 registered threats remain closed.
 
 ---
 

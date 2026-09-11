@@ -43,9 +43,9 @@ validated: "2026-09-10"
 | 32-W0-01 | 32-11 | 3 | SAFE-01 | T-32-01, T-32-05 | Req compatibility and advisory closure | integration | `ACCRUE_CHECKOUT=../accrue bin/phase32_compatibility.sh --verify` | ✅ | ✅ green |
 | 32-W0-02 | 32-08 | 8 | SAFE-02 | T-32-20, T-32-21 | Telemetry allowlist and canary absence | unit | `mix test test/paddle/http/telemetry_test.exs` | ✅ | ✅ green |
 | 32-W0-03 | 32-09 | 6 | SAFE-03 | T-32-23, T-32-24 | Promoted and nested secret redaction | unit | `mix test test/paddle/inspection_safety_test.exs` | ✅ | ✅ green |
-| 32-W0-04 | 32-04 | 5 | SAFE-04 | T-32-10, T-32-11 | Safe-read attempt matrix and no mutation replay | unit/integration | `mix test test/paddle/http_test.exs` | ✅ | ✅ green |
+| 32-W0-04 | 32-04, 32-15 | 5, 12 | SAFE-04 | T-32-10, T-32-11, T-32-29 | Safe-read attempt matrix, no mutation replay, and duplicate lifecycle retry rejection | unit/integration | `mix test test/paddle/http_test.exs test/paddle/subscriptions_test.exs` | ✅ | ✅ green |
 | 32-W0-05 | 32-03 | 4 | SAFE-05 | T-32-07, T-32-08 | Constructor decision table and redacted failures | unit | `mix test test/paddle/client_test.exs` | ✅ | ✅ green |
-| 32-W0-06 | 32-10, 32-13 | 9 | SAFE-06 | T-32-25, T-32-26 | Docs/types/runtime contract agreement plus isolated concurrency/interruption acceptance | contract | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_contract_proof.sh --verify` | ✅ | ✅ green |
+| 32-W0-06 | 32-10, 32-13, 32-14 | 9, 12 | SAFE-06 | T-32-25, T-32-26, T-32-34, T-32-35 | Docs/types/runtime agreement plus fail-closed concurrent, interrupted, and bounded/full receipt acceptance | contract | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_contract_proof.sh --verify` | ✅ | ✅ green |
 
 ---
 
@@ -106,3 +106,14 @@ validated: "2026-09-10"
 - `bin/phase32_compatibility.sh --verify` passed its 72-test bounded suite, online Hex audit, no-drift gate, six-SAFE mapping, and atomic receipt publication.
 - The initial `bin/phase32_contract_proof.sh --verify` exceeded its contractual 30-second wrapper on three consecutive runs. The runner duplicated both the seam reader and docs build in each isolated snapshot even though the plan requires one of each concurrently.
 - The proof runner now assigns the isolated seam reader and isolated docs build to separate byte-identical snapshots. Three consecutive fresh 30-second-wrapped runs passed in 22.50s, 21.11s, and 20.89s, each preserving concurrent input equality, interruption/partial receipt rejection, compatibility receipt validation, six-SAFE mapping, tracked no-drift, and atomic contract receipt publication.
+
+## Validation Audit 2026-09-10 (Gap Closure)
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+- Plan 32-14 added stale-receipt preflight and abnormal-termination self-tests, then passed two cold bounded wrappers in 11.6s and 13.8s, the full 13-row compatibility matrix, and the double-manifest contract proof.
+- Plan 32-15 added both-order duplicate `:retry` rejection coverage for pause and resume with zero adapter dispatch; 48 focused subscription tests and the 85-test HTTP/subscription/seam selection passed.
