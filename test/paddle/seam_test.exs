@@ -359,6 +359,86 @@ defmodule Paddle.SeamTest do
     assert is_map(canceled_subscription.scheduled_change.raw_data)
   end
 
+  test "adjustment and customer subresource mutation options stay inside the client trust boundary" do
+    mutations = [
+      %{
+        call: fn client, opts ->
+          Paddle.Adjustments.create(
+            client,
+            %{action: "refund", reason: "fraud", transaction_id: "txn_seam01"},
+            opts
+          )
+        end,
+        payload: adjustment_payload()
+      },
+      %{
+        call: fn client, opts ->
+          Paddle.Customers.Addresses.create(
+            client,
+            "ctm_seam01",
+            %{country_code: "US", postal_code: "10001"},
+            opts
+          )
+        end,
+        payload: address_payload()
+      },
+      %{
+        call: fn client, opts ->
+          Paddle.Customers.PortalSessions.create(
+            client,
+            "ctm_seam01",
+            %{subscription_ids: ["sub_seam01"]},
+            opts
+          )
+        end,
+        payload: portal_session_payload()
+      }
+    ]
+
+    invalid_options = [
+      "not-a-keyword",
+      [retry: false, retry: true],
+      [retry: :secret_retry_value],
+      [base_url: "https://credential-canary.example"],
+      [auth: {:bearer, "secret-auth-canary"}],
+      [headers: [{"authorization", "secret-header-canary"}]],
+      [adapter: {:secret_adapter_canary, []}]
+    ]
+
+    for %{call: call} <- mutations, opts <- invalid_options do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          flunk("adapter received forbidden mutation options")
+          {request, Req.Response.new(status: 201, body: %{})}
+        end)
+
+      error = assert_raise ArgumentError, fn -> call.(client, opts) end
+
+      refute error.message =~ "credential-canary"
+      refute error.message =~ "secret-auth-canary"
+      refute error.message =~ "secret-header-canary"
+      refute error.message =~ "secret_adapter_canary"
+      refute error.message =~ "secret_retry_value"
+      assert Agent.get(attempts, & &1) == 0
+    end
+
+    for %{call: call, payload: payload} <- mutations do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, Req.Response.new(status: 201, body: %{"data" => payload})}
+        end)
+
+      assert {:ok, _resource} = call.(client, retry: false)
+      assert Agent.get(attempts, & &1) == 1
+    end
+  end
+
   defp client_with_adapter(adapter) do
     %Client{
       api_key: "sk_test_123",
