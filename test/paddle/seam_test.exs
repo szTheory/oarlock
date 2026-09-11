@@ -1005,6 +1005,54 @@ defmodule Paddle.SeamTest do
     end
   end
 
+  test "Phase 32 proof runners separate bounded verification from full acceptance" do
+    compatibility = File.read!("bin/phase32_compatibility.sh")
+    contract = File.read!("bin/phase32_contract_proof.sh")
+
+    for marker <- ["--verify", "--full", "phase32-verifier.receipt", "mix hex.audit"] do
+      assert compatibility =~ marker
+    end
+
+    for row <- [
+          "root-suite",
+          "focused-http-adapter",
+          "focused-customer-adapters",
+          "focused-catalog-adapters",
+          "focused-subscription-transaction-seam-adapters",
+          "telemetry-adapter",
+          "mockserver-subscription-flows",
+          "dialyzer",
+          "docs",
+          "package-smoke-without-optional-deps",
+          "demo-precommit",
+          "downstream-accrue-seam",
+          "online-hex-audit"
+        ] do
+      assert compatibility =~ ~s(run_row "#{row}")
+    end
+
+    for marker <- [
+          "--verify",
+          "--full",
+          "phase32-contract-verifier.receipt",
+          "phase32-verifier.receipt",
+          "canonical_receipt_manifest"
+        ] do
+      assert contract =~ marker
+    end
+
+    assert length(Regex.scan(~r/phase32_compatibility\.sh" --full/, contract)) == 2
+    assert compatibility =~ "bounded verifier evidence"
+    assert compatibility =~ "full 13-row D-03 acceptance"
+    assert contract =~ "bounded verifier evidence"
+    assert contract =~ "full D-03 acceptance"
+
+    for script <- [compatibility, contract],
+        unsupported <- ["hosted authority", "release authority", "publication authority"] do
+      refute script =~ "claims #{unsupported}"
+    end
+  end
+
   defp markdown_section!(markdown, heading) do
     pattern = Regex.compile!("^#{Regex.escape(heading)}\\n(?<body>.*?)(?=^## |\\z)", "ms")
 

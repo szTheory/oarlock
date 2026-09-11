@@ -73,20 +73,8 @@ defmodule Paddle.InspectionSafetyTest do
     discovered =
       "lib/paddle/**/*.ex"
       |> Path.wildcard()
-      |> Enum.reduce(MapSet.new(), fn path, modules ->
-        source = File.read!(path)
-
-        if Regex.match?(~r/\b(?:defstruct|defexception)\b[\s\S]*\braw_data\b/, source) do
-          [module] =
-            Regex.run(~r/^defmodule\s+([A-Z][A-Za-z0-9_.]*)\s+do/m, source,
-              capture: :all_but_first
-            )
-
-          MapSet.put(modules, module)
-        else
-          modules
-        end
-      end)
+      |> Enum.flat_map(fn path -> path |> File.read!() |> raw_data_modules_from_source!() end)
+      |> MapSet.new()
 
     assert discovered == MapSet.new(Map.keys(@raw_data_inventory))
 
@@ -108,6 +96,24 @@ defmodule Paddle.InspectionSafetyTest do
 
       assert MapSet.disjoint?(MapSet.new(visible), MapSet.new(redacted))
     end
+  end
+
+  test "source inventory discovers sibling raw_data modules independently" do
+    source = """
+    defmodule Paddle.InventoryFixture.StructValue do
+      defstruct [:id, :raw_data]
+    end
+
+    defmodule Paddle.InventoryFixture.ExceptionValue do
+      defexception message: nil, raw_data: nil
+    end
+    """
+
+    assert source |> raw_data_modules_from_source!() |> MapSet.new() ==
+             MapSet.new([
+               "Paddle.InventoryFixture.StructValue",
+               "Paddle.InventoryFixture.ExceptionValue"
+             ])
   end
 
   test "all six capability-bearing values redact promoted, nested, and transport canaries" do
