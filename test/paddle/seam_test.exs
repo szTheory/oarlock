@@ -1070,6 +1070,25 @@ defmodule Paddle.SeamTest do
     assert invalidate_at < preflight_at
   end
 
+  test "Phase 32 bounded contract receipt finalizes only from successful exit" do
+    contract = File.read!("bin/phase32_contract_proof.sh")
+
+    for marker <- [
+          "--self-test-termination",
+          "finalize_verifier_receipt",
+          "VERIFY_RECEIPT_CANDIDATE",
+          "VERIFY_COMPLETE",
+          "run_bounded_concurrent_readers",
+          "PHASE32_MIX_BUILD_PATH"
+        ] do
+      assert contract =~ marker
+    end
+
+    {finalize_at, _} = :binary.match(contract, "finalize_verifier_receipt")
+    {publish_at, _} = :binary.match(contract, "mv \"$VERIFY_RECEIPT_CANDIDATE\"")
+    assert finalize_at < publish_at
+  end
+
   defp markdown_section!(markdown, heading) do
     pattern = Regex.compile!("^#{Regex.escape(heading)}\\n(?<body>.*?)(?=^## |\\z)", "ms")
 
