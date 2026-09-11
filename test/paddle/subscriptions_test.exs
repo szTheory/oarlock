@@ -803,11 +803,12 @@ defmodule Paddle.SubscriptionsTest do
       Agent.stop(attempts)
     end
 
-    test "rejects duplicate retry options before pause dispatch in either order" do
+    test "rejects duplicate retry options before lifecycle dispatch in either order" do
       for retry_opts <- [[retry: false, retry: true], [retry: true, retry: false]],
-          pause <- [
+          lifecycle_call <- [
             fn client, opts -> Subscriptions.pause(client, "sub_01", opts) end,
-            fn client, opts -> Subscriptions.pause_immediately(client, "sub_01", opts) end
+            fn client, opts -> Subscriptions.pause_immediately(client, "sub_01", opts) end,
+            fn client, opts -> Subscriptions.resume(client, "sub_01", opts) end
           ] do
         {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
@@ -818,7 +819,7 @@ defmodule Paddle.SubscriptionsTest do
           end)
 
         assert_raise ArgumentError, "retry may be supplied only once", fn ->
-          pause.(client, retry_opts)
+          lifecycle_call.(client, retry_opts)
         end
 
         assert Agent.get(attempts, & &1) == 0
