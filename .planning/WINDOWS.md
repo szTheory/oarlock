@@ -2,9 +2,9 @@
 schema_version: 1
 open_count: 0
 waived_count: 0
-fixed_count: 10
-total_count: 10
-last_updated: 2026-09-10T22:38:24.092Z
+fixed_count: 11
+total_count: 11
+last_updated: 2026-09-11T01:37:55.720Z
 ---
 
 # Broken Windows Ledger
@@ -25,6 +25,7 @@ last_updated: 2026-09-10T22:38:24.092Z
 | 8 | 32 | deviation | test/paddle/seam_test.exs |  | Repaired inherited idempotency, module-doc visibility, and contextual Paddle.Error seam transitions | fixed |  | 2026-09-10T22:36:57.327Z | 2026-09-10T22:37:20.300Z |
 | 9 | 32 | deviation | README.md |  | Extended all first-read proof boundaries to the full six-tier evidence ladder | fixed |  | 2026-09-10T22:36:57.409Z | 2026-09-10T22:37:20.379Z |
 | 10 | 32 | deviation | .planning/STATE.md |  | Reconciled visible execution progress after the state handler advanced to already-completed Plan 11 | fixed |  | 2026-09-10T22:38:23.982Z | 2026-09-10T22:38:24.092Z |
+| 11 | 32 | deviation | .planning/STATE.md |  | Reconciled stale visible state prose after the SDK last-plan transition | fixed |  | 2026-09-11T01:37:35.442Z | 2026-09-11T01:37:55.720Z |
 
 ````json
 [
@@ -147,6 +148,18 @@ last_updated: 2026-09-10T22:38:24.092Z
     "reason": "",
     "recorded_at": "2026-09-10T22:38:23.982Z",
     "resolved_at": "2026-09-10T22:38:24.092Z"
+  },
+  {
+    "id": 11,
+    "kind": "deviation",
+    "phase": "32",
+    "file": ".planning/STATE.md",
+    "line": null,
+    "description": "Reconciled stale visible state prose after the SDK last-plan transition",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-09-11T01:37:35.442Z",
+    "resolved_at": "2026-09-11T01:37:55.720Z"
   }
 ]
 ````
