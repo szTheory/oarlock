@@ -551,6 +551,8 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_resume_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
+      ensure_unique_retry_opt!(opts)
+
       case Keyword.pop(opts, :retry) do
         {retry_value, remaining} ->
           with :ok <- reject_unknown_resume_opts(remaining),
