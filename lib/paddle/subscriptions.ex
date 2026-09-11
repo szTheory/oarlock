@@ -477,6 +477,8 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_pause_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
+      ensure_unique_retry_opt!(opts)
+
       case Keyword.pop(opts, :retry) do
         {retry_value, remaining} ->
           with :ok <- reject_unknown_pause_opts(remaining),
@@ -568,6 +570,12 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_resume_opts(_opts),
     do: raise(ArgumentError, "resume options must be a keyword list")
+
+  defp ensure_unique_retry_opt!(opts) do
+    if Enum.count(opts, fn {key, _value} -> key == :retry end) > 1 do
+      raise ArgumentError, "retry may be supplied only once"
+    end
+  end
 
   defp reject_unknown_resume_opts(opts) do
     supported_keys = [:effective_from, :on_resume]
