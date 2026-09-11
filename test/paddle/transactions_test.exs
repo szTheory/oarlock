@@ -578,6 +578,23 @@ defmodule Paddle.TransactionsTest do
       assert %Checkout{} = transaction.checkout
       assert is_binary(transaction.checkout.url)
     end
+
+    test "rejects malformed and transport-authority options before dispatch" do
+      assert_public_mutation_option_contract(
+        fn client, opts ->
+          Transactions.create(
+            client,
+            %{
+              customer_id: "ctm_01",
+              address_id: "add_01",
+              items: [%{price_id: "pri_01", quantity: 1}]
+            },
+            opts
+          )
+        end,
+        transaction_payload()
+      )
+    end
   end
 
   describe "shared pagination context" do
@@ -629,6 +646,49 @@ defmodule Paddle.TransactionsTest do
         Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp assert_public_mutation_option_contract(call, payload) do
+    invalid_options = [
+      "not-a-keyword",
+      [retry: false, retry: true],
+      [retry: :secret_retry_value],
+      [base_url: "https://credential-canary.example"],
+      [auth: {:bearer, "secret-auth-canary"}],
+      [headers: [{"authorization", "secret-header-canary"}]],
+      [adapter: {:secret_adapter_canary, []}]
+    ]
+
+    for opts <- invalid_options do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          flunk("adapter received forbidden transaction options")
+          {request, Req.Response.new(status: 201, body: %{})}
+        end)
+
+      error = assert_raise ArgumentError, fn -> call.(client, opts) end
+
+      refute error.message =~ "credential-canary"
+      refute error.message =~ "secret-auth-canary"
+      refute error.message =~ "secret-header-canary"
+      refute error.message =~ "secret_adapter_canary"
+      refute error.message =~ "secret_retry_value"
+      assert Agent.get(attempts, & &1) == 0
+    end
+
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: 201, body: %{"data" => payload})}
+      end)
+
+    assert {:ok, _transaction} = call.(client, retry: false)
+    assert Agent.get(attempts, & &1) == 1
   end
 
   defp client_with_retry_adapter(adapter) do

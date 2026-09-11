@@ -107,6 +107,19 @@ defmodule Paddle.NotificationSettingsTest do
 
       assert Agent.get(attempts, & &1) == 1
     end
+
+    test "rejects malformed and transport-authority options before dispatch" do
+      assert_public_mutation_option_contract(
+        fn client, opts ->
+          NotificationSettings.create(
+            client,
+            %{api_version: 1, destination: "https://notification.example/hooks"},
+            opts
+          )
+        end,
+        setting_payload()
+      )
+    end
   end
 
   describe "update/3" do
@@ -393,6 +406,49 @@ defmodule Paddle.NotificationSettingsTest do
         Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
         |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp assert_public_mutation_option_contract(call, payload) do
+    invalid_options = [
+      "not-a-keyword",
+      [retry: false, retry: true],
+      [retry: :secret_retry_value],
+      [base_url: "https://credential-canary.example"],
+      [auth: {:bearer, "secret-auth-canary"}],
+      [headers: [{"authorization", "secret-header-canary"}]],
+      [adapter: {:secret_adapter_canary, []}]
+    ]
+
+    for opts <- invalid_options do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          flunk("adapter received forbidden notification-setting options")
+          {request, Req.Response.new(status: 201, body: %{})}
+        end)
+
+      error = assert_raise ArgumentError, fn -> call.(client, opts) end
+
+      refute error.message =~ "credential-canary"
+      refute error.message =~ "secret-auth-canary"
+      refute error.message =~ "secret-header-canary"
+      refute error.message =~ "secret_adapter_canary"
+      refute error.message =~ "secret_retry_value"
+      assert Agent.get(attempts, & &1) == 0
+    end
+
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: 201, body: %{"data" => payload})}
+      end)
+
+    assert {:ok, _setting} = call.(client, retry: false)
+    assert Agent.get(attempts, & &1) == 1
   end
 
   defp request_context(request),
