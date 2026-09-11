@@ -131,6 +131,41 @@ defmodule Paddle.HttpTest do
     assert Agent.get(attempts, & &1) == 0
   end
 
+  describe "validate_public_request_opts!/1" do
+    test "accepts only a unique boolean retry option" do
+      assert Http.validate_public_request_opts!([]) == []
+      assert Http.validate_public_request_opts!(retry: false) == [retry: false]
+      assert Http.validate_public_request_opts!(retry: true) == [retry: true]
+    end
+
+    test "rejects malformed containers, duplicate keys, and forbidden transport authority" do
+      invalid_options = [
+        {"not-a-keyword", "keyword list"},
+        {[retry: false, retry: true], "retry"},
+        {[retry: :secret_retry_value], "retry"},
+        {[base_url: "https://credential-canary.example"], "base_url"},
+        {[auth: {:bearer, "secret-auth-canary"}], "auth"},
+        {[headers: [{"authorization", "secret-header-canary"}]], "headers"},
+        {[adapter: {:secret_adapter_canary, []}], "adapter"}
+      ]
+
+      for {opts, expected_key_or_shape} <- invalid_options do
+        error =
+          assert_raise ArgumentError, fn ->
+            Http.validate_public_request_opts!(opts)
+          end
+
+        assert error.message =~ expected_key_or_shape
+
+        refute error.message =~ "credential-canary"
+        refute error.message =~ "secret-auth-canary"
+        refute error.message =~ "secret-header-canary"
+        refute error.message =~ "secret_adapter_canary"
+        refute error.message =~ "secret_retry_value"
+      end
+    end
+  end
+
   describe "request/4 retry policy" do
     test "eligible GET and HEAD status failures stop after four attempts" do
       for method <- [:get, :head], status <- [408, 429, 500, 502, 503, 504] do

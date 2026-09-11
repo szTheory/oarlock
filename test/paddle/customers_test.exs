@@ -121,6 +121,45 @@ defmodule Paddle.CustomersTest do
 
       assert Agent.get(attempts, & &1) == 1
     end
+
+    test "rejects caller transport authority before adapter dispatch" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          flunk("adapter received a forbidden public request option")
+          {request, Req.Response.new(status: 201, body: %{})}
+        end)
+
+      invalid_options = [
+        base_url: "https://attacker.example/credential-canary",
+        auth: {:bearer, "secret-auth-canary"},
+        headers: [{"authorization", "secret-header-canary"}],
+        adapter: {:secret_adapter_canary, []}
+      ]
+
+      for {key, value} <- invalid_options do
+        error =
+          assert_raise ArgumentError, fn ->
+            Customers.create(client, %{email: "ada@example.com"}, [{key, value}])
+          end
+
+        assert error.message =~ Atom.to_string(key)
+        refute error.message =~ "canary"
+      end
+
+      for opts <- ["not-a-keyword", [retry: false, retry: true], [retry: :secret_retry_value]] do
+        error =
+          assert_raise ArgumentError, fn ->
+            Customers.create(client, %{email: "ada@example.com"}, opts)
+          end
+
+        refute error.message =~ "secret_retry_value"
+      end
+
+      assert Agent.get(attempts, & &1) == 0
+    end
   end
 
   describe "get/2" do
