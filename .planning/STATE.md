@@ -5,16 +5,16 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 32
 current_phase_name: Dependency & SDK Trust Boundary
 status: executing
-stopped_at: Completed 32-10-PLAN.md
-last_updated: "2026-09-11T00:03:58.964Z"
+stopped_at: Completed 32-12-PLAN.md
+last_updated: "2026-09-11T01:14:28.099Z"
 last_activity: 2026-09-10
-last_activity_desc: Completed Phase 32 Plan 10
-state_head: 3b0f6748818217b7242af551cdf4bfa1461bd1fa
+last_activity_desc: Completed Phase 32 Plan 12
+state_head: 4dbb20e3ab807e1b696f318948c33ba7f4a200b9
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 ## Current Position
 
-Phase: 32 (Dependency & SDK Trust Boundary) — READY TO EXECUTE
-Plan: 11 of 11
-Status: Ready for verification
-Last activity: 2026-09-10 — Completed Phase 32 Plan 10
+Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
+Plan: 13 of 13
+Status: Ready to execute
+Last activity: 2026-09-10 — Completed Phase 32 Plan 12
 
-Progress: [██████████] 100%
+Progress: [█████████░] 95%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [██████████] 100%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 20
+- Plans completed: 21
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -68,6 +68,7 @@ Progress: [██████████] 100%
 | Phase 32 P07 | 9min | 2 tasks | 5 files |
 | Phase 32 P08 | 7min | 2 tasks | 2 files |
 | Phase 32 P10 | 14min | 2 tasks | 8 files |
+| Phase 32 P12 | 6min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -127,10 +128,13 @@ Progress: [██████████] 100%
 - [Phase 32]: Describe only Elixir ~> 1.19 as supported and Elixir 1.19.5 / OTP 28.1 as the fully exercised toolchain; do not infer broader BEAM support from local success.
 - [Phase 32]: Treat package/downstream, sandbox, hosted-CI, and live-provider results as separate evidence tiers that cannot substitute for one another.
 - [Phase 32]: Accept the final Phase 32 contract only after byte-identical concurrent readers, interruption rejection, and two equal complete 13-row receipt manifests pass without tracked drift.
+- [Phase 32]: Validate public mutation options as a unique keyword list containing only one optional boolean :retry entry, with errors built only from static text and key names.
+- [Phase 32]: Run public option validation before domain normalization or internal request-option merging so the validated client remains the sole source of origin, bearer authentication, headers, and adapter.
+- [Phase 32]: Let the public boundary accept boolean retry syntax while retaining Paddle.Http's method-aware rejection of retry: true for mutations and its one-attempt behavior for retry: false.
 
 ### Pending Todos
 
-- Verify the completed Phase 32 dependency and SDK safety contract.
+- Execute Plan 32-13 to close error normalization, address-stream documentation, inspection inventory, and bounded proof-runner gaps.
 
 ### Blockers/Concerns
 
@@ -149,10 +153,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-10T22:37:43.754Z
-Stopped at: Completed 32-10-PLAN.md
+Last session: 2026-09-11T01:14:27.988Z
+Stopped at: Completed 32-12-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Run Phase 32 verification against all eleven completed plan summaries.
+- Execute 32-13-PLAN.md, then re-run Phase 32 verification against all thirteen completed plan summaries.
