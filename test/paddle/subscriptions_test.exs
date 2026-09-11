@@ -802,6 +802,29 @@ defmodule Paddle.SubscriptionsTest do
       assert Agent.get(attempts, & &1) == 1
       Agent.stop(attempts)
     end
+
+    test "rejects duplicate retry options before pause dispatch in either order" do
+      for retry_opts <- [[retry: false, retry: true], [retry: true, retry: false]],
+          pause <- [
+            fn client, opts -> Subscriptions.pause(client, "sub_01", opts) end,
+            fn client, opts -> Subscriptions.pause_immediately(client, "sub_01", opts) end
+          ] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            flunk("unexpected request: #{inspect(request)}")
+          end)
+
+        assert_raise ArgumentError, "retry may be supplied only once", fn ->
+          pause.(client, retry_opts)
+        end
+
+        assert Agent.get(attempts, & &1) == 0
+        Agent.stop(attempts)
+      end
+    end
   end
 
   describe "pause_immediately/3" do
