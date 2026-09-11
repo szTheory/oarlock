@@ -9,6 +9,11 @@ defmodule Paddle.Http do
   Static `:operation` and `:route` context remains separate from runtime cursor
   URLs. `:resource_id` is optional safe context. `:idempotency_key` is
   unsupported and is never converted into a request header.
+
+  Public mutation options cross an untrusted configuration boundary. Resource
+  modules validate those options before combining them with the client's
+  authenticated Req configuration, so callers cannot replace the validated
+  origin, bearer authentication, headers, or adapter.
   """
 
   @type request_opt ::
@@ -21,6 +26,34 @@ defmodule Paddle.Http do
   @retryable_statuses [408, 429, 500, 502, 503, 504]
   @retryable_transport_reasons [:timeout, :econnrefused, :closed]
   @max_retry_after_ms 60_000
+
+  @doc false
+  @spec validate_public_request_opts!(term()) :: keyword()
+  def validate_public_request_opts!(opts) do
+    unless Keyword.keyword?(opts) do
+      raise ArgumentError, "public request options must be a keyword list"
+    end
+
+    keys = Keyword.keys(opts)
+
+    case Enum.find(keys, fn key -> Enum.count(keys, &(&1 == key)) > 1 end) do
+      nil -> :ok
+      key -> raise ArgumentError, "public request option may be supplied only once: #{key}"
+    end
+
+    case Enum.find(keys, &(&1 != :retry)) do
+      nil -> :ok
+      key -> raise ArgumentError, "public request option #{key} is not supported"
+    end
+
+    case Keyword.fetch(opts, :retry) do
+      :error -> :ok
+      {:ok, value} when is_boolean(value) -> :ok
+      {:ok, _value} -> raise ArgumentError, "public request option retry must be a boolean"
+    end
+
+    opts
+  end
 
   @doc """
   Dispatches a request and normalizes its terminal result.

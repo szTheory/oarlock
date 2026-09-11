@@ -83,6 +83,8 @@ defmodule Paddle.Customers do
   @spec create(Paddle.Client.t(), map() | keyword(), [request_opt()]) ::
           {:ok, Paddle.Customer.t()} | {:error, Paddle.Error.t() | :invalid_attrs}
   def create(%Client{} = client, attrs, opts \\ []) do
+    opts = Http.validate_public_request_opts!(opts)
+
     with {:ok, attrs} <- Attrs.normalize(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
          {:ok, %{"data" => data}} when is_map(data) <-
