@@ -137,6 +137,8 @@ defmodule Paddle.Transactions do
              | :invalid_custom_data
              | :invalid_checkout}
   def create(%Client{} = client, attrs, opts \\ []) do
+    opts = Http.validate_public_request_opts!(opts)
+
     with {:ok, attrs} <- Attrs.normalize(attrs),
          {:ok, customer_id} <- validate_customer_id(attrs),
          {:ok, address_id} <- validate_address_id(attrs),

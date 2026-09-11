@@ -36,6 +36,8 @@ defmodule Paddle.NotificationSettings do
           {:ok, Paddle.NotificationSetting.t()}
           | {:error, Paddle.Error.t() | :invalid_attrs | :missing_api_version}
   def create(%Client{} = client, attrs, opts \\ []) do
+    opts = Http.validate_public_request_opts!(opts)
+
     with {:ok, attrs} <- Attrs.normalize(attrs),
          :ok <- validate_api_version(attrs),
          body <- Attrs.allowlist(attrs, @create_allowlist),
