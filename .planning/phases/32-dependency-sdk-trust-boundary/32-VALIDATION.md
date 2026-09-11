@@ -2,7 +2,7 @@
 phase: "32"
 slug: "dependency-sdk-trust-boundary"
 status: validated
-nyquist_compliant: true
+nyquist_compliant: false
 wave_0_complete: true
 created: "2026-09-10"
 validated: "2026-09-10"
@@ -85,14 +85,14 @@ validated: "2026-09-10"
 
 ## Validation Sign-Off
 
-- [x] All tasks have `<automated>` verify or Wave 0 dependencies.
+- [ ] All tasks have stable, identity-checked automated verification; the bounded docs/spec proof and line-based selector gaps remain open.
 - [x] Sampling continuity: no 3 consecutive tasks without automated verification.
 - [x] Wave 0 covers all MISSING references.
 - [x] No watch-mode flags.
 - [x] Feedback latency baseline is measured and recorded.
-- [x] `nyquist_compliant: true` set in frontmatter.
+- [ ] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** validated
+**Approval:** partial — gap closure required
 
 ## Validation Audit 2026-09-10
 
@@ -111,9 +111,11 @@ validated: "2026-09-10"
 
 | Metric | Count |
 |--------|-------|
-| Gaps found | 0 |
+| Gaps found | 2 |
 | Resolved | 0 |
-| Escalated | 0 |
+| Escalated | 2 |
 
 - Plan 32-14 added stale-receipt preflight and abnormal-termination self-tests, then passed two cold bounded wrappers in 11.6s and 13.8s, the full 13-row compatibility matrix, and the double-manifest contract proof.
 - Plan 32-15 added both-order duplicate `:retry` rejection coverage for pause and resume with zero adapter dispatch; 48 focused subscription tests and the 85-test HTTP/subscription/seam selection passed.
+- Final verification found that the bounded SAFE-06 receipt claims docs/spec proof without executing it, so that evidence row is not fully covered.
+- Final verification also proved that `file:line` selectors can pass while selecting an unintended ExUnit test; stable tags or a dedicated proof file plus selection-count validation are required.
