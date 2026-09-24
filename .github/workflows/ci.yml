@@ -375,7 +375,7 @@ jobs:
           REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
           test -n "$HEX_VERSION"
           test -n "$REBAR_BIN"
-          REBAR_VERSION="$("$REBAR_BIN" version | sed -nE 's/^rebar ([0-9.]+).*/\1/p' | head -1)"
+          REBAR_VERSION="$("$REBAR_BIN" version 2>&1 | sed -nE 's/.*rebar ([0-9]+\.[0-9.]+).*/\1/p' | head -1)"
           test -n "$REBAR_VERSION"
           echo "hex-version=$HEX_VERSION" >> "$GITHUB_OUTPUT"
           echo "rebar-version=$REBAR_VERSION" >> "$GITHUB_OUTPUT"
