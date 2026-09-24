@@ -371,7 +371,7 @@ jobs:
         run: |
           mix local.hex --force
           mix local.rebar --force
-          HEX_VERSION="$(find "$HOME/.mix/archives" -maxdepth 1 -type f -name 'hex-*.ez' -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)\.ez$|\1|')"
+          HEX_VERSION="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)(\.ez)?$|\1|')"
           REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
           test -n "$HEX_VERSION"
           test -n "$REBAR_BIN"
