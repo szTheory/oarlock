@@ -324,36 +324,59 @@ jobs:
       - planning-truth
     if: ${{ always() }}
     steps:
-      - name: Assert required CI jobs passed
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install proof toolchain
+        id: proof-tools
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          HEX_VERSION="$(find "$HOME/.mix/archives" -maxdepth 1 -type f -name 'hex-*.ez' -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)\.ez$|\1|')"
+          REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
+          test -n "$HEX_VERSION"
+          test -n "$REBAR_BIN"
+          REBAR_VERSION="$("$REBAR_BIN" version | sed -nE 's/.*version[[:space:]]+([0-9.]+).*/\1/p' | head -1)"
+          test -n "$REBAR_VERSION"
+          echo "hex-version=$HEX_VERSION" >> "$GITHUB_OUTPUT"
+          echo "rebar-version=$REBAR_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Write exact-SHA CI proof
+        id: proof
         env:
           NEEDS_JSON: ${{ toJson(needs) }}
           GITHUB_SHA_VALUE: ${{ github.sha }}
+          EVENT_HEAD_SHA_VALUE: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_WORKFLOW_VALUE: ${{ github.workflow }}
           GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT_VALUE: ${{ github.run_attempt }}
-        run: |
-          node <<'NODE'
-          const needs = JSON.parse(process.env.NEEDS_JSON);
-          const required = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"];
-          const jobs = required.map((id) => ({
-            id,
-            result: needs[id] && needs[id].result,
-          }));
-          const failed = jobs.filter((job) => job.result !== "success");
-          const proof = {
-            sha: process.env.GITHUB_SHA_VALUE,
-            workflow: process.env.GITHUB_WORKFLOW_VALUE,
-            run_id: process.env.GITHUB_RUN_ID_VALUE,
-            run_attempt: process.env.GITHUB_RUN_ATTEMPT_VALUE,
-            required_jobs: jobs,
-            verified: failed.length === 0,
-          };
+          GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
+          OTP_VERSION: ${{ steps.setup-beam.outputs.otp-version }}
+          ELIXIR_VERSION: ${{ steps.setup-beam.outputs.elixir-version }}
+          HEX_VERSION: ${{ steps.proof-tools.outputs.hex-version }}
+          REBAR_VERSION: ${{ steps.proof-tools.outputs.rebar-version }}
+          CHECKED_OUT_SHA_VALUE: ${{ github.sha }}
+        run: node scripts/ci_proof.cjs
 
-          require("node:fs").writeFileSync("ci-contract-proof.json", JSON.stringify(proof, null, 2));
-          console.log(JSON.stringify(proof, null, 2));
+      - name: Upload exact-SHA proof
+        id: proof-upload
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-contract-proof.json
+          if-no-files-found: error
+          retention-days: 30
 
-          if (failed.length > 0) {
-            console.error("Required CI jobs failed or were skipped: " + failed.map((job) => `${job.id}=${job.result}`).join(", "));
-            process.exit(1);
-          }
-          NODE
+      - name: Link retained proof in run summary
+        if: ${{ always() && steps.proof-upload.outputs.artifact-url != '' }}
+        env:
+          PROOF_URL: ${{ steps.proof-upload.outputs.artifact-url }}
+        run: echo "[Download exact-SHA CI proof]($PROOF_URL)" >> "$GITHUB_STEP_SUMMARY"
