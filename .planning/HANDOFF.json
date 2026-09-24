@@ -1,0 +1,107 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-24T12:14:59.806Z",
+  "phase": "33",
+  "phase_name": "Deterministic Green CI",
+  "phase_dir": ".planning/phases/33-deterministic-green-ci",
+  "plan": 2,
+  "task": 1,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Install reviewed Credo and require lint, docs, and Hex audit",
+      "status": "in_progress",
+      "progress": "Implementation committed; focused contract test passes; mix docs and mix hex.audit pass; mix credo --strict exits 14 with 30 existing findings."
+    },
+    {
+      "id": 2,
+      "name": "Bind quality job into proof and hosted monitoring",
+      "status": "done",
+      "commit": "1d26850",
+      "progress": "Quality required-job handling and missing/failed tests committed; all 26 focused Node tests pass."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 1,
+      "name": "Resolve strict Credo findings and close Plan 33-02",
+      "status": "not_started"
+    },
+    {
+      "id": 2,
+      "name": "Obtain a safe hosted candidate path, then complete Plans 33-03 and 33-04",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "mix credo --strict exits 14 with 30 pre-existing findings across design, readability, and refactoring checks.",
+      "type": "technical",
+      "workaround": "Inspect the findings and make a reviewed cleanup; do not hide them with a blanket muted exit status."
+    },
+    {
+      "description": "Local main is 395 commits ahead of origin/main, representing 468 files changed from upstream. Publishing this ref for the Plan 33 hosted PR would include broad unreconciled project history.",
+      "type": "human_action",
+      "workaround": "Inspect repository history and ask the maintainer which base/ref should carry the intended cumulative changes before publishing."
+    }
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {
+      "action": "Choose or identify the intended hosted review base for the 395 local-only commits, or confirm those commits are intended to be included together.",
+      "context": "GitHub has no Phase 33 candidate branch/PR; the only existing open feature PR is Phase 28. A hosted candidate is required before timing and branch-protection acceptance.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Do not push local main or create a PR from it while it is 395 commits ahead of origin/main.",
+      "rationale": "The resulting review would include 468 changed files, and GitHub currently has no Phase 33 candidate branch.",
+      "phase": "33"
+    },
+    {
+      "decision": "Keep Credo strict findings visible until reviewed.",
+      "rationale": "A muted lint exit or blanket exclusion would make the required quality gate misleading.",
+      "phase": "33"
+    }
+  ],
+  "uncommitted_files": [
+    " M .gitignore",
+    " M .planning/GSD-PREFERENCES.md",
+    " M .planning/REQUIREMENTS.md",
+    " M .planning/ROADMAP.md",
+    " M .planning/STATE.md",
+    " M .planning/config.json",
+    " M .planning/phases/32-dependency-sdk-trust-boundary/32-REVIEW.md",
+    " M .planning/phases/32-dependency-sdk-trust-boundary/32-VERIFICATION.md",
+    " M .planning/phases/32-dependency-sdk-trust-boundary/deferred-items.md",
+    " M bin/phase32_compatibility.sh",
+    " M bin/phase32_contract_proof.sh",
+    " M test/paddle/client_test.exs",
+    " M test/paddle/customers/addresses_test.exs",
+    " M test/paddle/error_test.exs",
+    " M test/paddle/http/telemetry_test.exs",
+    " M test/paddle/http_test.exs",
+    " M test/paddle/inspection_safety_test.exs",
+    " M test/paddle/seam_test.exs",
+    " M test/test_helper.exs",
+    "?? .gsd/",
+    "?? .planning/milestone.lock",
+    "?? .planning/phases/32-dependency-sdk-trust-boundary/32-16-PLAN.md",
+    "?? .planning/phases/32-dependency-sdk-trust-boundary/32-16-SUMMARY.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-01-PLAN.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-02-PLAN.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-03-PLAN.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-04-PLAN.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-RESEARCH.md",
+    "?? .planning/phases/33-deterministic-green-ci/33-VALIDATION.md",
+    "?? .planning/research/.cache/",
+    "?? .planning/state.json",
+    "?? prompts/",
+    "?? test/support/"
+  ],
+  "next_action": "Resume Plan 33-02; review and fix the 30 strict Credo findings without overwriting the listed uncommitted Phase 32/test edits, re-run the required checks, then summarize Plan 33-02. Before any GitHub write, get a safe candidate base/ref decision for the 395-commit divergence.",
+  "context_notes": "GitHub and Hex are reachable with authenticated gh and Mix. Credo 1.7.19 was verified from Hex and locked. ExDoc and Hex audit pass. The focused command `node --test scripts/ci_workflow_contract.test.cjs scripts/ci_proof.test.cjs scripts/ci_monitor.test.cjs` passes 26/26. Plan 33-02 code commits are d57127a and 1d26850. No background jobs are running. The user asked to preserve signal across context clearing. No repository file named prompt.txt was found."
+}
