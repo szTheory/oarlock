@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
-const REQUIRED_JOBS = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"];
+const REQUIRED_JOBS = ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth", "quality"];
 const JOB_RESULTS = ["success", "failure", "cancelled", "skipped", "missing"];
 const SHA = /^[a-f0-9]{40}$/i;
 

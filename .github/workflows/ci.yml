@@ -312,6 +312,37 @@ jobs:
       - name: Smoke live planning health JSON
         run: node scripts/planning_health.cjs --json
 
+  quality:
+    name: quality checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+
+      - name: Fetch quality dependencies
+        run: mix deps.get
+
+      - name: Credo strict lint
+        if: ${{ always() }}
+        run: mix credo --strict
+
+      - name: Build ExDoc
+        if: ${{ always() }}
+        run: mix docs
+
+      - name: Audit Hex advisories
+        if: ${{ always() }}
+        run: mix hex.audit
+
   ci-contract:
     name: CI contract
     runs-on: ubuntu-latest
@@ -322,6 +353,7 @@ jobs:
       - package-smoke
       - optional-deps
       - planning-truth
+      - quality
     if: ${{ always() }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
