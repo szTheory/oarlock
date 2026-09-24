@@ -88,6 +88,26 @@ function compareEvidence(baseContent, headContent) {
   return { valid: true, additions, reason: null };
 }
 
+function validInitialEvidence(content) {
+  const lines = content.toString("utf8").split(/\r?\n/);
+  const requiredSections = [
+    "# Evidence Ledger",
+    "## v2.0 and v2.1 Requirement Evidence",
+    "## Proof-Class Rules",
+    "## Milestone Identity Rules",
+  ];
+  if (!requiredSections.every((section) => lines.includes(section))) return false;
+
+  const correctionHeading = lines.findIndex((line) => /^## Milestone History Corrections — \d{4}-\d{2}-\d{2}$/.test(line));
+  if (correctionHeading < 0) return false;
+  const sectionEnd = lines.findIndex((line, index) => index > correctionHeading && /^## /.test(line));
+  const correctionLines = lines.slice(correctionHeading + 1, sectionEnd < 0 ? undefined : sectionEnd);
+  const tableRows = correctionLines.filter((line) => /^\s*\|/.test(line));
+  if (tableRows.length < 3 || !/^\s*\|\s*Date\s*\|/.test(tableRows[0]) || !/^\s*\|[-| ]+\|\s*$/.test(tableRows[1])) return false;
+  const rows = tableRows.slice(2);
+  return rows.length > 0 && rows.every(validCorrectionRow);
+}
+
 function inspectHistory(baseRevision, headRevision, options = {}) {
   const result = { status: "healthy", base: null, head: null, violations: [], additions: [] };
   try {
@@ -121,9 +141,9 @@ function inspectHistory(baseRevision, headRevision, options = {}) {
         code: "HIST_EVIDENCE_NOT_APPEND_ONLY", artifact: EVIDENCE_PATH, change: "rewritten", reason: comparison.reason,
       });
     } else if (!baseEvidence && headEvidence) {
-      const initial = compareEvidence(Buffer.alloc(0), headEvidence);
-      if (!initial.valid) result.violations.push({
-        code: "HIST_EVIDENCE_NOT_APPEND_ONLY", artifact: EVIDENCE_PATH, change: "invalid-new-ledger", reason: initial.reason,
+      if (!validInitialEvidence(headEvidence)) result.violations.push({
+        code: "HIST_EVIDENCE_NOT_APPEND_ONLY", artifact: EVIDENCE_PATH, change: "invalid-new-ledger",
+        reason: "new ledger must contain the canonical evidence sections and a valid dated correction table",
       });
     }
   } catch (error) {
@@ -183,4 +203,4 @@ function main(argv = process.argv.slice(2), options = {}) {
 
 if (require.main === module) process.exitCode = main();
 
-module.exports = { compareEvidence, inspectHistory, main, validCorrectionRow };
+module.exports = { compareEvidence, inspectHistory, main, validCorrectionRow, validInitialEvidence };

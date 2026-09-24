@@ -38,13 +38,13 @@ function write(root, relative, content) {
   fs.writeFileSync(target, content);
 }
 
-function repository(t) {
+function repository(t, { evidence = true } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "oarlock-history-integrity-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   run("git", ["init", "-b", "main", root]);
   write(root, ".planning/milestones/v1.2-ROADMAP.md", "# Milestone v1.2\n\nFrozen roadmap.\n");
   write(root, ".planning/milestones/v1.2-REQUIREMENTS.md", "# Requirements v1.2\n\nFrozen requirements.\n");
-  write(root, ".planning/EVIDENCE.md", "# Evidence\n\n| Date | Milestone | Corrected current record | Preserved source artifact | Evidence Class | Evidence | Caveat |\n|------|-----------|--------------------------|---------------------------|----------------|----------|--------|\n| 2026-09-09 | v1.2 | Added navigation | `.planning/milestones/v1.2-ROADMAP.md` | Additive navigation correction | Frozen roadmap records the shipped range | Historical wording remains unchanged |\n");
+  if (evidence) write(root, ".planning/EVIDENCE.md", "# Evidence\n\n| Date | Milestone | Corrected current record | Preserved source artifact | Evidence Class | Evidence | Caveat |\n|------|-----------|--------------------------|---------------------------|----------------|----------|--------|\n| 2026-09-09 | v1.2 | Added navigation | `.planning/milestones/v1.2-ROADMAP.md` | Additive navigation correction | Frozen roadmap records the shipped range | Historical wording remains unchanged |\n");
   run("git", ["add", ".planning"], { cwd: root });
   run("git", ["commit", "-m", "base history"], { cwd: root });
   return { root, base: run("git", ["rev-parse", "HEAD"], { cwd: root }).stdout.trim() };
@@ -160,6 +160,24 @@ if (MUTATION_SUBJECT) {
     fs.appendFileSync(path.join(root, ".planning/EVIDENCE.md"), "| 2026-09-10 | v1.4 | Added archive link | `.planning/milestones/v1.4-ROADMAP.md` | Additive navigation correction | Frozen roadmap records shipped work | Publication remains unknown |\n");
     const head = commit(root);
     assert.equal(guard(root, base, head).status, 0);
+  });
+
+  test("correction ledger: a canonical initial ledger is allowed when the base predates it", (t) => {
+    const { root, base } = repository(t, { evidence: false });
+    write(root, ".planning/EVIDENCE.md", fs.readFileSync(path.join(PROJECT_ROOT, ".planning/EVIDENCE.md")));
+    const head = commit(root, "add initial evidence ledger");
+    const result = guard(root, base, head, ["--json"]);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.equal(JSON.parse(result.stdout).status, "healthy");
+  });
+
+  test("correction ledger: an initial ledger without valid canonical correction rows fails", (t) => {
+    const { root, base } = repository(t, { evidence: false });
+    write(root, ".planning/EVIDENCE.md", "# Evidence Ledger\n\n## v2.0 and v2.1 Requirement Evidence\n\n## Proof-Class Rules\n\n## Milestone History Corrections — 2026-09-09\n\n| Date | Milestone | Corrected current record | Preserved source artifact | Evidence Class | Evidence | Caveat |\n|------|-----------|--------------------------|---------------------------|----------------|----------|--------|\n| not-a-date | v1.2 | Added navigation | source.md | Additive archive correction | Evidence | Caveat |\n\n## Milestone Identity Rules\n");
+    const head = commit(root, "add malformed initial evidence ledger");
+    const result = guard(root, base, head, ["--json"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /HIST_EVIDENCE_NOT_APPEND_ONLY/);
   });
 
   test("revision evidence: missing base, missing head, and shallow repositories fail closed", async (t) => {
