@@ -33,10 +33,10 @@ defmodule Paddle.Products do
   """
 
   alias Paddle.Client
-  alias Paddle.Product
   alias Paddle.Http
   alias Paddle.Internal.Attrs
   alias Paddle.Internal.Pagination
+  alias Paddle.Product
 
   @type product_id :: String.t()
 

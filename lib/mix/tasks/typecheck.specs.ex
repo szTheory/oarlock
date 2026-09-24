@@ -81,19 +81,7 @@ defmodule Mix.Tasks.Typecheck.Specs do
   defp check_exprs([{:def, meta, [signature | _]} | rest], file, last_spec, known_defs, acc) do
     case extract_name_arity(signature) do
       {name, arity} ->
-        # Multiple heads only need a spec on the first one or a general spec before them
-        if Enum.member?(known_defs, {name, arity}) do
-          check_exprs(rest, file, last_spec, known_defs, acc)
-        else
-          new_known = [{name, arity} | known_defs]
-
-          if last_spec == {name, arity} do
-            check_exprs(rest, file, nil, new_known, acc)
-          else
-            line = Keyword.get(meta, :line)
-            check_exprs(rest, file, nil, new_known, [{file, line, name, arity} | acc])
-          end
-        end
+        check_definition(rest, file, last_spec, known_defs, acc, meta, name, arity)
 
       nil ->
         check_exprs(rest, file, nil, known_defs, acc)
@@ -110,6 +98,22 @@ defmodule Mix.Tasks.Typecheck.Specs do
   defp check_exprs([_ | rest], file, _last_spec, known_defs, acc) do
     # Any other expression clears the last_spec
     check_exprs(rest, file, nil, known_defs, acc)
+  end
+
+  defp check_definition(rest, file, last_spec, known_defs, acc, meta, name, arity) do
+    definition = {name, arity}
+
+    cond do
+      Enum.member?(known_defs, definition) ->
+        check_exprs(rest, file, last_spec, known_defs, acc)
+
+      last_spec == definition ->
+        check_exprs(rest, file, nil, [definition | known_defs], acc)
+
+      true ->
+        line = Keyword.get(meta, :line)
+        check_exprs(rest, file, nil, [definition | known_defs], [{file, line, name, arity} | acc])
+    end
   end
 
   defp extract_name_arity({:when, _, [call | _]}) do

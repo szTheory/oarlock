@@ -28,9 +28,9 @@ defmodule Paddle.Customers.PortalSessions do
   ```
   """
 
-  alias Paddle.PortalSession
   alias Paddle.Http
   alias Paddle.Internal.Attrs
+  alias Paddle.PortalSession
 
   @type customer_id :: String.t()
   @type request_opt :: {:retry, boolean()}

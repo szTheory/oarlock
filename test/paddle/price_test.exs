@@ -1,8 +1,8 @@
 defmodule Paddle.PriceTest do
   use ExUnit.Case, async: true
 
-  alias Paddle.Price
   alias Paddle.Http
+  alias Paddle.Price
 
   describe "struct" do
     test "exposes the promoted price fields plus raw_data" do

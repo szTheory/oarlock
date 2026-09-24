@@ -299,38 +299,40 @@ defmodule Paddle.NotificationSettingsTest do
 
           query = request.url.query || ""
 
-          if not String.contains?(query, "after=") do
-            body = %{
-              "data" => [setting_payload()],
-              "meta" => %{
-                "pagination" => %{
-                  "has_more" => true,
-                  "estimated_total" => 2,
-                  "next" => "/notification-settings?after=ntfset_01",
-                  "per_page" => 1
-                },
-                "request_id" => "req_123"
+          case String.contains?(query, "after=") do
+            false ->
+              body = %{
+                "data" => [setting_payload()],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => true,
+                    "estimated_total" => 2,
+                    "next" => "/notification-settings?after=ntfset_01",
+                    "per_page" => 1
+                  },
+                  "request_id" => "req_123"
+                }
               }
-            }
 
-            {request, Req.Response.new(status: 200, body: body)}
-          else
-            assert String.contains?(query, "after=ntfset_01")
+              {request, Req.Response.new(status: 200, body: body)}
 
-            body = %{
-              "data" => [%{setting_payload() | "id" => "ntfset_02"}],
-              "meta" => %{
-                "pagination" => %{
-                  "has_more" => false,
-                  "estimated_total" => 2,
-                  "next" => "/notification-settings?after=ntfset_02",
-                  "per_page" => 1
-                },
-                "request_id" => "req_456"
+            true ->
+              assert String.contains?(query, "after=ntfset_01")
+
+              body = %{
+                "data" => [%{setting_payload() | "id" => "ntfset_02"}],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => false,
+                    "estimated_total" => 2,
+                    "next" => "/notification-settings?after=ntfset_02",
+                    "per_page" => 1
+                  },
+                  "request_id" => "req_456"
+                }
               }
-            }
 
-            {request, Req.Response.new(status: 200, body: body)}
+              {request, Req.Response.new(status: 200, body: body)}
           end
         end)
 
@@ -353,38 +355,40 @@ defmodule Paddle.NotificationSettingsTest do
 
           query = request.url.query || ""
 
-          if not String.contains?(query, "after=") do
-            body = %{
-              "data" => [setting_payload()],
-              "meta" => %{
-                "pagination" => %{
-                  "has_more" => true,
-                  "estimated_total" => 2,
-                  "next" => "/notification-settings?after=ntfset_01",
-                  "per_page" => 1
-                },
-                "request_id" => "req_123"
+          case String.contains?(query, "after=") do
+            false ->
+              body = %{
+                "data" => [setting_payload()],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => true,
+                    "estimated_total" => 2,
+                    "next" => "/notification-settings?after=ntfset_01",
+                    "per_page" => 1
+                  },
+                  "request_id" => "req_123"
+                }
               }
-            }
 
-            {request, Req.Response.new(status: 200, body: body)}
-          else
-            assert String.contains?(query, "after=ntfset_01")
+              {request, Req.Response.new(status: 200, body: body)}
 
-            body = %{
-              "data" => [%{setting_payload() | "id" => "ntfset_02"}],
-              "meta" => %{
-                "pagination" => %{
-                  "has_more" => false,
-                  "estimated_total" => 2,
-                  "next" => "/notification-settings?after=ntfset_02",
-                  "per_page" => 1
-                },
-                "request_id" => "req_456"
+            true ->
+              assert String.contains?(query, "after=ntfset_01")
+
+              body = %{
+                "data" => [%{setting_payload() | "id" => "ntfset_02"}],
+                "meta" => %{
+                  "pagination" => %{
+                    "has_more" => false,
+                    "estimated_total" => 2,
+                    "next" => "/notification-settings?after=ntfset_02",
+                    "per_page" => 1
+                  },
+                  "request_id" => "req_456"
+                }
               }
-            }
 
-            {request, Req.Response.new(status: 200, body: body)}
+              {request, Req.Response.new(status: 200, body: body)}
           end
         end)
 

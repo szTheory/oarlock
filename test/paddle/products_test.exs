@@ -10,9 +10,9 @@ defmodule Paddle.ProductsTest do
   end
 
   alias Paddle.Client
+  alias Paddle.Page
   alias Paddle.Product
   alias Paddle.Products
-  alias Paddle.Page
 
   describe "get/2" do
     test "returns a Product struct for a valid ID" do

@@ -10,9 +10,9 @@ defmodule Paddle.PricesTest do
   end
 
   alias Paddle.Client
+  alias Paddle.Page
   alias Paddle.Price
   alias Paddle.Prices
-  alias Paddle.Page
 
   describe "get/2" do
     test "requests the price path and returns a typed price" do

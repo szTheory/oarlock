@@ -477,20 +477,7 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_pause_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
-      ensure_unique_retry_opt!(opts)
-
-      case Keyword.pop(opts, :retry) do
-        {retry_value, remaining} ->
-          with :ok <- reject_unknown_pause_opts(remaining),
-               {:ok, body} <- build_pause_body(remaining) do
-            request_opts =
-              if retry_value == nil and not Keyword.has_key?(opts, :retry),
-                do: [],
-                else: [retry: retry_value]
-
-            {:ok, body, request_opts}
-          end
-      end
+      normalize_pause_keyword_opts(opts)
     else
       raise ArgumentError, "pause options must be a keyword list"
     end
@@ -498,6 +485,16 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_pause_opts(_opts),
     do: raise(ArgumentError, "pause options must be a keyword list")
+
+  defp normalize_pause_keyword_opts(opts) do
+    ensure_unique_retry_opt!(opts)
+    {retry_value, remaining} = Keyword.pop(opts, :retry)
+
+    with :ok <- reject_unknown_pause_opts(remaining),
+         {:ok, body} <- build_pause_body(remaining) do
+      {:ok, body, retry_request_opts(opts, retry_value)}
+    end
+  end
 
   defp reject_unknown_pause_opts(opts) do
     supported_keys = [:resume_at, :on_resume]
@@ -512,9 +509,8 @@ defmodule Paddle.Subscriptions do
   end
 
   defp build_pause_body(opts) do
-    with {:ok, body} <- maybe_put_resume_at(%{}, Keyword.get(opts, :resume_at)),
-         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
-      {:ok, body}
+    with {:ok, body} <- maybe_put_resume_at(%{}, Keyword.get(opts, :resume_at)) do
+      maybe_put_on_resume(body, Keyword.get(opts, :on_resume))
     end
   end
 
@@ -551,20 +547,7 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_resume_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
-      ensure_unique_retry_opt!(opts)
-
-      case Keyword.pop(opts, :retry) do
-        {retry_value, remaining} ->
-          with :ok <- reject_unknown_resume_opts(remaining),
-               {:ok, body} <- build_resume_body(remaining) do
-            request_opts =
-              if retry_value == nil and not Keyword.has_key?(opts, :retry),
-                do: [],
-                else: [retry: retry_value]
-
-            {:ok, body, request_opts}
-          end
-      end
+      normalize_resume_keyword_opts(opts)
     else
       raise ArgumentError, "resume options must be a keyword list"
     end
@@ -573,10 +556,26 @@ defmodule Paddle.Subscriptions do
   defp normalize_resume_opts(_opts),
     do: raise(ArgumentError, "resume options must be a keyword list")
 
+  defp normalize_resume_keyword_opts(opts) do
+    ensure_unique_retry_opt!(opts)
+    {retry_value, remaining} = Keyword.pop(opts, :retry)
+
+    with :ok <- reject_unknown_resume_opts(remaining),
+         {:ok, body} <- build_resume_body(remaining) do
+      {:ok, body, retry_request_opts(opts, retry_value)}
+    end
+  end
+
   defp ensure_unique_retry_opt!(opts) do
     if Enum.count(opts, fn {key, _value} -> key == :retry end) > 1 do
       raise ArgumentError, "retry may be supplied only once"
     end
+  end
+
+  defp retry_request_opts(opts, retry_value) do
+    if retry_value == nil and not Keyword.has_key?(opts, :retry),
+      do: [],
+      else: [retry: retry_value]
   end
 
   defp reject_unknown_resume_opts(opts) do
@@ -592,9 +591,8 @@ defmodule Paddle.Subscriptions do
   end
 
   defp build_resume_body(opts) do
-    with {:ok, body} <- maybe_put_effective_from(%{}, Keyword.get(opts, :effective_from)),
-         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
-      {:ok, body}
+    with {:ok, body} <- maybe_put_effective_from(%{}, Keyword.get(opts, :effective_from)) do
+      maybe_put_on_resume(body, Keyword.get(opts, :on_resume))
     end
   end
 

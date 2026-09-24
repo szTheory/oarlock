@@ -36,7 +36,7 @@ defmodule Paddle.MockServer do
       port = Keyword.get(opts, :port, 4001)
       bandit = Module.concat([Bandit])
 
-      apply(bandit, :start_link, [[plug: __MODULE__.Router, port: port]])
+      bandit.start_link(plug: __MODULE__.Router, port: port)
     end
   end
 
@@ -66,9 +66,7 @@ defmodule Paddle.MockServer do
   end
 
   defp format_apps(apps) do
-    apps
-    |> Enum.map(&inspect/1)
-    |> Enum.join(" and ")
+    Enum.map_join(apps, " and ", &inspect/1)
   end
 
   if Code.ensure_loaded?(Plug.Router) and Code.ensure_loaded?(Plug.Parsers) and

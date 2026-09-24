@@ -11,6 +11,7 @@ defmodule Paddle.TransactionsTest do
 
   alias Paddle.Client
   alias Paddle.Error
+  alias Paddle.Internal.Pagination
   alias Paddle.Transaction
   alias Paddle.Transaction.Checkout
   alias Paddle.Transactions
@@ -627,7 +628,7 @@ defmodule Paddle.TransactionsTest do
       assert function_exported?(Paddle.Internal.Pagination, :next_page, 4)
 
       assert {:ok, %Paddle.Page{data: [%Transaction{}]}} =
-               Paddle.Internal.Pagination.next_page(
+               Pagination.next_page(
                  client,
                  Transaction,
                  cursor,

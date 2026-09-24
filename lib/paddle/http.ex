@@ -91,16 +91,7 @@ defmodule Paddle.Http do
   end
 
   defp retry_options!(method, opts) do
-    retry_values = Keyword.get_values(opts, :retry)
-    opts = Keyword.delete(opts, :retry)
-
-    retry =
-      case retry_values do
-        [] -> :default
-        [value] when is_boolean(value) -> value
-        [_value] -> raise ArgumentError, "retry must be a boolean"
-        _values -> raise ArgumentError, "retry may be supplied only once"
-      end
+    {retry, opts} = take_retry_option!(opts)
 
     cond do
       method in @safe_methods and retry != false ->
@@ -115,6 +106,20 @@ defmodule Paddle.Http do
       true ->
         {[retry: false], opts}
     end
+  end
+
+  defp take_retry_option!(opts) do
+    retry_values = Keyword.get_values(opts, :retry)
+
+    retry =
+      case retry_values do
+        [] -> :default
+        [value] when is_boolean(value) -> value
+        [_value] -> raise ArgumentError, "retry must be a boolean"
+        _values -> raise ArgumentError, "retry may be supplied only once"
+      end
+
+    {retry, Keyword.delete(opts, :retry)}
   end
 
   defp retry_decision(%Req.Request{method: method}, outcome) when method in @safe_methods do

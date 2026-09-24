@@ -9,11 +9,11 @@ defmodule Paddle.Customers.PortalSessionsTest do
     end
   end
 
+  alias Paddle.Client
   alias Paddle.Customers.PortalSessions
+  alias Paddle.Error
   alias Paddle.PortalSession
   alias Paddle.PortalSessions, as: LegacyPortalSessions
-  alias Paddle.Error
-  alias Paddle.Client
 
   describe "create/3" do
     test "successfully creates a portal session without subscription_ids" do

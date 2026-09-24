@@ -12,10 +12,10 @@ defmodule Paddle.NotificationSettings do
   """
 
   alias Paddle.Client
-  alias Paddle.NotificationSetting
   alias Paddle.Http
   alias Paddle.Internal.Attrs
   alias Paddle.Internal.Pagination
+  alias Paddle.NotificationSetting
 
   @type notification_setting_id :: String.t()
   @type request_opt :: {:retry, boolean()}

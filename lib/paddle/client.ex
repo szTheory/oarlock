@@ -1,4 +1,6 @@
 defmodule Paddle.Client do
+  alias Paddle.Http.Telemetry
+
   @moduledoc """
   Client configuration for interacting with the Paddle Billing API.
 
@@ -97,7 +99,7 @@ defmodule Paddle.Client do
         headers: [{"Paddle-Version", "1"}],
         retry: false
       )
-      |> Paddle.Http.Telemetry.attach()
+      |> Telemetry.attach()
 
     %__MODULE__{api_key: api_key, environment: environment, base_url: base_url, req: req}
   end
@@ -115,16 +117,20 @@ defmodule Paddle.Client do
         option -> raise ArgumentError, "unknown client option #{inspect(option)}"
       end
 
-      case Enum.find(option_names, fn option -> Enum.count(option_names, &(&1 == option)) > 1 end) do
-        nil -> opts
-        option -> raise ArgumentError, "duplicate client option #{inspect(option)}"
-      end
+      validate_unique_options!(option_names, opts)
     else
       raise ArgumentError, "client options must be a keyword list"
     end
   end
 
   defp validate_options!(_opts), do: raise(ArgumentError, "client options must be a keyword list")
+
+  defp validate_unique_options!(option_names, opts) do
+    case Enum.find(Enum.frequencies(option_names), fn {_option, count} -> count > 1 end) do
+      nil -> opts
+      {option, _count} -> raise ArgumentError, "duplicate client option #{inspect(option)}"
+    end
+  end
 
   defp validate_api_key!(opts) do
     case Keyword.fetch(opts, :api_key) do
@@ -141,43 +147,39 @@ defmodule Paddle.Client do
   end
 
   defp resolve_environment_and_base_url!(opts) do
-    environment? = Keyword.has_key?(opts, :environment)
-    base_url? = Keyword.has_key?(opts, :base_url)
-    environment = Keyword.get(opts, :environment)
-    base_url = Keyword.get(opts, :base_url)
-
-    case {environment?, environment, base_url?} do
-      {false, nil, false} ->
-        {:sandbox, @sandbox_url}
-
-      {false, nil, true} ->
-        base_url = validate_base_url!(base_url)
-        {environment_for_url(base_url), base_url}
-
-      {true, :sandbox, false} ->
-        {:sandbox, @sandbox_url}
-
-      {true, :live, false} ->
-        {:live, @live_url}
-
-      {true, :custom, false} ->
-        raise ArgumentError, "client option :base_url is required for environment :custom"
-
-      {true, :sandbox, true} ->
-        validate_canonical_base_url!(base_url, @sandbox_url)
-        {:sandbox, @sandbox_url}
-
-      {true, :live, true} ->
-        validate_canonical_base_url!(base_url, @live_url)
-        {:live, @live_url}
-
-      {true, :custom, true} ->
-        {:custom, validate_base_url!(base_url)}
-
-      {true, _unsupported, _base_url?} ->
-        raise ArgumentError, "client option :environment is unsupported"
+    case {Keyword.fetch(opts, :environment), Keyword.fetch(opts, :base_url)} do
+      {:error, :error} -> {:sandbox, @sandbox_url}
+      {:error, {:ok, base_url}} -> resolve_base_url_only!(base_url)
+      {{:ok, environment}, base_url} -> resolve_explicit_environment!(environment, base_url)
     end
   end
+
+  defp resolve_base_url_only!(base_url) do
+    base_url = validate_base_url!(base_url)
+    {environment_for_url(base_url), base_url}
+  end
+
+  defp resolve_explicit_environment!(:sandbox, :error), do: {:sandbox, @sandbox_url}
+  defp resolve_explicit_environment!(:live, :error), do: {:live, @live_url}
+
+  defp resolve_explicit_environment!(:custom, :error),
+    do: raise(ArgumentError, "client option :base_url is required for environment :custom")
+
+  defp resolve_explicit_environment!(:sandbox, {:ok, base_url}) do
+    validate_canonical_base_url!(base_url, @sandbox_url)
+    {:sandbox, @sandbox_url}
+  end
+
+  defp resolve_explicit_environment!(:live, {:ok, base_url}) do
+    validate_canonical_base_url!(base_url, @live_url)
+    {:live, @live_url}
+  end
+
+  defp resolve_explicit_environment!(:custom, {:ok, base_url}),
+    do: {:custom, validate_base_url!(base_url)}
+
+  defp resolve_explicit_environment!(_environment, _base_url),
+    do: raise(ArgumentError, "client option :environment is unsupported")
 
   defp environment_for_url(@sandbox_url), do: :sandbox
   defp environment_for_url(@live_url), do: :live

@@ -1,8 +1,8 @@
 defmodule Paddle.ProductTest do
   use ExUnit.Case, async: true
 
-  alias Paddle.Product
   alias Paddle.Http
+  alias Paddle.Product
 
   describe "struct" do
     test "exposes the promoted product fields plus raw_data" do

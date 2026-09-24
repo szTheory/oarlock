@@ -1,8 +1,8 @@
 defmodule Paddle.NotificationSettingTest do
   use ExUnit.Case, async: true
 
-  alias Paddle.NotificationSetting
   alias Paddle.Http
+  alias Paddle.NotificationSetting
 
   describe "struct" do
     test "exposes the promoted fields plus raw_data" do
