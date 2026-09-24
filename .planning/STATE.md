@@ -5,11 +5,11 @@ milestone_name: Trust, Coverage & Green Delivery
 current_phase: 33
 current_phase_name: Deterministic Green CI
 status: executing
-stopped_at: Completed 33-02-PLAN.md; hosted baseline ref unresolved
-last_updated: "2026-09-24T14:49:10.300Z"
+stopped_at: Updated draft PR candidate with history-ledger and GSD-plan fixes; exact-SHA run pending
+last_updated: "2026-09-24T20:58:29Z"
 last_activity: 2026-09-24
-last_activity_desc: Resumed Phase 33 Plan 02 and reconciled handoff against the working tree
-state_head: bd87b5b86a2a82d1adb4562f50fe504ade2e9404
+last_activity_desc: Fixed initial-ledger CI history validation; assembling missing Phase 33 artifacts on authorized draft PR
+state_head: 63bb822b00b61cd17d6aabab3f92b82886d8f3c0
 progress:
   total_phases: 6
   completed_phases: 2
@@ -30,8 +30,8 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 Phase: 33 (Deterministic Green CI) — EXECUTING
 Plan: 3 of 4
-Status: In progress — Plan 33-02 is complete; Plan 33-03 requires a safe hosted candidate for timing baseline
-Last activity: 2026-09-24 — Phase 33 Plan 02 resumed
+Status: In progress — Plans 33-01/02 complete; Plan 33-03 waits for a successful exact-SHA full-contract run, then 33-04 handles main proof/rules
+Last activity: 2026-09-24 — Phase 33 local-only timing and hosted acceptance tooling added
 
 Progress: [███░░░░░░░] 33%
 
@@ -153,7 +153,8 @@ None.
 - Req 0.7.4 passes the complete local compatibility matrix and online audit; hosted exact-SHA proof remains separate.
 - Hosted rulesets, CI history, release environment behavior, and automation credentials require phase-local verification.
 - GitHub and Hex access are available. Strict Credo, ExDoc, Hex audit, focused CI contract suites, and all 275 Mix tests pass locally; hosted exact-SHA proof remains separate.
-- Hosted Phase 33 observation is unsafe from this checkout: local `main` is currently 397 commits ahead of `origin/main` (470 changed files), so publishing it for the required PR run would include unrelated history. Re-check before any remote write. Plans 33-03 and 33-04 still need a safe candidate ref and exact-SHA hosted evidence.
+- User authorized a PR instead of directly pushing the roughly 400-commit local history. Draft PR #6 is open at the current published candidate; do not merge until its full diff, required CI, and history are reviewed. Hosted runs exposed and fixed two CI blockers: Hex 2.5.1 install layout detection and first-introduction validation for the canonical evidence ledger. A subsequent run passed history integrity but found the Phase 33 plan artifacts missing from the remote candidate; those files are now prepared locally for the next candidate update.
+- Remote `main` remains `fb3d9a185f104194e85987541519a6168e0b568c`, with an observed failed CI run and a successful Release Please run; `CI contract` is not currently required by its effective branch rule. Phase 33-03 timing has no accepted successful full-contract baseline yet. Phase 33-04 main protection/current-main proof remains unverified.
 
 ## Deferred Items
 
@@ -166,10 +167,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-24T14:49:10.168Z
-Stopped at: Completed 33-02-PLAN.md; hosted baseline ref unresolved
-Resume file: None
+Last session: 2026-09-24T19:49:47Z
+Stopped at: GSD progress cleanup; Phase 33 plan artifacts and initial-ledger history fix prepared for another exact-SHA hosted run
+Resume file: .planning/phases/33-deterministic-green-ci/.continue-here.md
 
 ## Operator Next Steps
 
-- Provide a safe hosted candidate ref before recording the Plan 33-03 full-contract timing baseline and completing Plans 33-03/04.
+- Publish only the explicit reviewable candidate files prepared for PR #6; keep the PR draft. Confirm the exact-SHA run passes planning truth and CI contract, then record timing from that successful full-contract run before workflow performance edits. Reconcile Phase 32 stale verification and Phase 31 UAT debt without converting unsupported human claims into passes. Do not push local `main` directly.

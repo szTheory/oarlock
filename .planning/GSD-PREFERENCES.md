@@ -24,6 +24,17 @@ Future GSD planning for oarlock should keep these lenses visible:
 - **Retained investigations:** preserve resolved research in indexed planning memory with clear reopen conditions instead of deleting useful lessons.
 - **Nyquist validation:** make proof boundaries explicit, especially MockServer-backed evidence versus sandbox/live Paddle provider-state evidence.
 - **Pattern mapping:** align new plans with oarlock's provider-native, pure SDK, explicit-client, typed-response patterns before introducing new abstractions.
+- **Adopter evidence before breadth:** prioritize demonstrated consumer jobs, provider truth, security, reliability, compatibility, and DX over endpoint count or activity. Treat industry examples as lenses for concrete SDK needs, not a reason to add application policy or speculative scope.
+- **Automation-first, shift-left verification:** default to zero human UAT for behavior that can be proven reproducibly. Put unit, seam, integration, end-to-end, smoke, contract, downstream/demo, and CI checks at the earliest useful boundary when they provide recurring risk reduction that justifies their runtime and maintenance cost. Hand off to a human only for irreducible external state or subjective judgment; document why it cannot be automated, what automated evidence was gathered, and the remaining closure criterion.
+- **High signal per runtime:** choose tests and CI checks for distinct risk reduction; cover relevant success, error, and boundary behavior; use property-based testing for selected high-value invariants. Measure CI cost and streamline redundant or low-value checks without removing required proof.
+- **Keep `main` green:** after every merge or direct update, verify required CI against the exact current `main` SHA. If it fails, prioritize diagnosis and repair before merging more work or releasing; a prior green run and local success do not prove the current head.
+- **Milestone closeout:** leave changes reviewable, PRs dispositioned, required `main` CI green, docs and planning current, and worktrees clean. Release promptly when adopter-facing value and project release policy warrant it; a milestone alone does not require a release.
+- **Craft and privacy:** favor idiomatic, clear, self-documenting code and docs, stopping when complexity exceeds likely value. Apply relevant 12-factor principles and keep secrets, personal data, customer data, and private paths out of public Git; use only synthetic fixtures and non-reversible local-only fingerprints when necessary.
+- **Context-safe handoff:** before recommending the next GSD command, ensure committed planning artifacts preserve decisions, provenance, evidence, blockers, and the exact next action needed after context reset.
+
+These additions were recorded on 2026-09-23 from the maintainer's Oarlock milestone-roadmap direction, adapted from `prompts/oarlock-milestone-roadmap-ratchet.txt`. They extend the existing preferences and do not promote or replace roadmap candidates.
+
+On 2026-09-24, the maintainer clarified that repeatable verification should be automated and shifted into CI by default, with human UAT reserved for the narrow cases automation cannot reliably cover.
 
 ## Personal and User-Global Boundaries
 
