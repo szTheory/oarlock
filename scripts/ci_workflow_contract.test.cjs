@@ -95,8 +95,11 @@ test("quality proof identity is required by workflow and proof writer", () => {
 
 test("proof toolchain extracts the Rebar version format emitted by rebar3", () => {
   const proof = jobBlock("ci-contract");
-  const toolchain = hasStep(proof, "Install proof toolchain", /mix local\.rebar --force/);
+  const toolchain = hasStep(proof, "Install proof toolchain", /mix local\.rebar rebar3 .* --force/);
   assert.match(toolchain, /HEX_VERSION=.*-type d -name 'hex-\*'.*-type f -name 'hex-\*\.ez'/);
+  assert.match(toolchain, /mix local\.hex 2\.5\.1 --force/);
+  assert.match(toolchain, /sha512sum --check/);
+  assert.match(toolchain, /rebar3-3\.25\.1/);
   assert.match(toolchain, /REBAR_VERSION=.*version 2>&1 \| sed -nE/);
   assert.equal("rebar 3.25.1 on Erlang/OTP 28 Erts 16.1".match(/^rebar ([0-9.]+)/)?.[1], "3.25.1");
 });

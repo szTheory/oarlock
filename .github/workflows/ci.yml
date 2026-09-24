@@ -42,8 +42,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch library deps
         run: mix deps.get
@@ -112,8 +114,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch library deps
         run: mix deps.get
@@ -171,8 +175,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch demo deps
         working-directory: demo
@@ -218,8 +224,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Build and compile fresh package consumer
         run: bin/package_smoke.sh
@@ -247,8 +255,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch library deps
         run: mix deps.get
@@ -363,8 +373,10 @@ jobs:
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch quality dependencies
         run: mix deps.get
@@ -413,8 +425,10 @@ jobs:
       - name: Install proof toolchain
         id: proof-tools
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
           HEX_VERSION="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)(\.ez)?$|\1|')"
           REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
           test -n "$HEX_VERSION"
