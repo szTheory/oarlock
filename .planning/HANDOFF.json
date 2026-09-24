@@ -45,6 +45,11 @@
       "description": "Local main is 395 commits ahead of origin/main, representing 468 files changed from upstream. Publishing this ref for the Plan 33 hosted PR would include broad unreconciled project history.",
       "type": "human_action",
       "workaround": "Inspect repository history and ask the maintainer which base/ref should carry the intended cumulative changes before publishing."
+    },
+    {
+      "description": "The cross-phase UAT audit reports 12 unresolved Phase 31 items (six issue results and six unknown results); Phase 32 verification is also stale.",
+      "type": "technical",
+      "workaround": "Keep this verification debt visible and reconcile it through the Phase 31/32 verification workflow; do not claim those phases fully verified."
     }
   ],
   "async_jobs": [],
@@ -103,5 +108,5 @@
     "?? test/support/"
   ],
   "next_action": "Resume Plan 33-02; review and fix the 30 strict Credo findings without overwriting the listed uncommitted Phase 32/test edits, re-run the required checks, then summarize Plan 33-02. Before any GitHub write, get a safe candidate base/ref decision for the 395-commit divergence.",
-  "context_notes": "GitHub and Hex are reachable with authenticated gh and Mix. Credo 1.7.19 was verified from Hex and locked. ExDoc and Hex audit pass. The focused command `node --test scripts/ci_workflow_contract.test.cjs scripts/ci_proof.test.cjs scripts/ci_monitor.test.cjs` passes 26/26. Plan 33-02 code commits are d57127a and 1d26850. No background jobs are running. The user asked to preserve signal across context clearing. No repository file named prompt.txt was found."
+  "context_notes": "GitHub and Hex are reachable with authenticated gh and Mix. Credo 1.7.19 was verified from Hex and locked. ExDoc and Hex audit pass. The focused command `node --test scripts/ci_workflow_contract.test.cjs scripts/ci_proof.test.cjs scripts/ci_monitor.test.cjs` passes 26/26. Plan 33-02 code commits are d57127a and 1d26850. Cross-phase `audit-uat` reports 12 Phase 31 items (six issues, six unknown results); GSD analysis marks Phase 32 verification stale. No background jobs are running. The user asked to preserve signal across context clearing. No repository file named prompt.txt was found."
 }
