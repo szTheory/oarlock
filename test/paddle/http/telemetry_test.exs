@@ -1,5 +1,6 @@
 defmodule Paddle.Http.TelemetryTest do
   use ExUnit.Case, async: true
+  alias Paddle.Http.Telemetry
 
   @events [
     [:paddle, :request, :start],
@@ -29,7 +30,7 @@ defmodule Paddle.Http.TelemetryTest do
   end
 
   test "attach/1 places terminal telemetry before retry" do
-    req = Paddle.Http.Telemetry.attach(Req.new())
+    req = Telemetry.attach(Req.new())
 
     assert Keyword.has_key?(req.request_steps, :paddle_telemetry_start)
 
@@ -290,7 +291,7 @@ defmodule Paddle.Http.TelemetryTest do
       operation: :list_customers,
       route: "/customers"
     })
-    |> Paddle.Http.Telemetry.attach()
+    |> Telemetry.attach()
   end
 
   defp canary_request(adapter, opts \\ []) do
@@ -309,7 +310,7 @@ defmodule Paddle.Http.TelemetryTest do
       operation: :create_customer,
       route: "/customers"
     })
-    |> Paddle.Http.Telemetry.attach()
+    |> Telemetry.attach()
   end
 
   defp step_index(steps, name), do: Enum.find_index(steps, &(elem(&1, 0) == name))

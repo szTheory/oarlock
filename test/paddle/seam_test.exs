@@ -15,7 +15,9 @@ defmodule Paddle.SeamTest do
   alias Paddle.Address
   alias Paddle.Client
   alias Paddle.Customer
+  alias Paddle.Customers.Addresses
   alias Paddle.Event
+  alias Paddle.Internal.Pagination
   alias Paddle.Subscription
   alias Paddle.Subscription.ManagementUrls
   alias Paddle.Subscription.ScheduledChange
@@ -166,7 +168,7 @@ defmodule Paddle.SeamTest do
       end)
 
     assert {:ok, %Address{id: "add_seam01", customer_id: "ctm_seam01"} = address} =
-             Paddle.Customers.Addresses.create(address_client, customer.id,
+             Addresses.create(address_client, customer.id,
                description: "Home office",
                first_line: "123 Main Street",
                second_line: "Suite 4",
@@ -373,7 +375,7 @@ defmodule Paddle.SeamTest do
       },
       %{
         call: fn client, opts ->
-          Paddle.Customers.Addresses.create(
+          Addresses.create(
             client,
             "ctm_seam01",
             %{country_code: "US", postal_code: "10001"},
@@ -718,7 +720,7 @@ defmodule Paddle.SeamTest do
 
   test "address stream documentation matches direct elements and raised enumeration failures" do
     docs =
-      Paddle.Customers.Addresses
+      Addresses
       |> function_doc!(:stream, 3)
       |> normalize_markdown()
 
@@ -734,7 +736,7 @@ defmodule Paddle.SeamTest do
       Paddle.Client,
       Paddle.Http,
       Paddle.Error,
-      Paddle.Internal.Pagination,
+      Pagination,
       Paddle.Adjustments,
       Paddle.Customers,
       Paddle.Customers.Addresses,
@@ -773,7 +775,7 @@ defmodule Paddle.SeamTest do
     for module <- [
           Paddle.Adjustments,
           Paddle.Customers,
-          Paddle.Customers.Addresses,
+          Addresses,
           Paddle.Customers.PortalSessions,
           Paddle.NotificationSettings,
           Paddle.Subscriptions,
@@ -786,8 +788,8 @@ defmodule Paddle.SeamTest do
 
     assert spec_arities(Paddle.Client) == [new!: 1]
     assert {:request, 4} in spec_arities(Paddle.Http)
-    assert {:next_page, 4} in spec_arities(Paddle.Internal.Pagination)
-    refute {:next_page, 3} in Paddle.Internal.Pagination.__info__(:functions)
+    assert {:next_page, 4} in spec_arities(Pagination)
+    refute {:next_page, 3} in Pagination.__info__(:functions)
     assert {:attach, 1} in spec_arities(Paddle.Http.Telemetry)
 
     for module <- [
@@ -1117,9 +1119,7 @@ defmodule Paddle.SeamTest do
   defp function_doc!(module, name, arity) do
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, _, _, _, docs} ->
-        case Enum.find(docs, fn {{kind, doc_name, doc_arity}, _, _, _, _} ->
-               kind == :function and doc_name == name and doc_arity == arity
-             end) do
+        case find_function_doc(docs, name, arity) do
           {{:function, ^name, ^arity}, _, _, %{"en" => doc}, _} ->
             doc
 
@@ -1132,6 +1132,12 @@ defmodule Paddle.SeamTest do
       other ->
         flunk("expected compiled docs for #{inspect(module)}, got: #{inspect(other)}")
     end
+  end
+
+  defp find_function_doc(docs, name, arity) do
+    Enum.find(docs, fn {{kind, doc_name, doc_arity}, _, _, _, _} ->
+      kind == :function and doc_name == name and doc_arity == arity
+    end)
   end
 
   defp spec_arities(module) do
