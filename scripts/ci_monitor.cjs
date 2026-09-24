@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const DEFAULT_REQUIRED_JOBS = [
   "mix test",
@@ -12,6 +15,14 @@ const DEFAULT_REQUIRED_JOBS = [
   "CI contract",
 ];
 const MAX_POLL_SECONDS = 3600;
+const PROOF_REQUIRED_JOBS = [
+  ["test", "mix test"],
+  ["dialyzer", "static analysis"],
+  ["demo-postgres", "demo PostgreSQL"],
+  ["package-smoke", "package smoke"],
+  ["optional-deps", "optional dependencies"],
+  ["planning-truth", "planning truth"],
+];
 
 function usage() {
   return `Usage:
@@ -171,6 +182,68 @@ function viewRun({ runId, repo }, options = {}) {
   return runGh(args, options);
 }
 
+function downloadProof({ runId, attempt, repo }, options = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ci-monitor-proof-"));
+  const artifactName = `ci-proof-${runId}-${attempt}`;
+  const args = ["run", "download", String(runId), "--name", artifactName, "--dir", dir];
+  if (repo) args.push("--repo", repo);
+  const ghBin = options.ghBin || process.env.CI_MONITOR_GH_BIN || "gh";
+  const result = spawnSync(ghBin, args, {
+    encoding: "utf8",
+    env: options.env || process.env,
+    timeout: options.timeoutMs,
+    maxBuffer: 1024 * 1024,
+  });
+  try {
+    if (result.error || result.status !== 0) {
+      const message = result.error ? result.error.message : result.stderr || result.stdout || "gh artifact download failed";
+      throw new GhError(`Unable to observe CI proof artifact: ${message}`, {
+        status: 2,
+        stderr: result.stderr,
+        timedOut: result.error?.code === "ETIMEDOUT",
+        timeoutMs: options.timeoutMs,
+      });
+    }
+    const file = path.join(dir, "ci-contract-proof.json");
+    const stat = fs.statSync(file);
+    if (!stat.isFile() || stat.size === 0 || stat.size > 1024 * 1024) {
+      throw new GhError("CI proof artifact is missing, empty, or too large", { status: 2 });
+    }
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    if (error instanceof GhError) throw error;
+    throw new GhError(`Unable to read CI proof artifact: ${error.message}`, { status: 2 });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function verifyProofAgainstRun(proof, run, options = {}) {
+  let validateProof;
+  try {
+    ({ validateProof } = require("./ci_proof.cjs"));
+    validateProof(proof, {
+      headSha: run.headSha,
+      runId: run.databaseId,
+      runAttempt: run.attempt,
+    });
+  } catch (error) {
+    throw new GhError(`CI proof artifact is invalid: ${error.message}`, { status: 2 });
+  }
+  const byName = new Map((run.jobs || []).map((job) => [job.name, job]));
+  for (const [id, name] of PROOF_REQUIRED_JOBS) {
+    const recorded = proof.required_jobs.find((job) => job.id === id);
+    const hosted = byName.get(name);
+    if (!recorded || (hosted && recorded.result !== hosted.conclusion)) {
+      throw new GhError(`CI proof job result does not match hosted job: ${id}`, { status: 2 });
+    }
+  }
+  if (options.testedSha && proof.tested_sha !== options.testedSha.toLowerCase()) {
+    throw new GhError("CI proof tested SHA does not match requested event SHA", { status: 2 });
+  }
+  return proof;
+}
+
 function jobEvidence(jobs, requiredJobs) {
   const byName = new Map(jobs.map((job) => [job.name, job]));
   const required = requiredJobs.map((name) => {
@@ -300,15 +373,43 @@ async function assertCi(args, options = {}) {
     const jobsEvidence = jobEvidence(jobs, requiredJobs);
     const runConclusion = viewed.conclusion || run.conclusion;
 
+    let proof;
+    try {
+      proof = downloadProof({ runId: run.databaseId, attempt: run.attempt, repo }, {
+        ...options,
+        timeoutMs: Math.max(1, Math.min(deadline - Date.now(), options.timeoutMs ?? deadline - Date.now())),
+      });
+      verifyProofAgainstRun(proof, { ...run, ...viewed });
+    } catch (error) {
+      return {
+        exitCode: error.details?.status === 1 ? 1 : 2,
+        evidence: {
+          verified: false,
+          reason: error.details?.status === 1 ? "proof_reports_failed_job" : "proof_unobserved_or_invalid",
+          message: error.message,
+          details: error.details || {},
+          run: normalizeRun({ ...run, ...viewed }),
+        },
+      };
+    }
+
     const evidence = {
       verified:
         runConclusion === "success" &&
         jobsEvidence.missing.length === 0 &&
-        jobsEvidence.failed.length === 0,
+        jobsEvidence.failed.length === 0 &&
+        proof.verified === true,
       workflow,
       sha,
       run: normalizeRun({ ...run, ...viewed }),
       jobs: jobsEvidence.required,
+      proof: {
+        testedSha: proof.tested_sha,
+        eventHeadSha: proof.event_head_sha,
+        runId: proof.run_id,
+        runAttempt: proof.run_attempt,
+        verified: proof.verified,
+      },
     };
 
     if (!evidence.verified) {
@@ -316,12 +417,13 @@ async function assertCi(args, options = {}) {
         exitCode: 1,
         evidence: {
           ...evidence,
-          reason:
-            runConclusion !== "success"
+          reason: runConclusion !== "success"
               ? "workflow_not_successful"
               : jobsEvidence.missing.length > 0
                 ? "required_job_missing"
-                : "required_job_not_successful",
+                : jobsEvidence.failed.length > 0
+                  ? "required_job_not_successful"
+                  : "proof_reports_failed_job",
           missingJobs: jobsEvidence.missing,
           failedJobs: jobsEvidence.failed,
         },

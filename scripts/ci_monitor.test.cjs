@@ -6,6 +6,7 @@ const { spawnSync } = require("node:child_process");
 const test = require("node:test");
 
 const script = join(__dirname, "ci_monitor.cjs");
+const SHA = "a".repeat(40);
 
 function makeFakeGh(scenario) {
   const dir = mkdtempSync(join(tmpdir(), "ci-monitor-"));
@@ -28,12 +29,20 @@ const requiredJobs = [
   ["planning truth", "success"],
   ["CI contract", "success"]
 ];
+const proofJobs = [
+  ["test", "mix test"],
+  ["dialyzer", "static analysis"],
+  ["demo-postgres", "demo PostgreSQL"],
+  ["package-smoke", "package smoke"],
+  ["optional-deps", "optional dependencies"],
+  ["planning-truth", "planning truth"]
+];
 
 function write(value) {
   process.stdout.write(JSON.stringify(value));
 }
 
-function run(status, conclusion, sha = "abc123") {
+function run(status, conclusion, sha = process.env.CI_MONITOR_TEST_SHA) {
   return {
     databaseId: 42,
     workflowName: "CI",
@@ -79,6 +88,34 @@ if (args[0] === "run" && args[1] === "view") {
   process.exit(0);
 }
 
+if (args[0] === "run" && args[1] === "download") {
+  if (scenario === "missing-artifact" || scenario === "artifact-error") {
+    process.stderr.write("artifact download unavailable");
+    process.exit(1);
+  }
+  const dir = args[args.indexOf("--dir") + 1];
+  const resultFor = (name) => ((scenario === "failed-job" && name === "package smoke") || (scenario === "failed-planning-truth" && name === "planning truth")) ? "failure" : "success";
+  const proof = {
+    schema_version: 1,
+    tested_sha: "b".repeat(40),
+    event_head_sha: process.env.CI_MONITOR_TEST_SHA,
+    run_id: 42,
+    run_attempt: 1,
+    workflow: "CI",
+    repository: "owner/repo",
+    run_url: "https://github.com/owner/repo/actions/runs/42/attempts/1",
+    toolchain: { otp: "28.1", elixir: "1.19.5", node: "22.14.0", hex: "2.2.1", rebar: "3.25.1", runner: "ubuntu-24.04" },
+    lockfiles: { root_mix_lock_sha256: "c".repeat(64), demo_mix_lock_sha256: "d".repeat(64) },
+    required_jobs: proofJobs.map(([id, name]) => ({ id, result: resultFor(name) })),
+    verified: !["failed-job", "failed-planning-truth"].includes(scenario)
+  };
+  if (scenario === "wrong-proof-run") proof.run_id = 99;
+  if (scenario === "wrong-proof-attempt") proof.run_attempt = 2;
+  if (scenario === "wrong-proof-sha") proof.event_head_sha = "e".repeat(40);
+  fs.writeFileSync(require("node:path").join(dir, "ci-contract-proof.json"), JSON.stringify(proof));
+  process.exit(0);
+}
+
 process.stderr.write("unexpected gh args: " + args.join(" "));
 process.exit(1);
 `,
@@ -93,6 +130,7 @@ process.exit(1);
       CI_MONITOR_GH_BIN: fakeGh,
       FAKE_GH_SCENARIO: scenario,
       FAKE_GH_STATE: stateFile,
+      CI_MONITOR_TEST_SHA: SHA,
     },
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
   };
@@ -103,7 +141,7 @@ function runMonitor(scenario, extraArgs = [], asJson = true) {
   try {
     return spawnSync(
       process.execPath,
-      [script, "assert-ci", "--sha", "abc123", "--workflow", "CI", "--timeout", "5", "--poll", "0", ...(asJson ? ["--json"] : []), ...extraArgs],
+      [script, "assert-ci", "--sha", SHA, "--workflow", "CI", "--timeout", "5", "--poll", "0", ...(asJson ? ["--json"] : []), ...extraArgs],
       {
         encoding: "utf8",
         env: fake.env,
@@ -119,8 +157,9 @@ test("assert-ci exits 0 with exact SHA and all required jobs successful", () => 
   assert.equal(result.status, 0);
   const evidence = JSON.parse(result.stdout);
   assert.equal(evidence.verified, true);
-  assert.equal(evidence.sha, "abc123");
+  assert.equal(evidence.sha, SHA);
   assert.equal(evidence.jobs.length, 7);
+  assert.equal(evidence.proof.verified, true);
 });
 
 test("assert-ci accepts a workflow file selector when GitHub returns its display name", () => {
@@ -192,6 +231,15 @@ test("assert-ci reports completed-run lookup errors as blocked evidence", () => 
   assert.doesNotMatch(humanResult.stderr, /\n\s+at /);
 });
 
+test("assert-ci rejects missing, mismatched, or failed proof artifacts", () => {
+  for (const scenario of ["missing-artifact", "artifact-error", "wrong-proof-run", "wrong-proof-attempt", "wrong-proof-sha", "failed-job"]) {
+    const result = runMonitor(scenario);
+    assert.notEqual(result.status, 0, scenario);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.verified, false, scenario);
+  }
+});
+
 test("assert-ci rejects non-finite, negative, and excessive timing options", () => {
   for (const args of [
     ["--timeout", "NaN"],
@@ -233,15 +281,20 @@ test("ci workflow defines an always-running contract over required proof jobs", 
   assert.notEqual(contractIndex, -1);
 
   const contract = workflow.slice(contractIndex);
+  const proofWriter = readFileSync(join(__dirname, "ci_proof.cjs"), "utf8");
   assert.match(contract, /name:\s+CI contract/);
   assert.match(contract, /if:\s+\$\{\{\s*always\(\)\s*\}\}/);
 
   for (const job of ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"]) {
     assert.match(contract, new RegExp(`- ${job}`));
   }
-  assert.match(contract, /const required = \[[^\]]*"planning-truth"[^\]]*\]/s);
-  assert.match(contract, /sha:\s*process\.env\.GITHUB_SHA_VALUE/);
-  assert.match(contract, /required_jobs:\s*jobs/);
+  assert.match(proofWriter, /REQUIRED_JOBS = \["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"\]/);
+  assert.match(contract, /GITHUB_SHA_VALUE:\s*\$\{\{\s*github\.sha\s*\}\}/);
+  assert.match(contract, /run:\s*node scripts\/ci_proof\.cjs/);
+  assert.match(contract, /if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+  assert.match(contract, /ci-proof-\$\{\{\s*github\.run_id\s*\}\}-\$\{\{\s*github\.run_attempt\s*\}\}/);
+  assert.match(contract, /if-no-files-found:\s*error/);
+  assert.match(contract, /actions\/upload-artifact@[a-f0-9]{40}/);
 });
 
 test("ci workflow defines the exact required planning-truth lane", () => {
