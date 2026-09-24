@@ -12,6 +12,7 @@ const DEFAULT_REQUIRED_JOBS = [
   "package smoke",
   "optional dependencies",
   "planning truth",
+  "quality checks",
   "CI contract",
 ];
 const MAX_POLL_SECONDS = 3600;
@@ -22,6 +23,7 @@ const PROOF_REQUIRED_JOBS = [
   ["package-smoke", "package smoke"],
   ["optional-deps", "optional dependencies"],
   ["planning-truth", "planning truth"],
+  ["quality", "quality checks"],
 ];
 
 function usage() {

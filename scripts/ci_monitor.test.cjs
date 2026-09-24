@@ -27,6 +27,7 @@ const requiredJobs = [
   ["package smoke", "success"],
   ["optional dependencies", "success"],
   ["planning truth", "success"],
+  ["quality checks", "success"],
   ["CI contract", "success"]
 ];
 const proofJobs = [
@@ -35,7 +36,8 @@ const proofJobs = [
   ["demo-postgres", "demo PostgreSQL"],
   ["package-smoke", "package smoke"],
   ["optional-deps", "optional dependencies"],
-  ["planning-truth", "planning truth"]
+  ["planning-truth", "planning truth"],
+  ["quality", "quality checks"]
 ];
 
 function write(value) {
@@ -82,6 +84,8 @@ if (args[0] === "run" && args[1] === "view") {
   } else if (scenario === "failed-job") write({ ...run("completed", "success"), jobs: jobs({ "package smoke": "failure" }) });
   else if (scenario === "failed-planning-truth") write({ ...run("completed", "success"), jobs: jobs({ "planning truth": "failure" }) });
   else if (scenario === "missing-planning-truth") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "planning truth") });
+  else if (scenario === "failed-quality") write({ ...run("completed", "success"), jobs: jobs({ "quality checks": "failure" }) });
+  else if (scenario === "missing-quality") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "quality checks") });
   else if (scenario === "missing-job") write({ ...run("completed", "success"), jobs: jobs().filter((job) => job.name !== "CI contract") });
   else if (scenario === "failed-workflow") write({ ...run("completed", "failure"), jobs: jobs() });
   else write({ ...run("completed", "success"), jobs: jobs() });
@@ -94,7 +98,7 @@ if (args[0] === "run" && args[1] === "download") {
     process.exit(1);
   }
   const dir = args[args.indexOf("--dir") + 1];
-  const resultFor = (name) => ((scenario === "failed-job" && name === "package smoke") || (scenario === "failed-planning-truth" && name === "planning truth")) ? "failure" : "success";
+  const resultFor = (name) => ((scenario === "failed-job" && name === "package smoke") || (scenario === "failed-planning-truth" && name === "planning truth") || (scenario === "failed-quality" && name === "quality checks")) ? "failure" : "success";
   const proof = {
     schema_version: 1,
     tested_sha: "b".repeat(40),
@@ -107,7 +111,7 @@ if (args[0] === "run" && args[1] === "download") {
     toolchain: { otp: "28.1", elixir: "1.19.5", node: "22.14.0", hex: "2.2.1", rebar: "3.25.1", runner: "ubuntu-24.04" },
     lockfiles: { root_mix_lock_sha256: "c".repeat(64), demo_mix_lock_sha256: "d".repeat(64) },
     required_jobs: proofJobs.map(([id, name]) => ({ id, result: resultFor(name) })),
-    verified: !["failed-job", "failed-planning-truth"].includes(scenario)
+    verified: !["failed-job", "failed-planning-truth", "failed-quality"].includes(scenario)
   };
   if (scenario === "wrong-proof-run") proof.run_id = 99;
   if (scenario === "wrong-proof-attempt") proof.run_attempt = 2;
@@ -158,7 +162,7 @@ test("assert-ci exits 0 with exact SHA and all required jobs successful", () => 
   const evidence = JSON.parse(result.stdout);
   assert.equal(evidence.verified, true);
   assert.equal(evidence.sha, SHA);
-  assert.equal(evidence.jobs.length, 7);
+  assert.equal(evidence.jobs.length, 8);
   assert.equal(evidence.proof.verified, true);
 });
 
@@ -216,6 +220,16 @@ test("assert-ci fails when planning truth failed for the exact SHA", () => {
   const evidence = JSON.parse(result.stdout);
   assert.equal(evidence.reason, "required_job_not_successful");
   assert.deepEqual(evidence.failedJobs, ["planning truth"]);
+});
+
+test("assert-ci fails when quality is missing or failed for the exact SHA", () => {
+  const missing = runMonitor("missing-quality");
+  assert.equal(missing.status, 1);
+  assert.deepEqual(JSON.parse(missing.stdout).missingJobs, ["quality checks"]);
+
+  const failed = runMonitor("failed-quality");
+  assert.equal(failed.status, 1);
+  assert.deepEqual(JSON.parse(failed.stdout).failedJobs, ["quality checks"]);
 });
 
 test("assert-ci reports completed-run lookup errors as blocked evidence", () => {
@@ -285,10 +299,10 @@ test("ci workflow defines an always-running contract over required proof jobs", 
   assert.match(contract, /name:\s+CI contract/);
   assert.match(contract, /if:\s+\$\{\{\s*always\(\)\s*\}\}/);
 
-  for (const job of ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"]) {
+  for (const job of ["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth", "quality"]) {
     assert.match(contract, new RegExp(`- ${job}`));
   }
-  assert.match(proofWriter, /REQUIRED_JOBS = \["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth"\]/);
+  assert.match(proofWriter, /REQUIRED_JOBS = \["test", "dialyzer", "demo-postgres", "package-smoke", "optional-deps", "planning-truth", "quality"\]/);
   assert.match(contract, /GITHUB_SHA_VALUE:\s*\$\{\{\s*github\.sha\s*\}\}/);
   assert.match(contract, /run:\s*node scripts\/ci_proof\.cjs/);
   assert.match(contract, /if:\s*\$\{\{\s*always\(\)\s*\}\}/);

@@ -69,6 +69,26 @@ test("failed, skipped, cancelled, or absent required jobs produce unverified pro
   }
 });
 
+test("quality job result is explicit and must succeed for verified proof", () => {
+  for (const result of ["failure", "skipped", "cancelled", undefined]) {
+    const dir = fixture();
+    try {
+      const data = input(dir);
+      if (result === undefined) delete data.needs.quality;
+      else data.needs.quality.result = result;
+      const proof = buildProof(data);
+      assert.equal(proof.verified, false, String(result));
+      assert.deepEqual(proof.required_jobs.find((job) => job.id === "quality"), {
+        id: "quality",
+        result: result || "missing",
+      });
+      assert.equal(validateProof(proof).verified, false, String(result));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
 test("malformed identity, mismatched checkout, missing lock, or incomplete toolchain fails closed", () => {
   const dir = fixture();
   try {
