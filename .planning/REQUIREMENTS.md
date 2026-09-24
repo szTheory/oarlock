@@ -35,18 +35,18 @@ in the linked research files.
 
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
-- [ ] **SAFE-01**: SDK consumer can install a compatibility-tested Req release that resolves the known advisories, while `mix hex.audit` passes.
-- [ ] **SAFE-02**: Telemetry subscriber receives stable allowlisted metadata without request/response objects, API credentials, bodies, signed URLs, secrets, or raw customer data.
-- [ ] **SAFE-03**: Inspecting any public secret-bearing struct redacts secrets from both promoted fields and nested raw provider payloads.
-- [ ] **SAFE-04**: Safe reads use bounded, documented retry behavior, while ambiguous mutations are not blindly replayed and instead return actionable reconciliation guidance.
-- [ ] **SAFE-05**: Client construction rejects blank credentials, unsupported environments, and invalid configuration while preserving deliberate custom-base-URL MockServer use.
-- [ ] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
+- [x] **SAFE-01**: SDK consumer can install a compatibility-tested Req release that resolves the known advisories, while `mix hex.audit` passes.
+- [x] **SAFE-02**: Telemetry subscriber receives stable allowlisted metadata without request/response objects, API credentials, bodies, signed URLs, secrets, or raw customer data.
+- [x] **SAFE-03**: Inspecting any public secret-bearing struct redacts secrets from both promoted fields and nested raw provider payloads.
+- [x] **SAFE-04**: Safe reads use bounded, documented retry behavior, while ambiguous mutations are not blindly replayed and instead return actionable reconciliation guidance.
+- [x] **SAFE-05**: Client construction rejects blank credentials, unsupported environments, and invalid configuration while preserving deliberate custom-base-URL MockServer use.
+- [x] **SAFE-06**: Public documentation, examples, types, support claims, retry guidance, and migration notes agree with tested runtime behavior.
 
 ### Deterministic Green CI
 
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
-- [ ] **CI-01**: Every proposed change runs the complete required proof contract: formatting, dependency checks, warnings, tests, public specs, Dialyzer, Credo, ExDoc, vulnerability audit, demo/PostgreSQL, package smoke, optional-dependency proof, and planning guards.
+- [x] **CI-01**: Every proposed change runs the complete required proof contract: formatting, dependency checks, warnings, tests, public specs, Dialyzer, Credo, ExDoc, vulnerability audit, demo/PostgreSQL, package smoke, optional-dependency proof, and planning guards.
 - [ ] **CI-02**: CI uses reviewed immutable inputs, controlled runners and toolchains, runtime-aware caches, explicit timeouts, and least-privilege permissions.
 - [ ] **CI-03**: Maintainer can see measured CI critical-path evidence and a baseline-derived feedback target; speed improvements cannot remove required proof.
 - [ ] **CI-04**: Remote `main` is protected by a stable aggregate check proving the exact commit SHA, and current main has recorded hosted-green evidence.
@@ -130,13 +130,13 @@ promotes them through the provenance rules above.
 | REPO-02 | Phase 31 | Complete |
 | REPO-03 | Phase 31 | Complete |
 | REPO-04 | Phase 31 | Complete |
-| SAFE-01 | Phase 32 | Gaps Found |
-| SAFE-02 | Phase 32 | Gaps Found |
-| SAFE-03 | Phase 32 | Gaps Found |
-| SAFE-04 | Phase 32 | Gaps Found |
-| SAFE-05 | Phase 32 | Gaps Found |
-| SAFE-06 | Phase 32 | Gaps Found |
-| CI-01 | Phase 33 | Pending |
+| SAFE-01 | Phase 32 | Complete |
+| SAFE-02 | Phase 32 | Complete |
+| SAFE-03 | Phase 32 | Complete |
+| SAFE-04 | Phase 32 | Complete |
+| SAFE-05 | Phase 32 | Complete |
+| SAFE-06 | Phase 32 | Complete |
+| CI-01 | Phase 33 | Complete |
 | CI-02 | Phase 33 | Pending |
 | CI-03 | Phase 33 | Pending |
 | CI-04 | Phase 33 | Pending |

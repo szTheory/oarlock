@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
-current_phase: 32
-current_phase_name: Dependency & SDK Trust Boundary
-status: verifying
-stopped_at: Completed 32-15-PLAN.md
-last_updated: "2026-09-11T03:25:48.944Z"
-last_activity: 2026-09-10
-last_activity_desc: Phase 32 execution started
-state_head: 9e214944e67acab11a45ad1d4efe29dbd948de29
+current_phase: 33
+current_phase_name: Deterministic Green CI
+status: executing
+stopped_at: Completed 33-02-PLAN.md; hosted baseline ref unresolved
+last_updated: "2026-09-24T14:49:10.300Z"
+last_activity: 2026-09-24
+last_activity_desc: Resumed Phase 33 Plan 02 and reconciled handoff against the working tree
+state_head: bd87b5b86a2a82d1adb4562f50fe504ade2e9404
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 24
-  completed_plans: 24
+  completed_phases: 2
+  total_plans: 29
+  completed_plans: 27
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 **Core value:** A production-quality, idiomatic Elixir SDK for Paddle Billing serving as a pure, standalone foundation for Accrue's second-processor strategy.
-**Current focus:** Phase 32 — Dependency & SDK Trust Boundary
+**Current focus:** Phase 33 — Deterministic Green CI
 
 ## Current Position
 
-Phase: 32 (Dependency & SDK Trust Boundary) — EXECUTING
-Plan: 15 of 15
-Status: Phase complete — ready for verification
-Last activity: 2026-09-10 — Phase 32 execution started
+Phase: 33 (Deterministic Green CI) — EXECUTING
+Plan: 3 of 4
+Status: In progress — Plan 33-02 is complete; Plan 33-03 requires a safe hosted candidate for timing baseline
+Last activity: 2026-09-24 — Phase 33 Plan 02 resumed
 
-Progress: [█████████░] 87%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -41,7 +41,7 @@ Progress: [█████████░] 87%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 22
+- Plans completed: 26
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -72,6 +72,8 @@ Progress: [█████████░] 87%
 | Phase 32 P13 | 17min | 3 tasks | 8 files |
 | Phase 32 P14 | 17min | 2 tasks | 4 files |
 | Phase 32 P15 | 5min | 2 tasks | 2 files |
+| Phase 33 P33-01 | 40min | 2 tasks | 5 files |
+| Phase 33 P33-02 | 21min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -143,13 +145,15 @@ Progress: [█████████░] 87%
 
 ### Pending Todos
 
-- Re-run Phase 32 verification against all thirteen completed plan summaries and fresh bounded/full receipts.
+None.
 
 ### Blockers/Concerns
 
 - Local/remote divergence and remote CI failures need exact-SHA reconciliation; local success is not hosted proof.
 - Req 0.7.4 passes the complete local compatibility matrix and online audit; hosted exact-SHA proof remains separate.
 - Hosted rulesets, CI history, release environment behavior, and automation credentials require phase-local verification.
+- GitHub and Hex access are available. Strict Credo, ExDoc, Hex audit, focused CI contract suites, and all 275 Mix tests pass locally; hosted exact-SHA proof remains separate.
+- Hosted Phase 33 observation is unsafe from this checkout: local `main` is currently 397 commits ahead of `origin/main` (470 changed files), so publishing it for the required PR run would include unrelated history. Re-check before any remote write. Plans 33-03 and 33-04 still need a safe candidate ref and exact-SHA hosted evidence.
 
 ## Deferred Items
 
@@ -162,10 +166,10 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 
 ## Session Continuity
 
-Last session: 2026-09-11T03:25:12.803Z
-Stopped at: Completed 32-15-PLAN.md
+Last session: 2026-09-24T14:49:10.168Z
+Stopped at: Completed 33-02-PLAN.md; hosted baseline ref unresolved
 Resume file: None
 
 ## Operator Next Steps
 
-- Re-run Phase 32 verification against all thirteen completed plan summaries.
+- Provide a safe hosted candidate ref before recording the Plan 33-03 full-contract timing baseline and completing Plans 33-03/04.

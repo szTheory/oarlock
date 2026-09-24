@@ -24,7 +24,7 @@ remain guidance and require explicit promotion through a later discovery cycle.
 ## Phases
 
 - [x] **Phase 31: Repository & Planning Truth** - Establish a non-destructive, authoritative account of repository state, active scope, and shipped history. (completed 2026-09-10)
-- [ ] **Phase 32: Dependency & SDK Trust Boundary** - Make dependency, telemetry, inspection, retry, validation, and public-contract behavior safe and truthful.
+- [x] **Phase 32: Dependency & SDK Trust Boundary** - Make dependency, telemetry, inspection, retry, validation, and public-contract behavior safe and truthful. (completed 2026-09-23)
 - [ ] **Phase 33: Deterministic Green CI** - Make one complete, measured, immutable CI contract authoritative for each exact SHA and remote main.
 - [ ] **Phase 34: Release Integrity** - Bind every automatic and recovery publication to the accepted exact-SHA CI and package identity.
 - [ ] **Phase 35: Review, Ownership & Worktree Operations** - Make bounded PRs, triage, ownership, dependency updates, and clean worktree handling the normal contributor path.
@@ -153,7 +153,22 @@ Plans:
   4. The stable aggregate check protects remote `main`, and the current main commit has durable hosted-green evidence for its exact SHA.
   5. Every authoritative run publishes a durable summary containing exact SHA, run identity, toolchains, lockfile identity, and each required lane's conclusion.
 
-**Plans**: TBD
+**Plans**: 2/4 plans executed
+**Wave 1**
+
+- [x] 33-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 33-02-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 33-03-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 33-04-PLAN.md
 
 ### Phase 34: Release Integrity
 
@@ -219,8 +234,8 @@ Requirements** and are intentionally absent from the committed phase mappings.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
-| 32. Dependency & SDK Trust Boundary | v2.2 | 15/15 | In Progress|  |
-| 33. Deterministic Green CI | v2.2 | 0/TBD | Not started | - |
+| 32. Dependency & SDK Trust Boundary | v2.2 | 16/16 | Complete    | 2026-09-23 |
+| 33. Deterministic Green CI | v2.2 | 2/4 | In Progress|  |
 | 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
 | 35. Review, Ownership & Worktree Operations | v2.2 | 0/TBD | Not started | - |
 | 36. JTBD Coverage, Durable Trajectory & Handoff | v2.2 | 0/TBD | Not started | - |
