@@ -73,6 +73,7 @@ test("malformed identity, mismatched checkout, missing lock, or incomplete toolc
   const dir = fixture();
   try {
     assert.throws(() => buildProof(input(dir, { testedSha: "bad" })), /SHA/);
+    assert.throws(() => buildProof(input(dir, { testedSha: "0".repeat(40), checkedOutSha: "0".repeat(40) })), /SHA/);
     assert.throws(() => buildProof(input(dir, { checkedOutSha: "c".repeat(40) })), /Checked-out/);
     assert.throws(() => buildProof(input(dir, { node: "" })), /toolchain/);
     rmSync(join(dir, "demo", "mix.lock"));

@@ -36,7 +36,7 @@ function buildProof({ needs, event, cwd = process.cwd() }) {
   const testedSha = requiredString(event.testedSha, "tested SHA");
   const headSha = requiredString(event.headSha, "event head SHA");
   const checkedOutSha = requiredString(event.checkedOutSha, "checked-out SHA");
-  if (!SHA.test(testedSha) || !SHA.test(headSha) || !SHA.test(checkedOutSha) || /^0+$/.test(testedSha + headSha + checkedOutSha)) {
+  if (!SHA.test(testedSha) || !SHA.test(headSha) || !SHA.test(checkedOutSha) || [testedSha, headSha, checkedOutSha].some((sha) => /^0+$/.test(sha))) {
     fail("Malformed event or checkout SHA");
   }
   if (testedSha.toLowerCase() !== checkedOutSha.toLowerCase()) fail("Checked-out HEAD does not match tested event SHA");
