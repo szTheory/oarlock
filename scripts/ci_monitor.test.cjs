@@ -272,10 +272,10 @@ test("assert-ci rejects non-finite, negative, and excessive timing options", () 
 
 test("assert-ci times out when the run is still in progress", () => {
   const started = Date.now();
-  const result = runMonitor("in-progress", ["--timeout", "0.5", "--poll", "3600"]);
+  const result = runMonitor("in-progress", ["--timeout", "2", "--poll", "3600"]);
   assert.equal(result.status, 124);
   assert.equal(JSON.parse(result.stdout).reason, "timeout");
-  assert.ok(Date.now() - started < 1500, "sleep must not exceed the remaining deadline");
+  assert.ok(Date.now() - started < 3000, "sleep must not exceed the remaining deadline");
 });
 
 test("assert-ci bounds a hung gh subprocess by the remaining deadline", () => {

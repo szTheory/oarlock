@@ -110,6 +110,9 @@ test("CI runners, timeouts, and cache identities stay bounded and toolchain-awar
     assert.match(job, /runs-on: ubuntu-24\.04/, `${id} must use the stable Ubuntu runner image`);
     assert.match(job, /timeout-minutes: [1-9][0-9]*/, `${id} must have an explicit timeout`);
   }
+  for (const match of workflow.matchAll(/^\s+uses:\s+([^\s]+)$/gm)) {
+    assert.match(match[1], /@[a-f0-9]{40}$/i, `action reference must be a full commit SHA: ${match[1]}`);
+  }
   assert.match(workflow, /permissions:\s*\n\s+contents: read\s*\n/);
   assert.match(workflow, /key: \$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.setup-beam\.outputs\.otp-version \}\}-\$\{\{ steps\.setup-beam\.outputs\.elixir-version \}\}-dev-test-\$\{\{ hashFiles\('\.tool-versions'\) \}\}-\$\{\{ hashFiles\('mix\.lock'\) \}\}/);
   assert.match(workflow, /key: \$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.setup-beam\.outputs\.otp-version \}\}-\$\{\{ steps\.setup-beam\.outputs\.elixir-version \}\}-test-\$\{\{ hashFiles\('\.tool-versions'\) \}\}-\$\{\{ hashFiles\('demo\/mix\.lock'\) \}\}/);
@@ -123,6 +126,7 @@ test("CI runners, timeouts, and cache identities stay bounded and toolchain-awar
   const toolVersions = readFileSync(join(root, ".tool-versions"), "utf8");
   const projectNode = toolVersions.match(/^nodejs\s+(\S+)$/m)?.[1];
   assert.ok(projectNode && workflow.includes(`node-version: ${projectNode}`), "Node jobs must activate the project-pinned version");
+  assert.match(workflow, /actions\/setup-node@[a-f0-9]{40} # v6\.5\.0/);
 });
 
 test("Credo stays development and test only and absent from runtime dependencies", () => {
