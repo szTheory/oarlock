@@ -13,6 +13,7 @@ defmodule Paddle.Internal.Pagination do
   alias Paddle.Http
   alias Paddle.Page
 
+  @spec build_page(module(), [map()], map()) :: Page.t()
   def build_page(module, data, meta) do
     %Page{
       data: Enum.map(data, &Http.build_struct(module, &1)),
@@ -38,6 +39,10 @@ defmodule Paddle.Internal.Pagination do
     end
   end
 
+  @spec stream(
+          (-> {:ok, Page.t()} | {:error, term()}),
+          (String.t() -> {:ok, Page.t()} | {:error, term()})
+        ) :: Enumerable.t()
   def stream(first_page_fun, next_page_fun)
       when is_function(first_page_fun, 0) and is_function(next_page_fun, 1) do
     Stream.resource(
@@ -47,6 +52,10 @@ defmodule Paddle.Internal.Pagination do
     )
   end
 
+  @spec all(
+          (-> {:ok, Page.t()} | {:error, term()}),
+          (String.t() -> {:ok, Page.t()} | {:error, term()})
+        ) :: {:ok, [map() | struct()]} | {:error, term()}
   def all(first_page_fun, next_page_fun)
       when is_function(first_page_fun, 0) and is_function(next_page_fun, 1) do
     reduce_pages({:first, first_page_fun, next_page_fun}, [])

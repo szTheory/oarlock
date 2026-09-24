@@ -254,12 +254,9 @@ defmodule Paddle.HttpTest do
 
           send(
             parent,
-            {:decisions,
-             retry.(request, retry_after),
-             retry.(request, Req.Response.new(status: 429)),
-             retry.(request, service_unavailable),
-             retry.(request, unretryable),
-             retry.(request, transport),
+            {:decisions, retry.(request, retry_after),
+             retry.(request, Req.Response.new(status: 429)), retry.(request, service_unavailable),
+             retry.(request, unretryable), retry.(request, transport),
              retry.(mutation_request, service_unavailable)}
           )
 

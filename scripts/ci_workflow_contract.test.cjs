@@ -92,6 +92,13 @@ test("quality proof identity is required by workflow and proof writer", () => {
   assert.match(workflow, /needs:[\s\S]*?- quality[\s\S]*?if:\s*\$\{\{\s*always\(\)\s*\}\}/);
 });
 
+test("proof toolchain extracts the Rebar version format emitted by rebar3", () => {
+  const proof = jobBlock("ci-contract");
+  const toolchain = hasStep(proof, "Install proof toolchain", /mix local\.rebar --force/);
+  assert.match(toolchain, /REBAR_VERSION=.*s\/\^rebar \(\[0-9\.\]\+\)/);
+  assert.equal("rebar 3.25.1 on Erlang/OTP 28 Erts 16.1".match(/^rebar ([0-9.]+)/)?.[1], "3.25.1");
+});
+
 test("Credo stays development and test only and absent from runtime dependencies", () => {
   const mixExs = readFileSync(join(root, "mix.exs"), "utf8");
   assert.match(mixExs, /\{:credo, "~> 1\.7", only: \[:dev, :test\], runtime: false\}/);
