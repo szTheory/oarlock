@@ -8,7 +8,7 @@ status: executing
 stopped_at: Updated draft PR candidate with history-ledger and GSD-plan fixes; exact-SHA run pending
 last_updated: "2026-09-24T20:58:29Z"
 last_activity: 2026-09-24
-last_activity_desc: Fixed initial-ledger CI history validation; assembling missing Phase 33 artifacts on authorized draft PR
+last_activity_desc: Completed Phase 33 Plan 03 with hosted baseline and controlled CI workflow; candidate main gate remains open
 state_head: 63bb822b00b61cd17d6aabab3f92b82886d8f3c0
 progress:
   total_phases: 6
@@ -30,8 +30,8 @@ See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 Phase: 33 (Deterministic Green CI) — EXECUTING
 Plan: 3 of 4
-Status: In progress — Plans 33-01/02 complete; Plan 33-03 waits for a successful exact-SHA full-contract run, then 33-04 handles main proof/rules
-Last activity: 2026-09-24 — Phase 33 local-only timing and hosted acceptance tooling added
+Status: In progress — Plans 33-01/03 complete; Plan 33-04 requires broad-history review, effective main rule, and current-main proof
+Last activity: 2026-09-24 — Phase 33 Plan 03 recorded four hosted timing samples and controlled CI inputs
 
 Progress: [███░░░░░░░] 33%
 
