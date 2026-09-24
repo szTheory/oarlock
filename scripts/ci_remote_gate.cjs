@@ -37,7 +37,8 @@ function evaluateCandidate({ sha, ci, timing }) {
     return { observed: true, verified: false, reason: "run_sha_mismatch" };
   }
   const proof = evidence.proof;
-  if (!evidence.verified || !proof?.verified || proof.testedSha?.toLowerCase() !== requestedSha ||
+  if (!evidence.verified || !proof?.verified || !SHA.test(proof.testedSha || "") ||
+      proof.eventHeadSha?.toLowerCase() !== requestedSha ||
       proof.runId !== evidence.run.id || proof.runAttempt !== evidence.run.attempt) {
     return { observed: true, verified: false, reason: "proof_identity_or_lanes_invalid" };
   }
@@ -53,6 +54,8 @@ function evaluateCandidate({ sha, ci, timing }) {
     verified: true,
     reason: null,
     sha: requestedSha,
+    eventHeadSha: proof.eventHeadSha.toLowerCase(),
+    testedSha: proof.testedSha.toLowerCase(),
     workflow: evidence.workflow,
     run: evidence.run,
     proof,

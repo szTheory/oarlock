@@ -4,6 +4,7 @@ const { DEFAULT_REQUIRED_JOBS } = require("./ci_monitor.cjs");
 const { evaluateCandidate, matchProofArtifact, requiredCheckStatus } = require("./ci_remote_gate.cjs");
 
 const SHA = "a".repeat(40);
+const MERGE_SHA = "b".repeat(40);
 const run = { id: 42, attempt: 2, headSha: SHA, url: "https://github.test/run/42", status: "completed", conclusion: "success" };
 const jobs = DEFAULT_REQUIRED_JOBS.map((name) => ({ name, found: true, status: "completed", conclusion: "success" }));
 const ci = {
@@ -14,7 +15,7 @@ const ci = {
     workflow: "CI",
     run,
     jobs,
-    proof: { verified: true, testedSha: SHA, runId: 42, runAttempt: 2 },
+    proof: { verified: true, testedSha: SHA, eventHeadSha: SHA, runId: 42, runAttempt: 2 },
   },
 };
 const timing = { observed: true, sha: SHA, run: { id: 42, attempt: 2 }, criticalPathMs: 1200 };
@@ -24,6 +25,26 @@ test("accepts only an exact-SHA successful contract, artifact identity, and timi
   assert.equal(result.verified, true);
   assert.deepEqual(result.artifact, { name: "ci-proof-42-2", runId: 42, attempt: 2 });
   assert.equal(result.jobs.length, DEFAULT_REQUIRED_JOBS.length);
+});
+
+test("accepts a PR merge SHA only when the proof binds it to the requested candidate head", () => {
+  const pullRequestCi = {
+    ...ci,
+    evidence: {
+      ...ci.evidence,
+      proof: { ...ci.evidence.proof, testedSha: MERGE_SHA, eventHeadSha: SHA },
+    },
+  };
+  const result = evaluateCandidate({ sha: SHA, ci: pullRequestCi, timing });
+  assert.equal(result.verified, true);
+  assert.equal(result.testedSha, MERGE_SHA);
+  assert.equal(result.eventHeadSha, SHA);
+
+  const wrongHead = {
+    ...pullRequestCi,
+    evidence: { ...pullRequestCi.evidence, proof: { ...pullRequestCi.evidence.proof, eventHeadSha: "c".repeat(40) } },
+  };
+  assert.equal(evaluateCandidate({ sha: SHA, ci: wrongHead, timing }).reason, "proof_identity_or_lanes_invalid");
 });
 
 test("classifies unavailable hosted data as unobserved", () => {

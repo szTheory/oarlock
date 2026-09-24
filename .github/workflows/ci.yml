@@ -21,7 +21,8 @@ concurrency:
 jobs:
   test:
     name: mix test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -36,7 +37,7 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -68,7 +69,8 @@ jobs:
 
   dialyzer:
     name: static analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -84,16 +86,14 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-library-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
 
       - name: Restore PLTs
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: plt-cache
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-
+          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -111,14 +111,15 @@ jobs:
 
       - name: Save PLTs
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        if: always()
+        if: success()
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
   demo-postgres:
     name: demo PostgreSQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     env:
       MIX_ENV: test
       DB_HOST: localhost
@@ -150,7 +151,7 @@ jobs:
           path: |
             demo/deps
             demo/_build
-          key: ${{ runner.os }}-demo-${{ hashFiles('demo/mix.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-demo-${{ hashFiles('demo/mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -179,7 +180,8 @@ jobs:
 
   package-smoke:
     name: package smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -198,7 +200,8 @@ jobs:
 
   optional-deps:
     name: optional dependencies
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -213,7 +216,7 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -233,7 +236,8 @@ jobs:
 
   planning-truth:
     name: planning truth
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -314,7 +318,8 @@ jobs:
 
   quality:
     name: quality checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -345,7 +350,8 @@ jobs:
 
   ci-contract:
     name: CI contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     needs:
       - test
       - dialyzer

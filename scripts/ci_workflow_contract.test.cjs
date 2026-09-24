@@ -100,6 +100,20 @@ test("proof toolchain extracts the Rebar version format emitted by rebar3", () =
   assert.equal("rebar 3.25.1 on Erlang/OTP 28 Erts 16.1".match(/^rebar ([0-9.]+)/)?.[1], "3.25.1");
 });
 
+test("CI runners, timeouts, and cache identities stay bounded and toolchain-aware", () => {
+  for (const id of [...requiredLaneIds, "ci-contract"]) {
+    const job = jobBlock(id);
+    assert.match(job, /runs-on: ubuntu-24\.04/, `${id} must use the stable Ubuntu runner image`);
+    assert.match(job, /timeout-minutes: [1-9][0-9]*/, `${id} must have an explicit timeout`);
+  }
+  assert.ok(workflow.includes("key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}"));
+  assert.ok(workflow.includes("key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-demo-${{ hashFiles('demo/mix.lock') }}"));
+  assert.doesNotMatch(workflow, /restore-keys:/, "dependency caches must not fall back across lock or toolchain identities");
+  const pltSave = workflow.slice(workflow.indexOf("      - name: Save PLTs"), workflow.indexOf("\n  demo-postgres:"));
+  assert.match(pltSave, /if: success\(\)/, "failed or cancelled analysis must not save a PLT cache");
+  assert.match(workflow, /image: postgres:17(?:\s|$)/, "retain the supported PostgreSQL major for demo tests");
+});
+
 test("Credo stays development and test only and absent from runtime dependencies", () => {
   const mixExs = readFileSync(join(root, "mix.exs"), "utf8");
   assert.match(mixExs, /\{:credo, "~> 1\.7", only: \[:dev, :test\], runtime: false\}/);
