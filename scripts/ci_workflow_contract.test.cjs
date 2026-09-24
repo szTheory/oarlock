@@ -63,7 +63,8 @@ test("every CI-01 proof has an executable step in a required aggregate dependenc
   hasStep(jobBlock("package-smoke"), "Build and compile fresh package consumer", /run:\s*bin\/package_smoke\.sh/);
   const optional = jobBlock("optional-deps");
   hasStep(optional, "Fetch library deps", /run:\s*mix deps\.get/);
-  hasStep(optional, "Prove MockServer with optional deps", /run:\s*MIX_ENV=test mix test test\/paddle\/mock_server_test\.exs/);
+  const mockServer = hasStep(optional, "Prove MockServer with optional deps", /run:\s*mix test test\/paddle\/mock_server_test\.exs/);
+  assert.match(mockServer, /env:\s*\n\s+MIX_ENV: test/);
   hasStep(optional, "Prove fresh consumer without optional fixture deps", /run:\s*bin\/package_smoke\.sh/);
 
   const planning = jobBlock("planning-truth");
@@ -106,12 +107,19 @@ test("CI runners, timeouts, and cache identities stay bounded and toolchain-awar
     assert.match(job, /runs-on: ubuntu-24\.04/, `${id} must use the stable Ubuntu runner image`);
     assert.match(job, /timeout-minutes: [1-9][0-9]*/, `${id} must have an explicit timeout`);
   }
-  assert.ok(workflow.includes("key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}"));
-  assert.ok(workflow.includes("key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-demo-${{ hashFiles('demo/mix.lock') }}"));
+  assert.match(workflow, /permissions:\s*\n\s+contents: read\s*\n/);
+  assert.match(workflow, /key: \$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.setup-beam\.outputs\.otp-version \}\}-\$\{\{ steps\.setup-beam\.outputs\.elixir-version \}\}-dev-test-\$\{\{ hashFiles\('\.tool-versions'\) \}\}-\$\{\{ hashFiles\('mix\.lock'\) \}\}/);
+  assert.match(workflow, /key: \$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.setup-beam\.outputs\.otp-version \}\}-\$\{\{ steps\.setup-beam\.outputs\.elixir-version \}\}-test-\$\{\{ hashFiles\('\.tool-versions'\) \}\}-\$\{\{ hashFiles\('demo\/mix\.lock'\) \}\}/);
+  assert.match(workflow, /path: priv\/plts\s*\n\s+key: \$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.setup-beam\.outputs\.otp-version \}\}-\$\{\{ steps\.setup-beam\.outputs\.elixir-version \}\}-plt-/);
   assert.doesNotMatch(workflow, /restore-keys:/, "dependency caches must not fall back across lock or toolchain identities");
-  const pltSave = workflow.slice(workflow.indexOf("      - name: Save PLTs"), workflow.indexOf("\n  demo-postgres:"));
-  assert.match(pltSave, /if: success\(\)/, "failed or cancelled analysis must not save a PLT cache");
-  assert.match(workflow, /image: postgres:17(?:\s|$)/, "retain the supported PostgreSQL major for demo tests");
+  assert.doesNotMatch(workflow, /uses: actions\/cache@/, "cache reads and writes must be explicit");
+  assert.equal([...workflow.matchAll(/uses: actions\/cache\/save@/g)].length, 3, "library deps, demo deps, and PLTs each need one explicit save");
+  assert.equal([...workflow.matchAll(/if: \$\{\{ success\(\) && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' \}\}/g)].length, 3,
+    "only successful main pushes may populate executable caches");
+  assert.match(workflow, /image: postgres:17@sha256:[a-f0-9]{64}/, "PostgreSQL must be pinned by manifest digest");
+  const toolVersions = readFileSync(join(root, ".tool-versions"), "utf8");
+  const projectNode = toolVersions.match(/^nodejs\s+(\S+)$/m)?.[1];
+  assert.ok(projectNode && workflow.includes(`node-version: ${projectNode}`), "Node jobs must activate the project-pinned version");
 });
 
 test("Credo stays development and test only and absent from runtime dependencies", () => {

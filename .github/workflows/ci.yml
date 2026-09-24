@@ -27,17 +27,18 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Restore library deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -56,6 +57,11 @@ jobs:
       - name: Compile (warnings as errors)
         run: mix compile --warnings-as-errors
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
       - name: Test CI monitor
         run: node --test scripts/ci_monitor.test.cjs
 
@@ -66,6 +72,15 @@ jobs:
 
       - name: Check for SUMMARY/git-state drift
         run: ./bin/check_summary_drift.sh
+
+      - name: Save library deps
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
   dialyzer:
     name: static analysis
@@ -80,20 +95,20 @@ jobs:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Restore library deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Restore PLTs
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: plt-cache
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-plt-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -111,10 +126,10 @@ jobs:
 
       - name: Save PLTs
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        if: success()
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
   demo-postgres:
     name: demo PostgreSQL
@@ -125,7 +140,7 @@ jobs:
       DB_HOST: localhost
     services:
       postgres:
-        image: postgres:17
+        image: postgres:17@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -141,17 +156,18 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
 
       - name: Cache demo deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             demo/deps
             demo/_build
-          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-demo-${{ hashFiles('demo/mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('demo/mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -178,6 +194,15 @@ jobs:
         working-directory: demo
         run: mix test
 
+      - name: Save demo deps
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            demo/deps
+            demo/_build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('demo/mix.lock') }}
+
   package-smoke:
     name: package smoke
     runs-on: ubuntu-24.04
@@ -186,6 +211,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
@@ -206,17 +232,18 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
 
       - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-${{ hashFiles('.tool-versions') }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
@@ -229,7 +256,7 @@ jobs:
       - name: Prove MockServer with optional deps
         env:
           MIX_ENV: test
-        run: MIX_ENV=test mix test test/paddle/mock_server_test.exs
+        run: mix test test/paddle/mock_server_test.exs
 
       - name: Prove fresh consumer without optional fixture deps
         run: bin/package_smoke.sh
@@ -304,6 +331,11 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `base=${base}\nhead=${head}\n`);
           NODE
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
       - name: Run clean production Node suite
         run: node --test scripts/*.test.cjs scripts/prohibitions/*.test.cjs
 
@@ -324,6 +356,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
@@ -371,6 +404,11 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
 
       - name: Install proof toolchain
         id: proof-tools
