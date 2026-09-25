@@ -2,19 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
-current_phase: 33
-current_phase_name: Deterministic Green CI
+current_phase: 34
+current_phase_name: Release Integrity
 status: executing
-stopped_at: Updated draft PR candidate with history-ledger and GSD-plan fixes; exact-SHA run pending
-last_updated: "2026-09-24T20:58:29Z"
+stopped_at: Phase 33 complete, ready to plan Phase 34
+last_updated: "2026-09-25T00:58:47.525Z"
 last_activity: 2026-09-24
-last_activity_desc: Completed Phase 33 Plan 03 with hosted baseline and controlled CI workflow; candidate main gate remains open
-state_head: 63bb822b00b61cd17d6aabab3f92b82886d8f3c0
+last_activity_desc: Phase 33 complete, transitioned to Phase 34
+state_head: 0db804c18eaea751d19e662d020f770d53cefc57
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 29
-  completed_plans: 27
+  completed_phases: 3
+  total_plans: 28
+  completed_plans: 28
+  percent: 50
 ---
 
 # Project State
@@ -24,16 +25,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-09-10)
 
 **Core value:** A production-quality, idiomatic Elixir SDK for Paddle Billing serving as a pure, standalone foundation for Accrue's second-processor strategy.
-**Current focus:** Phase 33 — Deterministic Green CI
+**Current focus:** Phase 34 — Release Integrity
 
 ## Current Position
 
-Phase: 33 (Deterministic Green CI) — EXECUTING
-Plan: 3 of 4
-Status: In progress — Plans 33-01/03 complete; Plan 33-04 requires broad-history review, effective main rule, and current-main proof
-Last activity: 2026-09-24 — Phase 33 Plan 03 recorded four hosted timing samples and controlled CI inputs
+Phase: 34 — Release Integrity
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-24 — Phase 33 complete, transitioned to Phase 34
 
-Progress: [███░░░░░░░] 33%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -41,7 +42,7 @@ Progress: [███░░░░░░░] 33%
 
 - Committed requirements mapped: 29/29 (100%)
 - Planned phases: 6
-- Plans completed: 26
+- Plans completed: 28
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -74,6 +75,8 @@ Progress: [███░░░░░░░] 33%
 | Phase 32 P15 | 5min | 2 tasks | 2 files |
 | Phase 33 P33-01 | 40min | 2 tasks | 5 files |
 | Phase 33 P33-02 | 21min | 2 tasks | 8 files |
+| Phase 33 P33-03 | 42min | 2 tasks | 5 files |
+| Phase 33 P33-04 | 50min | 2 tasks | 65 files |
 
 ## Accumulated Context
 
@@ -149,13 +152,12 @@ None.
 
 ### Blockers/Concerns
 
-- Local/remote divergence and remote CI failures need exact-SHA reconciliation; local success is not hosted proof.
-- Req 0.7.4 passes the complete local compatibility matrix and online audit; hosted exact-SHA proof remains separate.
-- Hosted rulesets, CI history, release environment behavior, and automation credentials require phase-local verification.
-- GitHub and Hex access are available. Strict Credo, ExDoc, Hex audit, focused CI contract suites, and all 275 Mix tests pass locally; hosted exact-SHA proof remains separate.
-- User authorized a PR instead of directly pushing the roughly 400-commit local history. Draft PR #6 is open at the current published candidate; do not merge until its full diff, required CI, and history are reviewed. Hosted runs exposed and fixed two CI blockers: Hex 2.5.1 install layout detection and first-introduction validation for the canonical evidence ledger. A subsequent run passed history integrity but found the Phase 33 plan artifacts missing from the remote candidate; those files are now prepared locally for the next candidate update.
-- Remote `main` remains `fb3d9a185f104194e85987541519a6168e0b568c`, with an observed failed CI run and a successful Release Please run; `CI contract` is not currently required by its effective branch rule. Phase 33-03 timing has no accepted successful full-contract baseline yet. Phase 33-04 main protection/current-main proof remains unverified.
-
+- Local/remote divergence is tracked by exact-SHA hosted proof; local success is not hosted proof.
+- Req 0.7.4 passes the complete local compatibility matrix and online audit; package/downstream/live-provider evidence remains distinct.
+- Phase 33 Plan 04 completed after review of PR #6 against remote main. The PR was merged normally at `0db804c18eaea751d19e662d020f770d53cefc57`; active ruleset 23970515 requires `CI contract`.
+- Candidate run 36077014434 and exact-current-main run 36077488230 passed all eight required jobs with matching retained proof artifacts. Current-main timing was 206s critical path and 8.87 runner minutes; the provisional <120s/<6-minute targets remain unmet.
+- The CI workflow uses ubuntu-24.04, per-job timeouts, digest-pinned PostgreSQL, project-pinned Node, pinned Hex 2.5.1, SHA-512-verified Rebar 3.25.1, runtime/architecture/environment/lock-aware cache keys, and main-push-only cache writes.
+- Release environment behavior and automation credentials remain for Phase 34 to verify.
 ## Deferred Items
 
 | Horizon | Status | Direction | Promotion condition |
@@ -168,7 +170,7 @@ Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; t
 ## Session Continuity
 
 Last session: 2026-09-24T19:49:47Z
-Stopped at: GSD progress cleanup; Phase 33 plan artifacts and initial-ledger history fix prepared for another exact-SHA hosted run
+Stopped at: Phase 33 complete, ready to plan Phase 34
 Resume file: .planning/phases/33-deterministic-green-ci/.continue-here.md
 
 ## Operator Next Steps

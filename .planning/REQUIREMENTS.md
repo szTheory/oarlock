@@ -47,10 +47,10 @@ in the linked research files.
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
 - [x] **CI-01**: Every proposed change runs the complete required proof contract: formatting, dependency checks, warnings, tests, public specs, Dialyzer, Credo, ExDoc, vulnerability audit, demo/PostgreSQL, package smoke, optional-dependency proof, and planning guards.
-- [ ] **CI-02**: CI uses reviewed immutable inputs, controlled runners and toolchains, runtime-aware caches, explicit timeouts, and least-privilege permissions.
-- [ ] **CI-03**: Maintainer can see measured CI critical-path evidence and a baseline-derived feedback target; speed improvements cannot remove required proof.
-- [ ] **CI-04**: Remote `main` is protected by a stable aggregate check proving the exact commit SHA, and current main has recorded hosted-green evidence.
-- [ ] **CI-05**: Every authoritative CI run produces a durable proof summary containing SHA, run identity, toolchains, lockfile identity, and each required lane's outcome.
+- [x] **CI-02**: CI uses reviewed immutable inputs, controlled runners and toolchains, runtime-aware caches, explicit timeouts, and least-privilege permissions.
+- [x] **CI-03**: Maintainer can see measured CI critical-path evidence and a baseline-derived feedback target; speed improvements cannot remove required proof.
+- [x] **CI-04**: Remote `main` is protected by a stable aggregate check proving the exact commit SHA, and current main has recorded hosted-green evidence.
+- [x] **CI-05**: Every authoritative CI run produces a durable proof summary containing SHA, run identity, toolchains, lockfile identity, and each required lane's outcome.
 
 ### Release Integrity
 
@@ -137,10 +137,10 @@ promotes them through the provenance rules above.
 | SAFE-05 | Phase 32 | Complete |
 | SAFE-06 | Phase 32 | Complete |
 | CI-01 | Phase 33 | Complete |
-| CI-02 | Phase 33 | Pending |
-| CI-03 | Phase 33 | Pending |
-| CI-04 | Phase 33 | Pending |
-| CI-05 | Phase 33 | Pending |
+| CI-02 | Phase 33 | Complete |
+| CI-03 | Phase 33 | Complete |
+| CI-04 | Phase 33 | Complete |
+| CI-05 | Phase 33 | Complete |
 | SHIP-01 | Phase 34 | Pending |
 | SHIP-02 | Phase 34 | Pending |
 | SHIP-03 | Phase 34 | Pending |
