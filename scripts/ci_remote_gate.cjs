@@ -5,6 +5,7 @@ const { assertCi, DEFAULT_REQUIRED_JOBS } = require("./ci_monitor.cjs");
 const { observe: observeTiming } = require("./ci_timing.cjs");
 
 const SHA = /^[a-f0-9]{40}$/i;
+const REQUIRED_WORKFLOW = "CI";
 
 function ghJson(endpoint, options = {}) {
   const result = spawnSync(options.ghBin || process.env.CI_REMOTE_GATE_GH_BIN || "gh", ["api", endpoint], {
@@ -36,6 +37,9 @@ function evaluateCandidate({ sha, ci, timing }) {
   if (evidence.sha?.toLowerCase() !== requestedSha || evidence.run?.headSha?.toLowerCase() !== requestedSha) {
     return { observed: true, verified: false, reason: "run_sha_mismatch" };
   }
+  if (evidence.workflow !== REQUIRED_WORKFLOW || evidence.run?.workflowName !== REQUIRED_WORKFLOW) {
+    return { observed: true, verified: false, reason: "workflow_identity_invalid" };
+  }
   const proof = evidence.proof;
   if (!evidence.verified || !proof?.verified || !SHA.test(proof.testedSha || "") ||
       proof.eventHeadSha?.toLowerCase() !== requestedSha ||
@@ -43,11 +47,14 @@ function evaluateCandidate({ sha, ci, timing }) {
     return { observed: true, verified: false, reason: "proof_identity_or_lanes_invalid" };
   }
   const jobs = evidence.jobs || [];
-  if (jobs.length !== DEFAULT_REQUIRED_JOBS.length || jobs.some((job) => !job.found || job.status !== "completed" || job.conclusion !== "success")) {
+  const jobNames = jobs.map((job) => job.name);
+  if (jobs.length !== DEFAULT_REQUIRED_JOBS.length || new Set(jobNames).size !== DEFAULT_REQUIRED_JOBS.length ||
+      DEFAULT_REQUIRED_JOBS.some((name) => !jobNames.includes(name)) ||
+      jobs.some((job) => !job.found || job.status !== "completed" || job.conclusion !== "success")) {
     return { observed: true, verified: false, reason: "required_lane_invalid" };
   }
   if (!timing?.observed || timing.sha?.toLowerCase() !== requestedSha || timing.run?.id !== evidence.run.id || timing.run?.attempt !== evidence.run.attempt) {
-    return { observed: true, verified: false, reason: "timing_unobserved_or_mismatched" };
+    return { observed: Boolean(timing?.observed), verified: false, reason: "timing_unobserved_or_mismatched" };
   }
   return {
     observed: true,
@@ -142,24 +149,46 @@ async function observeCandidate(sha, repo, options = {}) {
 }
 
 async function observeMain(repo, options = {}) {
-  let sha;
-  let rules;
-  try {
-    sha = ghJson(`repos/${repo}/commits/main`, options).sha;
-    rules = ghJson(`repos/${repo}/rules/branches/main`, options);
-  } catch (error) {
-    return { observed: false, verified: false, reason: "github_observation_unavailable", message: error.message };
+  const readMainSha = options.getMainSha || (() => ghJson(`repos/${repo}/commits/main`, options).sha);
+  const readRules = options.getRules || (() => ghJson(`repos/${repo}/rules/branches/main`, options));
+  const observe = options.observeCandidate || observeCandidate;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let sha;
+    let candidate;
+    let rules;
+    let confirmedSha;
+    try {
+      sha = await readMainSha(repo);
+      candidate = await observe(sha, repo, options);
+      rules = await readRules(repo);
+      confirmedSha = await readMainSha(repo);
+    } catch (error) {
+      return { observed: false, verified: false, reason: "github_observation_unavailable", message: error.message };
+    }
+
+    if (confirmedSha !== sha) {
+      if (attempt < 2) continue;
+      return {
+        observed: false,
+        verified: false,
+        reason: "main_head_changed_during_observation",
+        sha: confirmedSha,
+        previousSha: sha,
+        candidate,
+      };
+    }
+
+    const check = requiredCheckStatus(rules);
+    return {
+      observed: check.observed && candidate.observed,
+      verified: check.required && candidate.verified,
+      reason: !check.observed ? check.reason : !check.required ? "CI_contract_not_required" : candidate.reason,
+      sha,
+      rule: check,
+      candidate,
+    };
   }
-  const check = requiredCheckStatus(rules);
-  const candidate = await observeCandidate(sha, repo, options);
-  return {
-    observed: check.observed && candidate.observed,
-    verified: check.required && candidate.verified,
-    reason: !check.observed ? check.reason : !check.required ? "CI_contract_not_required" : candidate.reason,
-    sha,
-    rule: check,
-    candidate,
-  };
 }
 
 async function main(argv = process.argv.slice(2), options = {}) {

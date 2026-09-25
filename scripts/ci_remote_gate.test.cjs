@@ -1,11 +1,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { DEFAULT_REQUIRED_JOBS } = require("./ci_monitor.cjs");
-const { evaluateCandidate, matchProofArtifact, requiredCheckStatus } = require("./ci_remote_gate.cjs");
+const { evaluateCandidate, matchProofArtifact, observeMain, requiredCheckStatus } = require("./ci_remote_gate.cjs");
 
 const SHA = "a".repeat(40);
 const MERGE_SHA = "b".repeat(40);
-const run = { id: 42, attempt: 2, headSha: SHA, url: "https://github.test/run/42", status: "completed", conclusion: "success" };
+const run = { id: 42, attempt: 2, headSha: SHA, workflowName: "CI", url: "https://github.test/run/42", status: "completed", conclusion: "success" };
 const jobs = DEFAULT_REQUIRED_JOBS.map((name) => ({ name, found: true, status: "completed", conclusion: "success" }));
 const ci = {
   exitCode: 0,
@@ -47,11 +47,27 @@ test("accepts a PR merge SHA only when the proof binds it to the requested candi
   assert.equal(evaluateCandidate({ sha: SHA, ci: wrongHead, timing }).reason, "proof_identity_or_lanes_invalid");
 });
 
+test("rejects another workflow and duplicate or missing required lane identities", () => {
+  const wrongWorkflow = {
+    ...ci,
+    evidence: { ...ci.evidence, workflow: "Nightly", run: { ...run, workflowName: "Nightly" } },
+  };
+  assert.equal(evaluateCandidate({ sha: SHA, ci: wrongWorkflow, timing }).reason, "workflow_identity_invalid");
+
+  const duplicateLane = {
+    ...ci,
+    evidence: { ...ci.evidence, jobs: [...jobs.slice(0, -1), { ...jobs[0] }] },
+  };
+  assert.equal(evaluateCandidate({ sha: SHA, ci: duplicateLane, timing }).reason, "required_lane_invalid");
+});
+
 test("classifies unavailable hosted data as unobserved", () => {
   assert.deepEqual(evaluateCandidate({ sha: SHA, ci: { exitCode: 2, evidence: { reason: "no_ci_run_for_sha" } } }), {
     observed: false, verified: false, reason: "no_ci_run_for_sha", message: undefined,
   });
-  assert.equal(evaluateCandidate({ sha: SHA, ci, timing: { observed: false } }).reason, "timing_unobserved_or_mismatched");
+  const unavailableTiming = evaluateCandidate({ sha: SHA, ci, timing: { observed: false } });
+  assert.equal(unavailableTiming.observed, false);
+  assert.equal(unavailableTiming.reason, "timing_unobserved_or_mismatched");
   assert.equal(evaluateCandidate({ sha: SHA, ci: { exitCode: 2, evidence: { reason: "proof_unobserved_or_invalid", run: { headSha: SHA } } } }).reason, "proof_missing_or_invalid");
 });
 
@@ -67,6 +83,26 @@ test("detects the stable aggregate as an effective required status check", () =>
   });
   assert.equal(requiredCheckStatus([]).required, false);
   assert.equal(requiredCheckStatus(null).observed, false);
+});
+
+test("repeats exact-SHA observation when main advances during the first observation", async () => {
+  const mainShas = [SHA, MERGE_SHA, MERGE_SHA, MERGE_SHA];
+  const observedShas = [];
+  const result = await observeMain("owner/repo", {
+    getMainSha: async () => mainShas.shift(),
+    getRules: async () => [{
+      type: "required_status_checks",
+      parameters: { required_status_checks: [{ context: "CI contract" }] },
+    }],
+    observeCandidate: async (sha) => {
+      observedShas.push(sha);
+      return { observed: true, verified: true, sha };
+    },
+  });
+
+  assert.deepEqual(observedShas, [SHA, MERGE_SHA]);
+  assert.equal(result.sha, MERGE_SHA);
+  assert.equal(result.verified, true);
 });
 
 test("matches only a retained, SHA-bound artifact with a digest for the exact run attempt", () => {

@@ -32,8 +32,6 @@ defmodule Paddle.InspectionSafetyTest do
       visible: [
         :type,
         :code,
-        :message,
-        :errors,
         :request_id,
         :status_code,
         :network_error?,
@@ -44,7 +42,7 @@ defmodule Paddle.InspectionSafetyTest do
         :reconciliation,
         :__exception__
       ],
-      redacted: [:raw_data]
+      redacted: [:message, :errors, :raw_data]
     },
     NotificationSetting => %{
       visible: [
@@ -220,7 +218,10 @@ defmodule Paddle.InspectionSafetyTest do
         Req.Response.new(
           status: 500,
           body: %{
-            "error" => %{"detail" => "Visible provider failure"},
+            "error" => %{
+              "detail" => "provider_message_canary",
+              "errors" => [%{"field" => "custom_data", "message" => "provider_validation_canary"}]
+            },
             "provider_extension" => %{
               "secret" => {"nested_error_tuple_canary", ["nested_error_list_canary"]}
             }
@@ -282,8 +283,13 @@ defmodule Paddle.InspectionSafetyTest do
          "nested_client_req_canary",
          "nested_client_header_canary"
        ], [:api_key, :base_url, :req], "environment: :custom"},
-      {error, ["nested_error_tuple_canary", "nested_error_list_canary"], [:raw_data],
-       "Visible provider failure"},
+      {error,
+       [
+         "provider_message_canary",
+         "provider_validation_canary",
+         "nested_error_tuple_canary",
+         "nested_error_list_canary"
+       ], [:message, :errors, :raw_data], "status_code: 500"},
       {notification,
        [
          "promoted_destination_canary",

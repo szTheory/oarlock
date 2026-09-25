@@ -14,9 +14,9 @@ defmodule Paddle.Error do
   `:webhook`, and `:provider_dashboard`). The SDK never replays or reconciles a
   mutation automatically.
 
-  Inspecting an error redacts `raw_data` wholesale. The stored response or transport
-  data remains available to the caller, but arbitrary provider payloads and exception
-  contents are never rendered by `inspect/1`.
+  Inspecting an error redacts provider-controlled `message` and `errors` fields plus
+  `raw_data` wholesale. Those values remain available to the caller, but arbitrary
+  provider payloads and exception contents are never rendered by `inspect/1`.
 
   If a request fails before reaching Paddle (e.g., local validation), the SDK returns
   an atom like `{:error, :invalid_id}`. Once a request hits the network, failures are
@@ -202,6 +202,8 @@ defimpl Inspect, for: Paddle.Error do
     fields =
       error
       |> Map.from_struct()
+      |> Map.replace!(:message, "[REDACTED]")
+      |> Map.replace!(:errors, "[REDACTED]")
       |> Map.replace!(:raw_data, "[REDACTED]")
       |> Enum.sort()
 

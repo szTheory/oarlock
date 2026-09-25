@@ -155,7 +155,7 @@ defmodule Paddle.ErrorTest do
   end
 
   describe "Inspect" do
-    test "redacts raw_data wholesale without altering stored error data" do
+    test "redacts provider-controlled fields from Inspect without altering stored data" do
       raw_data = %{
         "authorization" => "Bearer raw_error_auth_canary",
         "nested" => [%{"signed_url" => "https://error.test?token=raw_error_url_canary"}]
@@ -170,8 +170,11 @@ defmodule Paddle.ErrorTest do
       inspected = inspect(error)
 
       assert inspected =~ "raw_data: \"[REDACTED]\""
+      assert inspected =~ "message: \"[REDACTED]\""
+      assert inspected =~ "errors: \"[REDACTED]\""
       assert inspected =~ "operation: :create_transaction"
-      assert inspected =~ "Safe public message"
+      assert Exception.message(error) == "Safe public message"
+      refute inspected =~ "Safe public message"
       refute inspected =~ "raw_error_auth_canary"
       refute inspected =~ "raw_error_url_canary"
       assert error.raw_data == raw_data
