@@ -1,7 +1,7 @@
 ---
 phase: 31-repository-planning-truth
 fixed_at: 2026-09-10T04:28:27Z
-review_path: /Users/jon/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md
+review_path: $HOME/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md
 iteration: 2
 findings_in_scope: 5
 fixed: 5
@@ -12,7 +12,7 @@ status: all_fixed
 # Phase 31: Code Review Fix Report
 
 **Fixed at:** 2026-09-10T04:28:27Z
-**Source review:** `/Users/jon/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md`
+**Source review:** `$HOME/projects/oarlock/.planning/phases/31-repository-planning-truth/31-REVIEW.md`
 **Iteration:** 2
 
 **Summary:**

@@ -492,7 +492,7 @@ Apply to all REPO-03 repairs. Current navigation and ledgers may change; archive
 
 - Treat `.planning/state.json` according to D-10: first demonstrate a consumer. If none exists, remove the untracked file or ignore the generating source; if retained, test atomic regeneration and include source/schema version. Never read it as authority.
 - Do not edit `.planning/milestones/v*-ROADMAP.md` or `v*-REQUIREMENTS.md` to normalize history. If immutable v1.5 archive material must be recovered from a tag, create/recover a truthful frozen target and update current navigation; do not redirect the index to mutable root files.
-- Do not patch the installed `/Users/jon/.codex/gsd-core` runtime. GSD read-only queries may corroborate results; repository documents own their specified data.
+- Do not patch the installed `$HOME/.codex/gsd-core` runtime. GSD read-only queries may corroborate results; repository documents own their specified data.
 - Phase 31 reports proposed patches/commands only. Any separate repair task must use supported handlers and record a dated correction.
 
 ## Metadata

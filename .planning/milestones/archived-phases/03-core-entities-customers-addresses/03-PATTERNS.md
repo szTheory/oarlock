@@ -20,7 +20,7 @@
 
 ### `lib/paddle/customer.ex`
 
-**Analog:** [lib/paddle/event.ex](/Users/jon/projects/oarlock/lib/paddle/event.ex:1)
+**Analog:** [lib/paddle/event.ex]($HOME/projects/oarlock/lib/paddle/event.ex:1)
 
 **Module layout to copy** (lines 1-2):
 ```elixir
@@ -40,7 +40,7 @@ end
 
 ### `lib/paddle/address.ex`
 
-**Analog:** [lib/paddle/event.ex](/Users/jon/projects/oarlock/lib/paddle/event.ex:1)
+**Analog:** [lib/paddle/event.ex]($HOME/projects/oarlock/lib/paddle/event.ex:1)
 
 **Same struct pattern applies**
 - Small explicit `defmodule`.
@@ -52,7 +52,7 @@ end
 
 ### `lib/paddle/customers.ex`
 
-**Analogs:** [lib/paddle/webhooks.ex](/Users/jon/projects/oarlock/lib/paddle/webhooks.ex:1), [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:1), [lib/paddle/client.ex](/Users/jon/projects/oarlock/lib/paddle/client.ex:1)
+**Analogs:** [lib/paddle/webhooks.ex]($HOME/projects/oarlock/lib/paddle/webhooks.ex:1), [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:1), [lib/paddle/client.ex]($HOME/projects/oarlock/lib/paddle/client.ex:1)
 
 **Explicit client boundary** from `Paddle.Http.request/4` (lines 2-14):
 ```elixir
@@ -121,7 +121,7 @@ end
 
 ### `lib/paddle/customers/addresses.ex`
 
-**Analogs:** [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:1), [lib/paddle/page.ex](/Users/jon/projects/oarlock/lib/paddle/page.ex:1), [lib/paddle/webhooks.ex](/Users/jon/projects/oarlock/lib/paddle/webhooks.ex:27)
+**Analogs:** [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:1), [lib/paddle/page.ex]($HOME/projects/oarlock/lib/paddle/page.ex:1), [lib/paddle/webhooks.ex]($HOME/projects/oarlock/lib/paddle/webhooks.ex:27)
 
 **Pagination wrapper** from `Paddle.Page` (lines 1-8):
 ```elixir
@@ -152,7 +152,7 @@ end
 
 ### `test/paddle/customer_test.exs` and `test/paddle/address_test.exs`
 
-**Analog:** [test/paddle/event_test.exs](/Users/jon/projects/oarlock/test/paddle/event_test.exs:1)
+**Analog:** [test/paddle/event_test.exs]($HOME/projects/oarlock/test/paddle/event_test.exs:1)
 
 **Minimal struct test pattern** (lines 7-17):
 ```elixir
@@ -176,7 +176,7 @@ end
 
 ### Request/response tests for customer and address resources
 
-**Analog:** [test/paddle/http_test.exs](/Users/jon/projects/oarlock/test/paddle/http_test.exs:12)
+**Analog:** [test/paddle/http_test.exs]($HOME/projects/oarlock/test/paddle/http_test.exs:12)
 
 **Req adapter stub pattern** (lines 73-79):
 ```elixir
@@ -194,20 +194,20 @@ end
 - Error path asserts `%Paddle.Error{}` fields, not ad hoc maps.
 - Transport exception path is currently returned unchanged as `{:error, %Req.TransportError{}}`.
 
-**Page behavior test analog:** [test/paddle/page_test.exs](/Users/jon/projects/oarlock/test/paddle/page_test.exs:15)
+**Page behavior test analog:** [test/paddle/page_test.exs]($HOME/projects/oarlock/test/paddle/page_test.exs:15)
 - Add one address list test that asserts `page.data` contains `%Paddle.Address{}` structs and `Page.next_cursor/1` still works off preserved `meta`.
 
 ## Shared Patterns
 
 ### Naming and module layout
 - Public resource modules use the `Paddle.*` namespace and explicit nesting, not a generated endpoint dump.
-- Current library modules are small and single-purpose: [lib/paddle/event.ex](/Users/jon/projects/oarlock/lib/paddle/event.ex:1), [lib/paddle/page.ex](/Users/jon/projects/oarlock/lib/paddle/page.ex:1), [lib/paddle/error.ex](/Users/jon/projects/oarlock/lib/paddle/error.ex:1).
+- Current library modules are small and single-purpose: [lib/paddle/event.ex]($HOME/projects/oarlock/lib/paddle/event.ex:1), [lib/paddle/page.ex]($HOME/projects/oarlock/lib/paddle/page.ex:1), [lib/paddle/error.ex]($HOME/projects/oarlock/lib/paddle/error.ex:1).
 - Phase 3 should follow the same split:
   - `Paddle.Customer` and `Paddle.Address` for structs.
   - `Paddle.Customers` and `Paddle.Customers.Addresses` for request functions.
 
 ### Tuple-return conventions
-- Transport layer already defines the public success/error tuple shape at [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:2).
+- Transport layer already defines the public success/error tuple shape at [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:2).
 - Phase 3 modules should preserve:
   - `{:ok, %Paddle.Customer{}}`
   - `{:ok, %Paddle.Address{}}`
@@ -216,11 +216,11 @@ end
 - Current code also returns transport exceptions unchanged (`{:error, exception}`), so planners should explicitly decide whether Phase 3 mirrors that behavior at the public resource boundary or wraps it later.
 
 ### Raw payload preservation
-- `raw_data` is the established forward-compatibility escape hatch in [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:17) and is asserted in [test/paddle/http_test.exs](/Users/jon/projects/oarlock/test/paddle/http_test.exs:67).
+- `raw_data` is the established forward-compatibility escape hatch in [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:17) and is asserted in [test/paddle/http_test.exs]($HOME/projects/oarlock/test/paddle/http_test.exs:67).
 - Phase 3 should not rename this field or split it into alternate raw payload containers.
 
 ### Validation style
-- Existing boundary checks are lightweight and explicit, not schema-heavy. `Paddle.Webhooks.parse_event/1` only checks container shape and required keys before returning a typed struct: [lib/paddle/webhooks.ex](/Users/jon/projects/oarlock/lib/paddle/webhooks.ex:27).
+- Existing boundary checks are lightweight and explicit, not schema-heavy. `Paddle.Webhooks.parse_event/1` only checks container shape and required keys before returning a typed struct: [lib/paddle/webhooks.ex]($HOME/projects/oarlock/lib/paddle/webhooks.ex:27).
 - Phase 3 should mirror that level of validation:
   - ensure ids are non-empty binaries
   - ensure attrs are `map | keyword`
@@ -235,7 +235,7 @@ end
 | `Paddle.Http.request/4` | Success returns the full decoded body, not `body["data"]` | Resource modules must unwrap Paddle envelopes themselves |
 | `Paddle.Http.request/4` | Transport failures pass through as raw exceptions, not `%Paddle.Error{}` | Tests and plans should cover this explicitly so public behavior is intentional |
 | Pagination | Only `%Paddle.Page{}` and `next_cursor/1` exist today | Address listing needs custom page construction and page-specific tests |
-| Root module | [lib/paddle.ex](/Users/jon/projects/oarlock/lib/paddle.ex:1) is still the default scaffold and not a real facade | Phase 3 should not copy anything from `Paddle`; ignore it as a pattern source |
+| Root module | [lib/paddle.ex]($HOME/projects/oarlock/lib/paddle.ex:1) is still the default scaffold and not a real facade | Phase 3 should not copy anything from `Paddle`; ignore it as a pattern source |
 
 ## No Analog Found
 

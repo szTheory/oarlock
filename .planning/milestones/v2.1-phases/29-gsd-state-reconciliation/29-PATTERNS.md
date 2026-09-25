@@ -296,7 +296,7 @@ Planner note: after moving, any references in `.planning/threads/INDEX.md`, `.pl
   },
 ```
 
-**Supported GSD config reference** (`/Users/jon/.codex/gsd-core/references/planning-config.md` lines 27-45):
+**Supported GSD config reference** (`$HOME/.codex/gsd-core/references/planning-config.md` lines 27-45):
 ```markdown
 | `commit_docs` | `true` | Whether to commit planning artifacts to git |
 | `search_gitignored` | `false` | Add `--no-ignore` to broad rg searches |
@@ -412,7 +412,7 @@ Use dated notes where old wording overclaimed proof:
 rg -n "against Paddle state|provider-state verified|sandbox verified|live verified|ADV-01 remains unverified" .planning README.md guides demo/README.md CHANGELOG.md
 rg -n "B-0[123567]" .planning/BACKLOG.md .planning/BACKLOG-ARCHIVE.md
 rg -n "preferences" .planning/config.json
-node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
+node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 ```
 
 ## No Analog Found
@@ -421,6 +421,6 @@ All identified files have local analogs. No runtime SDK, controller, service, mo
 
 ## Metadata
 
-**Analog search scope:** `.planning/`, `.planning/phases/25-*`, `.planning/phases/26-*`, `.planning/phases/27-*`, `.planning/phases/28-*`, `/Users/jon/.codex/gsd-core/references/planning-config.md`  
+**Analog search scope:** `.planning/`, `.planning/phases/25-*`, `.planning/phases/26-*`, `.planning/phases/27-*`, `.planning/phases/28-*`, `$HOME/.codex/gsd-core/references/planning-config.md`
 **Files scanned:** 100+ planning artifacts via `rg --files .planning`; 16 concrete analog files read  
 **Pattern extraction date:** 2026-06-24

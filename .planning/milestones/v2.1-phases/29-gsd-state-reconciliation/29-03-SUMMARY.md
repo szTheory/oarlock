@@ -111,13 +111,13 @@ None - no external service configuration required.
 
 ## Verification
 
-- `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29 2>&1 | tee /tmp/oarlock-gsd-init-phase29.txt >/dev/null; ! rg -n "unknown config key|preferences" /tmp/oarlock-gsd-init-phase29.txt && rg -n "research before planning|adopter-first|DX/UX|retained investigations|Nyquist|pattern mapping|commit_docs|auto_advance|model profile|user-global" .planning/GSD-PREFERENCES.md .planning/config.json`
+- `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29 2>&1 | tee /tmp/oarlock-gsd-init-phase29.txt >/dev/null; ! rg -n "unknown config key|preferences" /tmp/oarlock-gsd-init-phase29.txt && rg -n "research before planning|adopter-first|DX/UX|retained investigations|Nyquist|pattern mapping|commit_docs|auto_advance|model profile|user-global" .planning/GSD-PREFERENCES.md .planning/config.json`
 - `node -e "JSON.parse(require('fs').readFileSync('.planning/config.json','utf8')); console.log('config json ok')"`
 - `rg -n '"preferences"|"mode"|"model_profile"|"parallelization"' .planning/config.json || true`
 - `rg -n "BACKLOG-ARCHIVE.md|EVIDENCE.md|threads/INDEX.md|GSD-PREFERENCES.md|GSD-01|GSD-02|GSD-03|GSD-04|29-01-PLAN.md|29-02-PLAN.md|29-03-PLAN.md" .planning/PROJECT.md .planning/REQUIREMENTS.md .planning/ROADMAP.md .planning/STATE.md && ! rg -n "Reconcile v2.0 audit/validation language|Close or annotate stale backlog/thread entries|0/0" .planning/STATE.md .planning/ROADMAP.md`
 - `test -f .planning/BACKLOG.md && test -f .planning/BACKLOG-ARCHIVE.md && test -f .planning/EVIDENCE.md && test -f .planning/threads/INDEX.md && test -f .planning/GSD-PREFERENCES.md && echo 'root evidence files exist'`
 - `rg -n "\[x\] \*\*GSD-0[1-4]\*\*|GSD-0[1-4] \| Phase 29 \| Complete" .planning/REQUIREMENTS.md`
-- `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29`
+- `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29`
 - `rg -n "=\s*(\[\]|\{\}|null|\"\")|not available|coming soon|placeholder|TODO|FIXME" .planning/PROJECT.md .planning/REQUIREMENTS.md .planning/ROADMAP.md .planning/STATE.md .planning/config.json .planning/GSD-PREFERENCES.md || true`
 
 ## Next Phase Readiness

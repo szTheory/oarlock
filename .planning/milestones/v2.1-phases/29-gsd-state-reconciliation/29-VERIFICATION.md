@@ -83,7 +83,7 @@ Not applicable. This phase modifies planning markdown and config files, not dyna
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| GSD init sees Phase 29 requirements and no config warnings | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29` | `phase_req_ids` = `GSD-01, GSD-02, GSD-03, GSD-04`; exit 0; no warning grep match | PASS |
+| GSD init sees Phase 29 requirements and no config warnings | `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.plan-phase 29` | `phase_req_ids` = `GSD-01, GSD-02, GSD-03, GSD-04`; exit 0; no warning grep match | PASS |
 | Plan 29-01 artifact/key-link checks | `verify.artifacts` and `verify.key-links` for 29-01 | 4/4 artifacts passed; 2/2 links verified | PASS |
 | Plan 29-02 artifact/key-link checks | `verify.artifacts` and `verify.key-links` for 29-02 | 5/5 artifacts passed; 2/2 links verified | PASS |
 | Plan 29-03 artifact/key-link checks | `verify.artifacts` and `verify.key-links` for 29-03 | 6/6 artifacts passed; 2/2 links verified | PASS |

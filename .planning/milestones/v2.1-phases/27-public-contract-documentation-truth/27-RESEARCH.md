@@ -86,7 +86,7 @@ Proof language must use a consistent ladder: local unit/contract tests, `Paddle.
 
 ## Project Constraints (from AGENTS.md / CLAUDE.md)
 
-No root `AGENTS.md`, root `CLAUDE.md`, or `.claude/CLAUDE.md` was present in `/Users/jon/projects/oarlock` during research. [VERIFIED: shell listing]
+No root `AGENTS.md`, root `CLAUDE.md`, or `.claude/CLAUDE.md` was present in `$HOME/projects/oarlock` during research. [VERIFIED: shell listing]
 
 `demo/AGENTS.md` exists and applies when editing demo code or demo-facing docs. It requires `mix precommit` when finishing demo changes, prefers `Req` over `httpoison`/`tesla`/`:httpc`, and includes Phoenix 1.8, HEEx, Tailwind v4, Ecto, and test conventions. [VERIFIED: demo/AGENTS.md]
 

@@ -292,7 +292,7 @@ This phase is a planning-state reconciliation and file-move/config phase, so run
 ### Pitfall 4: Unsupported Preferences Look Durable
 **What goes wrong:** Future agents miss adopter-first/DX/research preferences because `gsd-tools` ignores the top-level `preferences` object. [VERIFIED: local command]
 **Why it happens:** The current config has `preferences`, and `init.phase-op` warns unknown config keys are ignored. [VERIFIED: `.planning/config.json`; VERIFIED: local command]
-**How to avoid:** Keep supported workflow keys in `.planning/config.json`; put prose judgment lenses in a supported policy file or user/global defaults. [VERIFIED: `/Users/jon/.codex/gsd-core/references/planning-config.md`; CITED: https://git-scm.com/docs/git-config]
+**How to avoid:** Keep supported workflow keys in `.planning/config.json`; put prose judgment lenses in a supported policy file or user/global defaults. [VERIFIED: `$HOME/.codex/gsd-core/references/planning-config.md`; CITED: https://git-scm.com/docs/git-config]
 **Warning signs:** GSD commands continue warning about unknown config keys. [VERIFIED: local command]
 
 ## Code Examples
@@ -320,7 +320,7 @@ Verified patterns from project and official sources:
 rg -n "against Paddle state|provider-state verified|sandbox verified|live verified" .planning README.md guides demo/README.md CHANGELOG.md
 rg -n "B-0[123567]" .planning/BACKLOG.md .planning/BACKLOG-ARCHIVE.md
 rg -n "preferences" .planning/config.json
-node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
+node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 ```
 
 ## State of the Art
@@ -374,7 +374,7 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 | Framework | Markdown/config drift probes plus existing ExUnit/Mix if code-adjacent smoke is desired. [VERIFIED: codebase grep] |
 | Config file | `.planning/config.json`; root `mix.exs` only for optional smoke. [VERIFIED: codebase grep] |
 | Quick run command | `rg -n "against Paddle state|provider-state verified|sandbox verified|live verified|ADV-01 remains unverified" .planning README.md guides demo/README.md CHANGELOG.md` [VERIFIED: codebase grep] |
-| Full suite command | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 && rg -n "B-0[123567]" .planning/BACKLOG.md && rg -n "Status: resolved" .planning/threads` with expected controlled matches after updates. [VERIFIED: local command] |
+| Full suite command | `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 && rg -n "B-0[123567]" .planning/BACKLOG.md && rg -n "Status: resolved" .planning/threads` with expected controlled matches after updates. [VERIFIED: local command] |
 
 ### Phase Requirements -> Test Map
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
@@ -382,7 +382,7 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 | GSD-01 | Core planning docs agree on shipped/open scope. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep/manual read | `rg -n "Phase 29|GSD-0[1-4]|v2.1|Phase 27|Phase 28|Phase 25|Phase 26" .planning/PROJECT.md .planning/REQUIREMENTS.md .planning/ROADMAP.md .planning/STATE.md .planning/MILESTONES.md .planning/v2.0-MILESTONE-AUDIT.md` | ✅ Wave 0 not needed. [VERIFIED: codebase grep] |
 | GSD-02 | Stale backlog/thread items are classified and archived. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep | `rg -n "B-0[123567]" .planning/BACKLOG.md .planning/BACKLOG-ARCHIVE.md && rg -n "subscription-create|Reopen Condition|resolved" .planning/threads` | ❌ Wave 0: `BACKLOG-ARCHIVE.md`, `threads/INDEX.md`, resolved folder. [VERIFIED: codebase grep] |
 | GSD-03 | v2.0/Phase 25/26 proof wording matches evidence. [VERIFIED: `.planning/REQUIREMENTS.md`] | docs grep/manual read | `rg -n "against Paddle state|via Paddle|provider-state|VALIDATION.md|MockServer-backed|VERIFICATION.md" .planning/MILESTONES.md .planning/milestones/v2.0-*.md .planning/v2.0-MILESTONE-AUDIT.md .planning/phases/25-offline-mode-foundation/VALIDATION.md .planning/phases/26-advanced-subscription-flows-e2e/26-VERIFICATION.md` | Wave 0: standalone `.planning/EVIDENCE.md` plus audit errata pointer. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-02-PLAN.md`] |
-| GSD-04 | Durable preferences are available in supported project/global defaults. [VERIFIED: `.planning/REQUIREMENTS.md`] | config/schema probe | `node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 2>&1 | rg "unknown config key|preferences" -n` should have no unknown-key warning after reconciliation. | Wave 0: `.planning/config.json` plus `.planning/GSD-PREFERENCES.md`. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`] |
+| GSD-04 | Durable preferences are available in supported project/global defaults. [VERIFIED: `.planning/REQUIREMENTS.md`] | config/schema probe | `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29 2>&1 | rg "unknown config key|preferences" -n` should have no unknown-key warning after reconciliation. | Wave 0: `.planning/config.json` plus `.planning/GSD-PREFERENCES.md`. [RESOLVED: `.planning/phases/29-gsd-state-reconciliation/29-03-PLAN.md`] |
 
 ### Sampling Rate
 - **Per task commit:** Run the focused `rg` probe for the edited surface. [VERIFIED: codebase grep]
@@ -423,7 +423,7 @@ node /Users/jon/.codex/gsd-core/bin/gsd-tools.cjs query init.phase-op 29
 - `.planning/REQUIREMENTS.md` - GSD-01 through GSD-04 definitions. [VERIFIED: codebase grep]
 - `.planning/STATE.md`, `.planning/PROJECT.md`, `.planning/ROADMAP.md`, `.planning/BACKLOG.md`, `.planning/MILESTONES.md` - current planning truth and drift targets. [VERIFIED: codebase grep]
 - `.planning/v2.0-MILESTONE-AUDIT.md`, Phase 25 `VALIDATION.md`, Phase 26 `26-VERIFICATION.md`, Phase 27/28 context and verification files - evidence boundary sources. [VERIFIED: codebase grep]
-- `/Users/jon/.codex/gsd-core/references/planning-config.md` and config schema manifest - supported GSD config keys. [VERIFIED: local command]
+- `$HOME/.codex/gsd-core/references/planning-config.md` and config schema manifest - supported GSD config keys. [VERIFIED: local command]
 
 ### Secondary (MEDIUM confidence)
 - https://keepachangelog.com/en/1.1.0/ - curated human-readable history pattern. [CITED: https://keepachangelog.com/en/1.1.0/]

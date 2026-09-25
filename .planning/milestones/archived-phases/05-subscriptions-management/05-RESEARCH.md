@@ -641,15 +641,15 @@ The output here is structured to map cleanly to three (or optionally four) atomi
 ### Plan 1: Subscription Entity & Nested Structs
 
 **Files to create (absolute paths):**
-- `/Users/jon/projects/oarlock/lib/paddle/subscription.ex` — `%Paddle.Subscription{}` flat struct (24 fields per D-16).
-- `/Users/jon/projects/oarlock/lib/paddle/subscription/scheduled_change.ex` — `%Paddle.Subscription.ScheduledChange{}` (4 fields).
-- `/Users/jon/projects/oarlock/lib/paddle/subscription/management_urls.ex` — `%Paddle.Subscription.ManagementUrls{}` (3 fields).
-- `/Users/jon/projects/oarlock/test/paddle/subscription_test.exs` — struct-shape + `build_struct/2` mapping tests for all three structs.
+- `$HOME/projects/oarlock/lib/paddle/subscription.ex` — `%Paddle.Subscription{}` flat struct (24 fields per D-16).
+- `$HOME/projects/oarlock/lib/paddle/subscription/scheduled_change.ex` — `%Paddle.Subscription.ScheduledChange{}` (4 fields).
+- `$HOME/projects/oarlock/lib/paddle/subscription/management_urls.ex` — `%Paddle.Subscription.ManagementUrls{}` (3 fields).
+- `$HOME/projects/oarlock/test/paddle/subscription_test.exs` — struct-shape + `build_struct/2` mapping tests for all three structs.
 
 **Closest existing analogs:**
-- `/Users/jon/projects/oarlock/lib/paddle/transaction.ex` (lines 1-24) — exact analog for the flat entity struct.
-- `/Users/jon/projects/oarlock/lib/paddle/transaction/checkout.ex` (lines 1-3) — exact analog for the tiny nested struct shape.
-- `/Users/jon/projects/oarlock/test/paddle/transaction_test.exs` (lines 1-100) — exact analog for both struct-shape tests and `Http.build_struct/2` mapping tests including the tiny nested struct case.
+- `$HOME/projects/oarlock/lib/paddle/transaction.ex` (lines 1-24) — exact analog for the flat entity struct.
+- `$HOME/projects/oarlock/lib/paddle/transaction/checkout.ex` (lines 1-3) — exact analog for the tiny nested struct shape.
+- `$HOME/projects/oarlock/test/paddle/transaction_test.exs` (lines 1-100) — exact analog for both struct-shape tests and `Http.build_struct/2` mapping tests including the tiny nested struct case.
 
 **Concrete test file pattern to mirror (5-15 lines):**
 ```elixir
@@ -679,12 +679,12 @@ end
 ### Plan 2: Subscriptions Resource Module
 
 **Files to create:**
-- `/Users/jon/projects/oarlock/lib/paddle/subscriptions.ex` — public resource module with `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2`, plus private `do_cancel/3`, `build_subscription/1`, `validate_subscription_id/1`, `normalize_params/1`, `subscription_path/1`, `cancel_path/1`, `encode_path_segment/1`.
+- `$HOME/projects/oarlock/lib/paddle/subscriptions.ex` — public resource module with `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2`, plus private `do_cancel/3`, `build_subscription/1`, `validate_subscription_id/1`, `normalize_params/1`, `subscription_path/1`, `cancel_path/1`, `encode_path_segment/1`.
 
 **Closest existing analogs:**
-- `/Users/jon/projects/oarlock/lib/paddle/transactions.ex` (full file, especially lines 35-45) — exact analog for the per-resource nested-struct post-processing pattern. This is the **single most important reference** for Plan 2.
-- `/Users/jon/projects/oarlock/lib/paddle/customers.ex` (lines 18-24, 36-48) — exact analog for `validate_subscription_id` and `subscription_path` + URI encoding.
-- `/Users/jon/projects/oarlock/lib/paddle/customers/addresses.ex` (lines 29-41, 74-83) — exact analog for the `list/2` envelope unwrap, page mapping, and `normalize_params/1` helper. The signature differs (Phase 5 drops the positional customer_id) but every other line transfers.
+- `$HOME/projects/oarlock/lib/paddle/transactions.ex` (full file, especially lines 35-45) — exact analog for the per-resource nested-struct post-processing pattern. This is the **single most important reference** for Plan 2.
+- `$HOME/projects/oarlock/lib/paddle/customers.ex` (lines 18-24, 36-48) — exact analog for `validate_subscription_id` and `subscription_path` + URI encoding.
+- `$HOME/projects/oarlock/lib/paddle/customers/addresses.ex` (lines 29-41, 74-83) — exact analog for the `list/2` envelope unwrap, page mapping, and `normalize_params/1` helper. The signature differs (Phase 5 drops the positional customer_id) but every other line transfers.
 
 **Concrete code excerpt — the nested-struct post-processor (the canonical analog):**
 ```elixir
@@ -725,12 +725,12 @@ Plan 2 replicates this idea twice (once for `scheduled_change`, once for `manage
 ### Plan 3: Tests for Subscriptions Resource Module
 
 **Files to create:**
-- `/Users/jon/projects/oarlock/test/paddle/subscriptions_test.exs` — adapter-backed tests for `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2`, plus boundary-validation and error-propagation tests.
+- `$HOME/projects/oarlock/test/paddle/subscriptions_test.exs` — adapter-backed tests for `get/2`, `list/2`, `cancel/2`, `cancel_immediately/2`, plus boundary-validation and error-propagation tests.
 
 **Closest existing analogs:**
-- `/Users/jon/projects/oarlock/test/paddle/transactions_test.exs` — request-body assertion shape, error propagation, transport exception passthrough. (Lines 14-50, 319-366.)
-- `/Users/jon/projects/oarlock/test/paddle/customers_test.exs` — single-entity GET path test (lines 91-127), `client_with_adapter/1` and `decode_json_body/1` helpers (lines 182-194), URL-encoding test (lines 116-126).
-- `/Users/jon/projects/oarlock/test/paddle/customers/addresses_test.exs` — list pagination test with `Paddle.Page.next_cursor/1` assertion (lines 79-108), allowlisted-query-params test (lines 110-139), validation-tuple test (lines 154-160).
+- `$HOME/projects/oarlock/test/paddle/transactions_test.exs` — request-body assertion shape, error propagation, transport exception passthrough. (Lines 14-50, 319-366.)
+- `$HOME/projects/oarlock/test/paddle/customers_test.exs` — single-entity GET path test (lines 91-127), `client_with_adapter/1` and `decode_json_body/1` helpers (lines 182-194), URL-encoding test (lines 116-126).
+- `$HOME/projects/oarlock/test/paddle/customers/addresses_test.exs` — list pagination test with `Paddle.Page.next_cursor/1` assertion (lines 79-108), allowlisted-query-params test (lines 110-139), validation-tuple test (lines 154-160).
 
 **Concrete test fixtures to write:**
 

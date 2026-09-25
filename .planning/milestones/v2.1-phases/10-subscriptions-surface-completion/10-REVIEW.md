@@ -35,8 +35,8 @@ No open findings.
 
 ## Resolved Findings
 
-- **WR-01 resolved:** [subscriptions.ex](/Users/jon/projects/oarlock/lib/paddle/subscriptions.ex:132) now parameterizes the operation in `reject_idempotency_key!/2` and passes `"pause"`/`"resume"` from each path, so `resume/3` no longer emits a pause-specific message.
-- **WR-02 resolved:** [getting-started.md](/Users/jon/projects/oarlock/guides/getting-started.md:273) now says direct subscription *creation* flows are excluded and explicitly documents supported lifecycle mutations (`pause/3`, `pause_immediately/3`, `resume/3`, `cancel/3`), removing the prior contract contradiction.
+- **WR-01 resolved:** [subscriptions.ex]($HOME/projects/oarlock/lib/paddle/subscriptions.ex:132) now parameterizes the operation in `reject_idempotency_key!/2` and passes `"pause"`/`"resume"` from each path, so `resume/3` no longer emits a pause-specific message.
+- **WR-02 resolved:** [getting-started.md]($HOME/projects/oarlock/guides/getting-started.md:273) now says direct subscription *creation* flows are excluded and explicitly documents supported lifecycle mutations (`pause/3`, `pause_immediately/3`, `resume/3`, `cancel/3`), removing the prior contract contradiction.
 
 ---
 
