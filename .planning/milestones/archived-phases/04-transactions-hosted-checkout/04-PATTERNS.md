@@ -18,7 +18,7 @@
 
 ### `lib/paddle/transaction.ex` (model, transform)
 
-**Analog:** [lib/paddle/customer.ex]($HOME/projects/oarlock/lib/paddle/customer.ex:1)
+**Analog:** [lib/paddle/customer.ex](/Users/jon/projects/oarlock/lib/paddle/customer.ex:1)
 
 **Struct module pattern** (lines 1-15):
 ```elixir
@@ -39,7 +39,7 @@ defmodule Paddle.Customer do
 end
 ```
 
-**Mapping constraint to preserve** from [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:17) (lines 17-27):
+**Mapping constraint to preserve** from [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:17) (lines 17-27):
 ```elixir
 def build_struct(struct_module, data) when is_map(data) do
   base_struct = struct(struct_module)
@@ -64,7 +64,7 @@ end
 
 ### `lib/paddle/transaction/checkout.ex` (model, transform)
 
-**Analog:** [lib/paddle/customer.ex]($HOME/projects/oarlock/lib/paddle/customer.ex:1)
+**Analog:** [lib/paddle/customer.ex](/Users/jon/projects/oarlock/lib/paddle/customer.ex:1)
 
 **Tiny nested struct pattern** (lines 1-15):
 ```elixir
@@ -94,7 +94,7 @@ end
 
 ### `lib/paddle/transactions.ex` (service, request-response)
 
-**Analog:** [lib/paddle/customers.ex]($HOME/projects/oarlock/lib/paddle/customers.ex:1)
+**Analog:** [lib/paddle/customers.ex](/Users/jon/projects/oarlock/lib/paddle/customers.ex:1)
 
 **Imports and allowlist pattern** (lines 1-7):
 ```elixir
@@ -150,7 +150,7 @@ defp allowlist_attrs(attrs, allowed_keys) do
 end
 ```
 
-**Transport/error boundary pattern** from [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:2) (lines 2-14):
+**Transport/error boundary pattern** from [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:2) (lines 2-14):
 ```elixir
 def request(%Paddle.Client{} = client, method, path, opts \\ []) do
   opts = Keyword.merge(opts, method: method, url: path)
@@ -175,7 +175,7 @@ end
 - Do not change `Paddle.Http.request/4`; unwrap `%{"data" => data}` locally in `Paddle.Transactions`.
 - Add a private `build_transaction/1` helper after `Http.build_struct/2` to replace the shallow `checkout` map with `%Paddle.Transaction.Checkout{}`.
 
-**Nested mapping precedent to respect** from [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:17) (lines 17-27):
+**Nested mapping precedent to respect** from [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:17) (lines 17-27):
 ```elixir
 def build_struct(struct_module, data) when is_map(data) do
   base_struct = struct(struct_module)
@@ -197,7 +197,7 @@ This is why `checkout` must be post-processed in `Paddle.Transactions` instead o
 
 ### `test/paddle/transaction_test.exs` (test, transform)
 
-**Analog:** [test/paddle/customer_test.exs]($HOME/projects/oarlock/test/paddle/customer_test.exs:1)
+**Analog:** [test/paddle/customer_test.exs](/Users/jon/projects/oarlock/test/paddle/customer_test.exs:1)
 
 **Struct contract pattern** (lines 7-21):
 ```elixir
@@ -262,7 +262,7 @@ end
 
 ### `test/paddle/transactions_test.exs` (test, request-response)
 
-**Analogs:** [test/paddle/customers_test.exs]($HOME/projects/oarlock/test/paddle/customers_test.exs:1), [test/paddle/customers/addresses_test.exs]($HOME/projects/oarlock/test/paddle/customers/addresses_test.exs:1)
+**Analogs:** [test/paddle/customers_test.exs](/Users/jon/projects/oarlock/test/paddle/customers_test.exs:1), [test/paddle/customers/addresses_test.exs](/Users/jon/projects/oarlock/test/paddle/customers/addresses_test.exs:1)
 
 **Req adapter harness pattern** from `test/paddle/customers_test.exs` (lines 182-194):
 ```elixir
@@ -362,7 +362,7 @@ end
 ## Shared Patterns
 
 ### Transport Boundary
-**Source:** [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:2)
+**Source:** [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:2)
 **Apply to:** `lib/paddle/transactions.ex`, `test/paddle/transactions_test.exs`
 ```elixir
 def request(%Paddle.Client{} = client, method, path, opts \\ []) do
@@ -382,7 +382,7 @@ end
 ```
 
 ### Attr Normalization And Allowlisting
-**Source:** [lib/paddle/customers.ex]($HOME/projects/oarlock/lib/paddle/customers.ex:47)
+**Source:** [lib/paddle/customers.ex](/Users/jon/projects/oarlock/lib/paddle/customers.ex:47)
 **Apply to:** `lib/paddle/transactions.ex`
 ```elixir
 defp normalize_attrs(attrs) when is_list(attrs) do
@@ -406,14 +406,14 @@ end
 ```
 
 ### Raw Payload Preservation
-**Source:** [lib/paddle/http.ex]($HOME/projects/oarlock/lib/paddle/http.ex:17)
+**Source:** [lib/paddle/http.ex](/Users/jon/projects/oarlock/lib/paddle/http.ex:17)
 **Apply to:** `lib/paddle/transaction.ex`, `lib/paddle/transaction/checkout.ex`
 ```elixir
 struct(struct_module, Map.put(attrs, :raw_data, data))
 ```
 
 ### Adapter-Backed Resource Tests
-**Source:** [test/paddle/customers_test.exs]($HOME/projects/oarlock/test/paddle/customers_test.exs:182)
+**Source:** [test/paddle/customers_test.exs](/Users/jon/projects/oarlock/test/paddle/customers_test.exs:182)
 **Apply to:** `test/paddle/transactions_test.exs`
 ```elixir
 defp client_with_adapter(adapter) do
