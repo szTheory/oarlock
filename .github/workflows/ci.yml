@@ -21,27 +21,31 @@ concurrency:
 jobs:
   test:
     name: mix test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
         with:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Restore library deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-library-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch library deps
         run: mix deps.get
@@ -55,6 +59,14 @@ jobs:
       - name: Compile (warnings as errors)
         run: mix compile --warnings-as-errors
 
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Test CI monitor
+        run: node --test scripts/ci_monitor.test.cjs
+
       - name: Run tests
         env:
           MIX_ENV: test
@@ -63,9 +75,19 @@ jobs:
       - name: Check for SUMMARY/git-state drift
         run: ./bin/check_summary_drift.sh
 
+      - name: Save library deps
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+
   dialyzer:
     name: static analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -75,27 +97,27 @@ jobs:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Restore library deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-library-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Restore PLTs
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: plt-cache
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-plt-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Install Hex + Rebar
         run: |
-          mix local.hex --force
-          mix local.rebar --force
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
       - name: Fetch library deps
         run: mix deps.get
@@ -108,7 +130,343 @@ jobs:
 
       - name: Save PLTs
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        if: always()
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           path: priv/plts
-          key: ${{ runner.os }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+
+  demo-postgres:
+    name: demo PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MIX_ENV: test
+      DB_HOST: localhost
+    services:
+      postgres:
+        image: postgres:17@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache demo deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            demo/deps
+            demo/_build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('demo/mix.lock') }}
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
+
+      - name: Fetch demo deps
+        working-directory: demo
+        run: mix deps.get
+
+      - name: Check demo formatting
+        working-directory: demo
+        run: mix format --check-formatted
+
+      - name: Check demo unused deps
+        working-directory: demo
+        run: mix deps.unlock --check-unused
+
+      - name: Compile demo (warnings as errors)
+        working-directory: demo
+        run: mix compile --warnings-as-errors
+
+      - name: Run demo tests
+        working-directory: demo
+        run: mix test
+
+      - name: Save demo deps
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            demo/deps
+            demo/_build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('demo/mix.lock') }}
+
+  package-smoke:
+    name: package smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
+
+      - name: Build and compile fresh package consumer
+        run: bin/package_smoke.sh
+
+  optional-deps:
+    name: optional dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache library deps
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
+
+      - name: Fetch library deps
+        run: mix deps.get
+
+      - name: Prove MockServer with optional deps
+        env:
+          MIX_ENV: test
+        run: mix test test/paddle/mock_server_test.exs
+
+      - name: Prove fresh consumer without optional fixture deps
+        run: bin/package_smoke.sh
+
+  planning-truth:
+    name: planning truth
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and assert historical tags
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require("node:child_process");
+          const required = ["v1.1", "v1.2", "v1.3", "v1.4", "v2.0", "v2.1"];
+          const run = (args, allowFailure = false) => {
+            const result = spawnSync("git", args, { encoding: "utf8", shell: false });
+            if (!allowFailure && result.status !== 0) {
+              throw new Error(`git ${args[0]} failed (${result.status}): ${result.stderr}`);
+            }
+            return result;
+          };
+
+          run(["fetch", "--force", "origin", "refs/tags/*:refs/tags/*"]);
+          for (const tag of required) run(["rev-parse", "--verify", `refs/tags/${tag}^{}`]);
+          if (run(["rev-parse", "--verify", "--quiet", "refs/tags/v1.5^{}"], true).status === 0) {
+            throw new Error("v1.5 unexpectedly exists; update the explicit missing-tag planning identity before CI proceeds");
+          }
+          NODE
+
+      - name: Derive exact history range
+        id: history-range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const { spawnSync } = require("node:child_process");
+          const run = (args) => {
+            const result = spawnSync("git", args, { encoding: "utf8", shell: false });
+            if (result.status !== 0) throw new Error(`git ${args[0]} failed (${result.status}): ${result.stderr}`);
+            return result.stdout.trim();
+          };
+          const validSha = (value) => /^[0-9a-f]{40}$/i.test(value || "") && !/^0+$/.test(value);
+          const head = process.env.HEAD_SHA;
+          if (!validSha(head)) throw new Error("github.sha is missing, malformed, or all-zero");
+
+          let base;
+          if (process.env.EVENT_NAME === "pull_request") {
+            const baseRef = process.env.BASE_REF;
+            if (!/^(?!-)(?!.*\.\.)(?!.*\/\.)(?!.*\.$)[A-Za-z0-9._/-]+$/.test(baseRef || "")) {
+              throw new Error("pull-request base ref is missing or malformed");
+            }
+            const remoteRef = `refs/remotes/origin/${baseRef}`;
+            run(["fetch", "--no-tags", "--force", "origin", `refs/heads/${baseRef}:${remoteRef}`]);
+            base = run(["merge-base", remoteRef, head]);
+          } else if (process.env.EVENT_NAME === "push") {
+            base = process.env.PUSH_BEFORE_SHA;
+          } else {
+            throw new Error(`unsupported event: ${process.env.EVENT_NAME}`);
+          }
+
+          if (!validSha(base)) throw new Error("history base is unavailable, malformed, or all-zero");
+          run(["cat-file", "-e", `${base}^{commit}`]);
+          run(["cat-file", "-e", `${head}^{commit}`]);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `base=${base}\nhead=${head}\n`);
+          NODE
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Run clean production Node suite
+        run: node --test scripts/*.test.cjs scripts/prohibitions/*.test.cjs
+
+      - name: Enforce Phase 31 prohibition descriptors
+        run: node scripts/prohibitions/enforce_phase31.cjs
+
+      - name: Guard base-to-head planning history
+        run: node scripts/history_integrity.cjs --base "${{ steps.history-range.outputs.base }}" --head "${{ github.sha }}"
+
+      - name: Smoke live planning health JSON
+        run: node scripts/planning_health.cjs --json
+
+  quality:
+    name: quality checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Hex + Rebar
+        run: |
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
+
+      - name: Fetch quality dependencies
+        run: mix deps.get
+
+      - name: Credo strict lint
+        if: ${{ always() }}
+        run: mix credo --strict
+
+      - name: Build ExDoc
+        if: ${{ always() }}
+        run: mix docs
+
+      - name: Audit Hex advisories
+        if: ${{ always() }}
+        run: mix hex.audit
+
+  ci-contract:
+    name: CI contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs:
+      - test
+      - dialyzer
+      - demo-postgres
+      - package-smoke
+      - optional-deps
+      - planning-truth
+      - quality
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: setup-beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Install proof toolchain
+        id: proof-tools
+        run: |
+          mix local.hex 2.5.1 --force
+          curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+          echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
+          mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
+          HEX_VERSION="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)(\.ez)?$|\1|')"
+          REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
+          test -n "$HEX_VERSION"
+          test -n "$REBAR_BIN"
+          REBAR_VERSION="$("$REBAR_BIN" version 2>&1 | sed -nE 's/.*rebar ([0-9]+\.[0-9.]+).*/\1/p' | head -1)"
+          test -n "$REBAR_VERSION"
+          echo "hex-version=$HEX_VERSION" >> "$GITHUB_OUTPUT"
+          echo "rebar-version=$REBAR_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Write exact-SHA CI proof
+        id: proof
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+          GITHUB_SHA_VALUE: ${{ github.sha }}
+          EVENT_HEAD_SHA_VALUE: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_WORKFLOW_VALUE: ${{ github.workflow }}
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT_VALUE: ${{ github.run_attempt }}
+          GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
+          OTP_VERSION: ${{ steps.setup-beam.outputs.otp-version }}
+          ELIXIR_VERSION: ${{ steps.setup-beam.outputs.elixir-version }}
+          HEX_VERSION: ${{ steps.proof-tools.outputs.hex-version }}
+          REBAR_VERSION: ${{ steps.proof-tools.outputs.rebar-version }}
+          CHECKED_OUT_SHA_VALUE: ${{ github.sha }}
+        run: node scripts/ci_proof.cjs
+
+      - name: Upload exact-SHA proof
+        id: proof-upload
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-contract-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Link retained proof in run summary
+        if: ${{ always() && steps.proof-upload.outputs.artifact-url != '' }}
+        env:
+          PROOF_URL: ${{ steps.proof-upload.outputs.artifact-url }}
+        run: echo "[Download exact-SHA CI proof]($PROOF_URL)" >> "$GITHUB_STEP_SUMMARY"

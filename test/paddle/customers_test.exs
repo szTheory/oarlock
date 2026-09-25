@@ -1,6 +1,14 @@
 defmodule Paddle.CustomersTest do
   use ExUnit.Case, async: true
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   alias Paddle.Client
   alias Paddle.Customer
   alias Paddle.Customers
@@ -14,6 +22,12 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :post
           assert request.url.path == "/customers"
+
+          assert request_context(request) == %{
+                   method: :post,
+                   operation: :create_customer,
+                   route: "/customers"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "custom_data" => %{"crm_id" => "crm_123"},
@@ -78,14 +92,73 @@ defmodule Paddle.CustomersTest do
               }} = Customers.create(client, %{email: "invalid"})
     end
 
-    test "normalizes transport exceptions into Paddle.Error" do
+    test "makes one attempt and exposes safe ambiguity context without idempotency support" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
       client =
         client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
           {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{type: "network_timeout", network_error?: true, retryable?: true}} =
+      assert {:error,
+              %Error{
+                type: "network_timeout",
+                network_error?: true,
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_customer,
+                resource_id: nil,
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
                Customers.create(client, %{email: "ada@example.com"})
+
+      assert Agent.get(attempts, & &1) == 1
+
+      assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+        Customers.create(client, %{email: "ada@example.com"}, idempotency_key: "idem_forbidden")
+      end
+
+      assert Agent.get(attempts, & &1) == 1
+    end
+
+    test "rejects caller transport authority before adapter dispatch" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          flunk("adapter received a forbidden public request option")
+          {request, Req.Response.new(status: 201, body: %{})}
+        end)
+
+      invalid_options = [
+        base_url: "https://attacker.example/credential-canary",
+        auth: {:bearer, "secret-auth-canary"},
+        headers: [{"authorization", "secret-header-canary"}],
+        adapter: {:secret_adapter_canary, []}
+      ]
+
+      for {key, value} <- invalid_options do
+        error =
+          assert_raise ArgumentError, fn ->
+            Customers.create(client, %{email: "ada@example.com"}, [{key, value}])
+          end
+
+        assert error.message =~ Atom.to_string(key)
+        refute error.message =~ "canary"
+      end
+
+      for opts <- ["not-a-keyword", [retry: false, retry: true], [retry: :secret_retry_value]] do
+        error =
+          assert_raise ArgumentError, fn ->
+            Customers.create(client, %{email: "ada@example.com"}, opts)
+          end
+
+        refute error.message =~ "secret_retry_value"
+      end
+
+      assert Agent.get(attempts, & &1) == 0
     end
   end
 
@@ -98,6 +171,12 @@ defmodule Paddle.CustomersTest do
           assert request.method == :get
           assert request.url.path == "/customers/ctm_01"
           assert request.body == nil
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_customer,
+                   route: "/customers/:customer_id"
+                 }
 
           {request, Req.Response.new(status: 200, body: %{"data" => response_data})}
         end)
@@ -125,6 +204,33 @@ defmodule Paddle.CustomersTest do
 
       assert {:ok, %Customer{}} = Customers.get(client, "ctm/with?reserved")
     end
+
+    test "retries a transient customer read while keeping the route label static" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+      client =
+        client_with_adapter(fn request ->
+          count = Agent.get_and_update(attempts, fn count -> {count, count + 1} end)
+
+          assert request_context(request) == %{
+                   method: :get,
+                   operation: :get_customer,
+                   route: "/customers/:customer_id"
+                 }
+
+          response =
+            if count == 0 do
+              Req.Response.new(status: 503, body: %{})
+            else
+              Req.Response.new(status: 200, body: %{"data" => customer_payload()})
+            end
+
+          {request, response}
+        end)
+
+      assert {:ok, %Customer{}} = Customers.get(client, "ctm/runtime-secret")
+      assert Agent.get(attempts, & &1) == 2
+    end
   end
 
   describe "update/3" do
@@ -135,6 +241,13 @@ defmodule Paddle.CustomersTest do
         client_with_adapter(fn request ->
           assert request.method == :patch
           assert request.url.path == "/customers/ctm_01"
+
+          assert request_context(request) == %{
+                   method: :patch,
+                   operation: :update_customer,
+                   resource_id: "ctm_01",
+                   route: "/customers/:customer_id"
+                 }
 
           assert decode_json_body(request.body) == %{
                    "custom_data" => %{"crm_id" => "crm_456"},
@@ -185,7 +298,10 @@ defmodule Paddle.CustomersTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
-      req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+      base_url: "https://sandbox-api.paddle.com",
+      req:
+        Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: Adapter)
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 
@@ -193,6 +309,10 @@ defmodule Paddle.CustomersTest do
     body
     |> IO.iodata_to_binary()
     |> Jason.decode!()
+  end
+
+  defp request_context(request) do
+    Req.Request.get_private(request, :paddle_request_context)
   end
 
   defp customer_payload do

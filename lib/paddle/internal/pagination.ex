@@ -1,9 +1,48 @@
 defmodule Paddle.Internal.Pagination do
-  @moduledoc false
+  @moduledoc """
+  Internal pagination helpers that keep provider cursor dispatch separate from
+  static request context.
+
+  `next_page/4` accepts the dynamic cursor path only as the dispatch URL. Its
+  keyword context carries a normalized `:operation` and `:route`, so later
+  pages retain the owning resource operation without exposing cursor data.
+  Pagination uses `GET`, so `retry: false` may restrict its bounded read retry.
+  """
 
   alias Paddle.Error
+  alias Paddle.Http
   alias Paddle.Page
 
+  @spec build_page(module(), [map()], map()) :: Page.t()
+  def build_page(module, data, meta) do
+    %Page{
+      data: Enum.map(data, &Http.build_struct(module, &1)),
+      meta: meta
+    }
+  end
+
+  @doc """
+  Fetches a cursor URL using static operation/route context.
+
+  The `path` is used only for provider dispatch. Callers should pass literal
+  `:operation` and normalized `:route` labels in `context`; `:resource_id` and
+  `retry: false` are also accepted by the central request boundary. The legacy
+  context-free arity is intentionally not exported, so every caller must state
+  the originating resource context explicitly.
+  """
+  @spec next_page(Paddle.Client.t(), module(), String.t(), [Paddle.Http.request_opt()]) ::
+          {:ok, Page.t()} | {:error, Error.t() | term()}
+  def next_page(client, module, path, context) when is_list(context) do
+    with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
+           Http.request(client, :get, path, context) do
+      {:ok, build_page(module, data, meta)}
+    end
+  end
+
+  @spec stream(
+          (-> {:ok, Page.t()} | {:error, term()}),
+          (String.t() -> {:ok, Page.t()} | {:error, term()})
+        ) :: Enumerable.t()
   def stream(first_page_fun, next_page_fun)
       when is_function(first_page_fun, 0) and is_function(next_page_fun, 1) do
     Stream.resource(
@@ -13,6 +52,10 @@ defmodule Paddle.Internal.Pagination do
     )
   end
 
+  @spec all(
+          (-> {:ok, Page.t()} | {:error, term()}),
+          (String.t() -> {:ok, Page.t()} | {:error, term()})
+        ) :: {:ok, [map() | struct()]} | {:error, term()}
   def all(first_page_fun, next_page_fun)
       when is_function(first_page_fun, 0) and is_function(next_page_fun, 1) do
     reduce_pages({:first, first_page_fun, next_page_fun}, [])

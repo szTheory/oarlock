@@ -21,6 +21,22 @@ Everything else that makes your SaaS feel like a product is still yours:
 users, accounts, access control, data models, retries at the app boundary,
 audit trails, and support workflows.
 
+## Proof Boundary
+
+Keep the evidence ladder explicit:
+
+- Unit and contract tests prove local SDK behavior.
+- `Paddle.MockServer` proves deterministic local SDK/demo wiring. It is not
+  live Paddle provider-state verification and it is not a complete Paddle clone.
+- Package and downstream consumer checks prove build and named consumer-seam
+  compatibility, not provider behavior or mutation deduplication.
+- Paddle sandbox checks prove real provider-state behavior only when real Paddle
+  sandbox credentials were used.
+- Hosted CI proves only the exact commit and workflow rows observed on the host;
+  local success does not manufacture that authority.
+- Live provider verification is an operator-owned readiness step before charging
+  customers and requires live credentials plus observed live behavior.
+
 ## The Happy Path
 
 Most teams do not start with "create a subscription."
@@ -95,8 +111,7 @@ Now create the transaction:
 case Paddle.Transactions.create(client,
        customer_id: customer.id,
        address_id: address.id,
-       items: [%{price_id: "pri_monthly_123", quantity: 1}],
-       idempotency_key: "accrue:checkout:user_123:attempt_1"
+       items: [%{price_id: "pri_monthly_123", quantity: 1}]
      ) do
   {:ok, %Paddle.Transaction{} = transaction} ->
     # Hand off to the browser
@@ -107,6 +122,14 @@ case Paddle.Transactions.create(client,
     raise "Failed to create transaction: #{error.message}"
 end
 ```
+
+Transaction creation is a single-attempt mutation. The SDK does not accept an
+idempotency option and does not infer provider deduplication from a request
+header. If a transport failure or terminal HTTP 408/5xx response leaves the
+outcome `ambiguous`, do not blindly replay the create. Use the error's fixed
+`:lookup`, `:webhook`, and `:provider_dashboard` reconciliation actions: query
+canonical provider state, wait for the verified webhook, or inspect Paddle's
+dashboard before deciding what your app should do next.
 
 If Paddle returns checkout data, you now have the next move:
 
@@ -281,9 +304,11 @@ Today, the library does not try to own:
 - Phoenix request parsing or webhook plugs
 - Ecto schemas or synchronization tables
 - Entitlement logic
-- Refund workflows
-- Product and price catalog management
-- Customer portal session creation
+- Authorization policy
+- Idempotency-key storage and retry policy at your job boundary
+- App-level refund policy or support workflows
+- Product and price catalog management beyond read/list helpers
+- Customer portal UI or database state
 - Direct subscription creation flows
 
 One more important truth: as of Paddle's current documentation on May 23, 2026,
@@ -295,7 +320,21 @@ transaction -> checkout/manual collection -> webhook + `Paddle.Transactions.get/
 reconciliation -> `Paddle.Subscriptions.get/2`.
 Once a subscription exists, lifecycle mutations are supported through
 `Paddle.Subscriptions.pause/3`, `pause_immediately/3`, `resume/3`, and
-`cancel/3`.
+`cancel/2`.
+
+For signed-in self-serve billing, create a portal session through
+`Paddle.Customers.PortalSessions.create/4` and redirect the customer to one of
+the returned Paddle-hosted URLs. Your app still owns authorization, audit
+records, and local state updates from follow-up webhooks.
+
+For support operations, `Paddle.Adjustments` exposes the provider-native refund
+and credit surface. Treat adjustments as support actions tied back to a
+transaction, not as generic app-level billing mutations.
+
+For admin or support views, `Paddle.Products`, `Paddle.Prices`,
+`Paddle.Events`, and `Paddle.NotificationSettings` expose read or management
+surfaces where they are useful. They are intentionally not a local catalog,
+event store, or notification-control plane replacement.
 
 ## What to Save in Your Own Database
 
@@ -312,6 +351,21 @@ You may also want:
 - The latest known subscription status
 - The latest known billing email and address snapshot
 - An internal audit trail for provisioning decisions
+- Durable app-owned purchase intents and reconciliation status for mutation jobs
+
+## Before Live Mode
+
+Before replacing sandbox credentials with live credentials, confirm:
+
+- Real Paddle price IDs are configured for the products you sell.
+- A sandbox checkout completes with the same flow your app will use in live
+  mode.
+- Paddle has a webhook destination for the correct environment.
+- Your webhook endpoint uses the environment-specific endpoint secret and
+  verifies the exact raw request body before parsing or trusting events.
+- Event handling is idempotent, including duplicate webhook delivery.
+- Sandbox and live API keys, endpoint secrets, and price IDs are separated.
+- The final live credential swap is treated as an operational release step.
 
 ## A Realistic App-Level Sequence
 
@@ -327,7 +381,7 @@ this:
 7. Your webhook handler verifies the raw body and parses the event.
 8. Your app stores the Paddle IDs and grants access.
 9. Later, support or account settings use `Paddle.Subscriptions.get/2`,
-   `list/2`, or `cancel/2`.
+   `list/2`, `pause/3`, `resume/3`, `cancel/2`, or portal sessions.
 
 That is the current oarlock story in one screen.
 

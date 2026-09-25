@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8000:80"
+      - "8080:8080"
+    volumes:
+      - "./traefik.yml:/etc/traefik/dynamic.yml:ro"
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo_dev
+    # Not mapping 5432 to host to avoid conflicts
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/workspace
+    working_dir: /workspace/demo
+    command: sh -c "mix deps.get && mix ecto.setup && mix phx.server"
+    depends_on:
+      - db

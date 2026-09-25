@@ -5,6 +5,14 @@ defmodule Paddle.HttpTest do
     defstruct [:id, :name, :raw_data]
   end
 
+  defmodule Adapter do
+    def run(request) do
+      request
+      |> Req.Request.get_private(:paddle_test_adapter)
+      |> then(& &1.(request))
+    end
+  end
+
   alias Paddle.Client
   alias Paddle.Error
   alias Paddle.Http
@@ -60,7 +68,7 @@ defmodule Paddle.HttpTest do
               retryable?: true,
               type: "network_timeout",
               raw_data: %Req.TransportError{reason: :timeout}
-            }} = Http.request(client, :get, "/customers")
+            }} = Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps nxdomain to network_nxdomain type" do
@@ -71,7 +79,7 @@ defmodule Paddle.HttpTest do
 
     assert {:error,
             %Paddle.Error{type: "network_nxdomain", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps closed to network_closed type" do
@@ -81,7 +89,7 @@ defmodule Paddle.HttpTest do
       end)
 
     assert {:error, %Paddle.Error{type: "network_closed", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "request/4 maps unknown transport reason to network_unknown type" do
@@ -92,7 +100,7 @@ defmodule Paddle.HttpTest do
 
     assert {:error,
             %Paddle.Error{type: "network_unknown", network_error?: true, retryable?: true}} =
-             Http.request(client, :get, "/customers")
+             Http.request(client, :get, "/customers", retry: false)
   end
 
   test "build_struct/2 maps known string keys into the target struct" do
@@ -107,180 +115,328 @@ defmodule Paddle.HttpTest do
     assert %SampleStruct{raw_data: ^data} = Http.build_struct(SampleStruct, data)
   end
 
-  describe "request/4 idempotency_key opt" do
-    test "forwards the supplied key as Idempotency-Key header on POST" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == ["my-key-123"]
-          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_1"}})}
-        end)
+  test "request/4 rejects unsupported idempotency_key before dispatch" do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
-      assert {:ok, _} =
-               Http.request(client, :post, "/customers",
-                 json: %{name: "x"},
-                 idempotency_key: "my-key-123"
-               )
+    client =
+      client_with_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: 201, body: %{})}
+      end)
+
+    assert_raise ArgumentError, ~r/idempotency_key is not supported/, fn ->
+      Http.request(client, :post, "/customers", idempotency_key: "unsupported-canary")
     end
 
-    test "sends no Idempotency-Key header when the opt is absent" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == []
-          {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-        end)
+    assert Agent.get(attempts, & &1) == 0
+  end
 
-      assert {:ok, _} = Http.request(client, :get, "/customers")
+  describe "validate_public_request_opts!/1" do
+    test "accepts only a unique boolean retry option" do
+      assert Http.validate_public_request_opts!([]) == []
+      assert Http.validate_public_request_opts!(retry: false) == [retry: false]
+      assert Http.validate_public_request_opts!(retry: true) == [retry: true]
     end
 
-    test "raises ArgumentError when idempotency_key is nil" do
-      client =
-        client_with_adapter(fn request ->
-          flunk(
-            "adapter should not be called when idempotency_key is invalid; got: #{inspect(request)}"
-          )
-        end)
+    test "rejects malformed containers, duplicate keys, and forbidden transport authority" do
+      invalid_options = [
+        {"not-a-keyword", "keyword list"},
+        {[retry: false, retry: true], "retry"},
+        {[retry: :secret_retry_value], "retry"},
+        {[base_url: "https://credential-canary.example"], "base_url"},
+        {[auth: {:bearer, "secret-auth-canary"}], "auth"},
+        {[headers: [{"authorization", "secret-header-canary"}]], "headers"},
+        {[adapter: {:secret_adapter_canary, []}], "adapter"}
+      ]
 
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: nil)
+      for {opts, expected_key_or_shape} <- invalid_options do
+        error =
+          assert_raise ArgumentError, fn ->
+            Http.validate_public_request_opts!(opts)
+          end
+
+        assert error.message =~ expected_key_or_shape
+
+        refute error.message =~ "credential-canary"
+        refute error.message =~ "secret-auth-canary"
+        refute error.message =~ "secret-header-canary"
+        refute error.message =~ "secret_adapter_canary"
+        refute error.message =~ "secret_retry_value"
       end
-    end
-
-    test "raises ArgumentError when idempotency_key is the empty string" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "")
-      end
-    end
-
-    test "raises ArgumentError when idempotency_key is whitespace-only" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: "   ")
-      end
-    end
-
-    test "raises ArgumentError when idempotency_key is not a binary" do
-      client =
-        client_with_adapter(fn request ->
-          flunk("adapter should not be called; got: #{inspect(request)}")
-        end)
-
-      assert_raise ArgumentError, ~r/idempotency_key must be a non-empty string/, fn ->
-        Http.request(client, :post, "/customers", json: %{}, idempotency_key: 12345)
-      end
-    end
-
-    test "Paddle.Customers.create/3 forwards idempotency_key as Idempotency-Key header" do
-      client =
-        client_with_adapter(fn request ->
-          assert Req.Request.get_header(request, "idempotency-key") == [
-                   "accrue:job:42:attempt:1"
-                 ]
-
-          {request, Req.Response.new(status: 201, body: %{"data" => %{"id" => "cus_999"}})}
-        end)
-
-      assert {:ok, %Paddle.Customer{id: "cus_999"}} =
-               Paddle.Customers.create(client, %{email: "x@example.com", name: "X"},
-                 idempotency_key: "accrue:job:42:attempt:1"
-               )
     end
   end
 
   describe "request/4 retry policy" do
-    test "retries on 503 then succeeds" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "eligible GET and HEAD status failures stop after four attempts" do
+      for method <- [:get, :head], status <- [408, 429, 500, 502, 503, 504] do
+        {result, attempts} = persistent_response(method, status)
+        assert {:error, %Error{status_code: ^status}} = result
+        assert attempts == 4
+      end
+    end
 
-      client =
-        client_with_retry_adapter(fn request ->
-          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+    test "eligible GET and HEAD transport failures stop after four attempts" do
+      for method <- [:get, :head], reason <- [:timeout, :econnrefused, :closed] do
+        {result, attempts} = persistent_transport(method, reason)
+        assert {:error, %Error{network_error?: true}} = result
+        assert attempts == 4
+      end
+    end
 
-          if count == 0 do
+    test "ineligible status and transport failures execute once" do
+      for status <- [400, 401, 404, 409, 422, 501] do
+        {result, attempts} = persistent_response(:get, status)
+        assert {:error, %Error{status_code: ^status}} = result
+        assert attempts == 1
+      end
+
+      for reason <- [:nxdomain, :enetunreach, :unknown] do
+        {result, attempts} = persistent_transport(:get, reason)
+        assert {:error, %Error{network_error?: true}} = result
+        assert attempts == 1
+      end
+    end
+
+    test "mutations and retry: false reads execute exactly once" do
+      for method <- [:post, :patch, :put, :delete] do
+        {result, attempts} = persistent_response(method, 503)
+        assert {:error, %Error{status_code: 503}} = result
+        assert attempts == 1
+      end
+
+      {result, attempts} = persistent_response(:get, 503, retry: false)
+      assert {:error, %Error{status_code: 503}} = result
+      assert attempts == 1
+    end
+
+    test "retry: true cannot enable mutation replay and invalid values fail before dispatch" do
+      for {method, retry} <- [
+            {:post, true},
+            {:patch, true},
+            {:put, true},
+            {:delete, true},
+            {:get, :always}
+          ] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_retry_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
             {request, Req.Response.new(status: 503, body: %{})}
-          else
-            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-          end
-        end)
+          end)
 
-      assert {:ok, _} = Http.request(client, :get, "/customers")
-      assert Agent.get(agent, & &1) == 2
-      Agent.stop(agent)
+        assert_raise ArgumentError, ~r/retry/, fn ->
+          Http.request(client, method, "/resource", retry: retry)
+        end
+
+        assert Agent.get(attempts, & &1) == 0
+      end
     end
 
-    test "does not retry on 422 validation error" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "retry decisions are deterministic, safe-read-only, and cap only 429 Retry-After" do
+      parent = self()
 
       client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 422, body: %{"error" => %{"detail" => "invalid"}})}
+        client_with_adapter(fn request ->
+          retry = Req.Request.get_option(request, :retry)
+
+          retry_after =
+            Req.Response.new(status: 429)
+            |> Req.Response.put_header("retry-after", "120")
+
+          service_unavailable =
+            Req.Response.new(status: 503)
+            |> Req.Response.put_header("retry-after", "120")
+
+          unretryable = Req.Response.new(status: 422)
+          transport = %Req.TransportError{reason: :closed}
+          mutation_request = %{request | method: :post}
+
+          send(
+            parent,
+            {:decisions, retry.(request, retry_after),
+             retry.(request, Req.Response.new(status: 429)), retry.(request, service_unavailable),
+             retry.(request, unretryable), retry.(request, transport),
+             retry.(mutation_request, service_unavailable)}
+          )
+
+          {request, Req.Response.new(status: 200, body: %{})}
         end)
 
-      assert {:error, %Error{status_code: 422}} =
-               Http.request(client, :post, "/customers", json: %{})
-
-      assert Agent.get(agent, & &1) == 1
-      Agent.stop(agent)
+      assert {:ok, %{}} = Http.request(client, :get, "/customers")
+      assert_receive {:decisions, {:delay, 60_000}, true, true, false, true, false}
     end
 
-    test "retries on 429 then succeeds" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "parallel callers keep independent attempt counters and terminal outcomes" do
+      requests = [
+        {:get, 503, 4},
+        {:head, 408, 4},
+        {:post, 503, 1},
+        {:delete, 429, 1},
+        {:get, 422, 1}
+      ]
 
-      client =
-        client_with_retry_adapter(fn request ->
-          count = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+      results =
+        requests
+        |> Task.async_stream(
+          fn {method, status, expected_attempts} ->
+            {result, attempts} = persistent_response(method, status)
+            {status, expected_attempts, attempts, result}
+          end,
+          ordered: false
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
 
-          if count == 0 do
-            {request,
-             Req.Response.new(status: 429, body: %{"error" => %{"code" => "too_many_requests"}})}
-          else
-            {request, Req.Response.new(status: 200, body: %{"data" => %{"id" => "cus_1"}})}
-          end
-        end)
+      for {status, expected_attempts, attempts, result} <- results do
+        assert attempts == expected_attempts
+        assert {:error, %Error{status_code: ^status}} = result
+      end
+    end
+  end
 
-      assert {:ok, _} = Http.request(client, :get, "/customers")
-      assert Agent.get(agent, & &1) == 2
-      Agent.stop(agent)
+  describe "request/4 ambiguous mutation outcomes" do
+    test "malformed provider errors preserve one-attempt ambiguity and reconciliation guidance" do
+      for malformed <- [nil, "bad-shape", ["bad-shape"], %{type: "atom-keyed"}] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+        body = %{"error" => malformed, "outer_secret" => "provider-canary"}
+
+        client =
+          client_with_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            {request, Req.Response.new(status: 502, body: body)}
+          end)
+
+        assert {:error,
+                %Error{
+                  status_code: 502,
+                  type: nil,
+                  code: nil,
+                  message: "Unknown Paddle Error",
+                  errors: [],
+                  raw_data: ^body,
+                  ambiguous?: true,
+                  retryable?: false,
+                  operation: :create_customer,
+                  resource_id: "ctm_safe_01",
+                  reconciliation: [:lookup, :webhook, :provider_dashboard]
+                } = error} =
+                 Http.request(client, :post, "/customers",
+                   operation: :create_customer,
+                   route: "/customers",
+                   resource_id: "ctm_safe_01"
+                 )
+
+        assert Agent.get(attempts, & &1) == 1
+        refute inspect(error) =~ "provider-canary"
+      end
     end
 
-    test "per-call retry: false disables retry on 5xx" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "transport failures are non-retryable ambiguity with safe reconciliation context" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
       client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 503, body: %{})}
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :timeout}}
         end)
 
-      assert {:error, %Error{status_code: 503}} =
-               Http.request(client, :get, "/customers", retry: false)
+      assert {:error,
+              %Error{
+                ambiguous?: true,
+                retryable?: false,
+                operation: :create_customer,
+                resource_id: "ctm_safe_01",
+                reconciliation: [:lookup, :webhook, :provider_dashboard]
+              }} =
+               Http.request(client, :post, "/customers",
+                 operation: :create_customer,
+                 route: "/customers",
+                 resource_id: "ctm_safe_01"
+               )
 
-      assert Agent.get(agent, & &1) == 1
-      Agent.stop(agent)
+      assert Agent.get(attempts, & &1) == 1
     end
 
-    test "caps retries at 3 on persistent 5xx (max-3 ceiling)" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+    test "408 and 5xx mutation responses are ambiguous without replay" do
+      for status <- [408, 500, 501, 502, 503, 504] do
+        {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+        client =
+          client_with_adapter(fn request ->
+            Agent.update(attempts, &(&1 + 1))
+            {request, Req.Response.new(status: status, body: %{})}
+          end)
+
+        assert {:error, %Error{status_code: ^status, ambiguous?: true, retryable?: false}} =
+                 Http.request(client, :patch, "/subscriptions/sub_01",
+                   operation: :update_subscription,
+                   route: "/subscriptions/:subscription_id",
+                   resource_id: "sub_01"
+                 )
+
+        assert Agent.get(attempts, & &1) == 1
+      end
+    end
+
+    test "repeated dispatch of one mutation input never replays and returns the same contract" do
+      {:ok, attempts} = Agent.start_link(fn -> 0 end)
 
       client =
-        client_with_retry_adapter(fn request ->
-          Agent.update(agent, fn n -> n + 1 end)
-          {request, Req.Response.new(status: 503, body: %{})}
+        client_with_adapter(fn request ->
+          Agent.update(attempts, &(&1 + 1))
+          {request, %Req.TransportError{reason: :closed}}
         end)
 
-      assert {:error, %Error{status_code: 503}} =
-               Http.request(client, :get, "/customers")
+      request = fn ->
+        Http.request(client, :post, "/transactions",
+          json: %{items: []},
+          operation: :create_transaction,
+          route: "/transactions"
+        )
+      end
 
-      assert Agent.get(agent, & &1) == 4
-      Agent.stop(agent)
+      assert {:error, %Error{} = first} = request.()
+      assert {:error, %Error{} = second} = request.()
+      assert first == second
+      assert first.ambiguous?
+      refute first.retryable?
+      assert Agent.get(attempts, & &1) == 2
+    end
+
+    test "parallel mutations retain independent context and terminal results" do
+      operations = [
+        {:create_customer, "ctm_01", :timeout},
+        {:update_subscription, "sub_02", :closed},
+        {:cancel_subscription, "sub_03", :econnrefused}
+      ]
+
+      results =
+        operations
+        |> Task.async_stream(fn {operation, resource_id, reason} ->
+          client =
+            client_with_adapter(fn request ->
+              {request, %Req.TransportError{reason: reason}}
+            end)
+
+          Http.request(client, :post, "/mutation",
+            operation: operation,
+            route: "/mutation",
+            resource_id: resource_id
+          )
+        end)
+        |> Enum.map(fn {:ok, result} -> result end)
+
+      assert Enum.sort(
+               Enum.map(results, fn
+                 {:error, %Error{} = error} ->
+                   {error.operation, error.resource_id, error.ambiguous?, error.retryable?}
+               end)
+             ) ==
+               Enum.sort([
+                 {:create_customer, "ctm_01", true, false},
+                 {:update_subscription, "sub_02", true, false},
+                 {:cancel_subscription, "sub_03", true, false}
+               ])
     end
   end
 
@@ -288,7 +444,14 @@ defmodule Paddle.HttpTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
-      req: Req.new(base_url: "https://sandbox-api.paddle.com", retry: false, adapter: adapter)
+      base_url: "https://sandbox-api.paddle.com",
+      req:
+        Req.new(
+          base_url: "https://sandbox-api.paddle.com",
+          retry: false,
+          adapter: Adapter
+        )
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
   end
 
@@ -296,14 +459,43 @@ defmodule Paddle.HttpTest do
     %Client{
       api_key: "sk_test_123",
       environment: :sandbox,
+      base_url: "https://sandbox-api.paddle.com",
       req:
         Req.new(
           base_url: "https://sandbox-api.paddle.com",
           retry: :transient,
           max_retries: 3,
           retry_delay: 0,
-          adapter: adapter
+          retry_log_level: false,
+          adapter: Adapter
         )
+        |> Req.Request.put_private(:paddle_test_adapter, adapter)
     }
+  end
+
+  defp persistent_response(method, status, opts \\ []) do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_retry_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, Req.Response.new(status: status, body: %{})}
+      end)
+
+    result = Http.request(client, method, "/resource", opts)
+    {result, Agent.get(attempts, & &1)}
+  end
+
+  defp persistent_transport(method, reason) do
+    {:ok, attempts} = Agent.start_link(fn -> 0 end)
+
+    client =
+      client_with_retry_adapter(fn request ->
+        Agent.update(attempts, &(&1 + 1))
+        {request, %Req.TransportError{reason: reason}}
+      end)
+
+    result = Http.request(client, method, "/resource")
+    {result, Agent.get(attempts, & &1)}
   end
 end

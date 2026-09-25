@@ -1,64 +1,244 @@
-# Roadmap
+# Roadmap: Paddle Elixir SDK
+
+## Overview
+
+Milestone v2.2 repairs oarlock's delivery trust chain before expanding the
+public API. Work proceeds from repository truth, through SDK safety and
+authoritative CI, into release integrity and daily contribution operations,
+then closes with a provenance-backed JTBD map and exact-SHA handoff. The 29
+requirements in this roadmap are the complete committed scope; future horizons
+remain guidance and require explicit promotion through a later discovery cycle.
 
 ## Milestones
 
-- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09) — see [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29) — see [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
-- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; foundational SDK surface)
+- 🚧 **v2.2 Trust, Coverage & Green Delivery** — Phases 31-36 (active)
+- ✅ **v2.1 Adopter Truth & Release Readiness** — Phases 27-30 (shipped 2026-06-25) — [archive](milestones/v2.1-ROADMAP.md)
+- ✅ **v2.0 Offline Mode & Advanced Billing** — Phases 25-26 (shipped 2026-06-11) — [archive](milestones/v2.0-ROADMAP.md)
+- ✅ **v1.5 Demo App & DX Hardening** — Phases 20-24 (shipped 2026-06-11) — [archive](milestones/v1.5-ROADMAP.md)
+- ✅ **v1.4 Catalog & Events** — Phases 17-19 (shipped 2026-06-10) — [archive](milestones/v1.4-ROADMAP.md)
+- ✅ **v1.3 Support & Self-Serve Surface** — Phases 14-16 (shipped 2026-06-09) — [archive](milestones/v1.3-ROADMAP.md)
+- ✅ **v1.2 Production Surface** — Phases 8-13 (shipped 2026-06-09) — [archive](milestones/v1.2-ROADMAP.md)
+- ✅ **v1.1 Accrue Seam Hardening** — Phases 6-7 (shipped 2026-04-29) — [archive](milestones/v1.1-ROADMAP.md)
+- ✅ **v1.0 MVP** — Phases 1-5 (shipped pre-archival; phase artifacts retained)
 
 ## Phases
 
-<details>
-<summary>✅ v1.1 Accrue Seam Hardening (Phases 6-7) — SHIPPED 2026-04-29</summary>
+- [x] **Phase 31: Repository & Planning Truth** - Establish a non-destructive, authoritative account of repository state, active scope, and shipped history. (completed 2026-09-10)
+- [x] **Phase 32: Dependency & SDK Trust Boundary** - Make dependency, telemetry, inspection, retry, validation, and public-contract behavior safe and truthful. (completed 2026-09-23)
+- [ ] **Phase 33: Deterministic Green CI** - Make one complete, measured, immutable CI contract authoritative for each exact SHA and remote main.
+- [ ] **Phase 34: Release Integrity** - Bind every automatic and recovery publication to the accepted exact-SHA CI and package identity.
+- [ ] **Phase 35: Review, Ownership & Worktree Operations** - Make bounded PRs, triage, ownership, dependency updates, and clean worktree handling the normal contributor path.
+- [ ] **Phase 36: JTBD Coverage, Durable Trajectory & Handoff** - Preserve a validated capability compass, append-only provenance, and evidence-complete milestone handoff.
 
-- [x] Phase 6: Transactions Retrieval (1/1 plans) — TXN-03
-- [x] Phase 7: Accrue Seam Lock (2/2 plans) — SEAM-01, SEAM-02
+## Phase Details
 
-</details>
+### Phase 31: Repository & Planning Truth
 
-<details>
-<summary>✅ v1.0 MVP (Phases 1-5) — pre-archival baseline</summary>
+**Goal**: Maintainers and GSD workflows can begin work from one accurate, non-destructive view of repository state, active scope, and project history.
+**Depends on**: Phase 30 (shipped)
+**Requirements**: REPO-01, REPO-02, REPO-03, REPO-04
+**Success Criteria** (what must be TRUE):
 
-- [x] Phase 1: Core Transport & Client Setup (3/3 plans) — CORE-01..05
-- [x] Phase 2: Webhook Verification (2/2 plans) — WEB-01..03
-- [x] Phase 3: Core Entities (Customers & Addresses) (3/3 plans) — CUST-01, ADDR-01
-- [x] Phase 4: Transactions & Hosted Checkout (2/2 plans) — TXN-01, TXN-02
-- [x] Phase 5: Subscriptions Management (3/3 plans) — SUB-01..03
+  1. Maintainer can run one read-only inventory and see dirty paths, branch divergence, every linked worktree and lock, known ownership, and proposed disposition before any state changes.
+  2. Maintainer and GSD routing identify the same active milestone from the documented authority chain; archives, caches, summaries, and old phase directories cannot create phantom active work.
+  3. Maintainer can navigate a continuous milestone history whose shipped status, phase range, archive links, planning identifiers, and package-version semantics agree.
+  4. Maintainer can run a non-mutating planning-health check and receive actionable failures for stale active artifacts, broken references, archive contradictions, or completion claims without proof.
 
-</details>
+**Plans**: 9/9 plans executed (5 original, 4 gap closure)
+
+Plans:
+
+- [x] 31-06-PLAN.md
+- [x] 31-07-PLAN.md
+- [x] 31-08-PLAN.md
+- [x] 31-09-PLAN.md
+
+**Wave 1**
+
+- [x] 31-01-PLAN.md — Read-only all-worktree repository inventory with shared human/JSON truth.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 31-02-PLAN.md — Canonical active-scope and completion-proof planning health.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 31-03-PLAN.md — Immutable milestone-history validation and additive reconciliation.
+
+**Wave 4** *(gap closure; blocked on Wave 3 completion)*
+
+- [x] 31-04-PLAN.md — Repository-bounded planning and ownership source reads with fail-closed diagnostics.
+
+**Wave 5** *(gap closure; blocked on Wave 4 completion)*
+
+- [x] 31-05-PLAN.md — Canonical completion proof, exact phase ranges, and causal Git identity collection failures.
+
+### Phase 32: Dependency & SDK Trust Boundary
+
+**Goal**: SDK consumers can use oarlock without known Req advisories, credential disclosure, unsafe mutation replay, invalid client state, or misleading contract guidance.
+**Depends on**: Phase 31
+**Requirements**: SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06
+**Success Criteria** (what must be TRUE):
+
+  1. SDK consumers can install the compatibility-tested Req upgrade, pass the supported adapter/MockServer/demo/package/downstream matrix, and obtain a clean `mix hex.audit` result.
+  2. Telemetry subscribers receive stable allowlisted operational facts while credential, body, signed-URL, request/response, secret, and raw customer canaries remain absent.
+  3. Inspecting every public secret-bearing value redacts both promoted secrets and equivalent values nested in raw provider payloads.
+  4. Safe reads retry only within documented bounds; ambiguous mutations are not blindly replayed and instead return enough guidance for a consumer to reconcile provider state.
+  5. Client construction rejects blank credentials, unsupported environments, and invalid options while valid custom MockServer base URLs continue to work, and public docs/types/examples describe that tested behavior accurately.
+
+**Plans**: 15/15 plans executed (11 original, 4 gap closure; 2 pending)
+
+Plans:
+**Wave 1**
+
+- [x] 32-01-PLAN.md — Isolate the secure Req 0.7.4 root/demo dependency migration.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 32-02-PLAN.md — Migrate the bounded adjustment/customer and catalog/event Req adapter fixture families.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 32-11-PLAN.md — Migrate remaining integration fixtures and build the fail-fast compatibility matrix with atomic acceptance.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [x] 32-03-PLAN.md — Validate explicit client construction and align/redact its public docs, types, and inspection.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [x] 32-04-PLAN.md — Establish bounded read retries, non-replayed mutation reconciliation, and truthful central docs/types.
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [x] 32-05-PLAN.md — Harden adjustment/customer/address/portal-session request paths and their module contracts.
+- [x] 32-06-PLAN.md — Harden catalog/event/notification request paths and their module contracts.
+- [x] 32-09-PLAN.md — Redact every secret-bearing public inspection boundary with aligned public types/docs.
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [x] 32-07-PLAN.md — Harden subscription/transaction/pagination paths and their module contracts.
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [x] 32-08-PLAN.md — Replace telemetry payloads with paired per-attempt allowlists and aligned module docs.
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
+- [x] 32-10-PLAN.md — Mechanically prove runtime/docs/types agreement, isolated concurrency, interruption rejection, and the final matrix.
+
+**Wave 10** *(gap closure; blocked on Wave 9 completion)*
+
+- [x] 32-12-PLAN.md — Contain caller mutation options before they can replace validated client transport authority.
+
+**Wave 11** *(gap closure; blocked on Wave 10 completion)*
+
+- [x] 32-13-PLAN.md — Normalize malformed errors, correct stream guidance, and add bounded verifier proof without weakening full acceptance.
+
+**Wave 12** *(gap closure; blocked on Wave 11 completion)*
+
+- [x] 32-14-PLAN.md — Make compatibility and bounded-contract acceptance fail closed across preflight failure, timeout, signals, and nonzero termination.
+- [x] 32-15-PLAN.md — Reject duplicate subscription lifecycle retry options before normalization or dispatch, independent of key order.
+
+### Phase 33: Deterministic Green CI
+
+**Goal**: Contributors and maintainers can rely on a complete, fast, reproducible CI contract that proves one exact commit and keeps remote main green.
+**Depends on**: Phase 32
+**Requirements**: CI-01, CI-02, CI-03, CI-04, CI-05
+**Success Criteria** (what must be TRUE):
+
+  1. Every proposed change reports one required aggregate result covering formatting, dependencies, warnings, tests, public specs, Dialyzer, Credo, ExDoc, audit, demo/PostgreSQL, package smoke, optional-dependency proof, and planning guards.
+  2. A maintainer can inspect the run and verify immutable reviewed inputs, controlled runners/toolchains, runtime-aware caches, explicit timeouts, and least-privilege permissions.
+  3. A maintainer can see critical-path duration and the baseline-derived feedback target, with every required proof lane still represented after performance changes.
+  4. The stable aggregate check protects remote `main`, and the current main commit has durable hosted-green evidence for its exact SHA.
+  5. Every authoritative run publishes a durable summary containing exact SHA, run identity, toolchains, lockfile identity, and each required lane's conclusion.
+
+**Plans**: 2/4 plans executed
+**Wave 1**
+
+- [x] 33-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 33-02-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 33-03-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 33-04-PLAN.md
+
+### Phase 34: Release Integrity
+
+**Goal**: Release stewards can publish only the exact, fully proven package they intended, through either the automatic or recovery path.
+**Depends on**: Phase 33
+**Requirements**: SHIP-01, SHIP-02, SHIP-03, SHIP-04
+**Success Criteria** (what must be TRUE):
+
+  1. Automatic and recovery publishing both stop before release-secret access when the exact candidate SHA lacks an accepted complete CI contract.
+  2. A release proceeds only when source SHA, tag target, package version, built artifact, and eventual published package agree.
+  3. Concurrent publication attempts serialize safely, use least privilege, and the recovery path cannot bypass any automatic-path quality or identity gate.
+  4. Maintainer can trace a release from exact SHA and CI run through artifact and dry-run evidence to publication and post-publish verification.
+
+**Plans**: TBD
+
+### Phase 35: Review, Ownership & Worktree Operations
+
+**Goal**: Contributors and maintainers can move one bounded change from clean worktree entry through owned review and explicit triage to a clean, evidenced exit.
+**Depends on**: Phase 34
+**Requirements**: OPS-01, OPS-02, OPS-03, OPS-04
+**Success Criteria** (what must be TRUE):
+
+  1. A contributor can find concise contribution, security-reporting, ownership, issue, and PR guidance and submit one bounded intent with proportional evidence.
+  2. A maintainer can inspect every open issue or PR and see its controlled triage state, owner, scope decision, and next action.
+  3. A task can enter and exit an isolated worktree through explicit cleanliness checks; dirty, locked, stale, or unknown work is reported with ownership/disposition context and never deleted automatically.
+  4. Dependency updates arrive in reviewable groups and must pass the same compatibility and security contract as any other proposed change.
+
+**Plans**: TBD
+
+### Phase 36: JTBD Coverage, Durable Trajectory & Handoff
+
+**Goal**: Maintainers and future agents can understand who oarlock serves, what is proven or missing, why the roadmap points where it does, and exactly what evidence closes v2.2.
+**Depends on**: Phase 35
+**Requirements**: ORIENT-01, ORIENT-02, ORIENT-03, ORIENT-04, ORIENT-05, ORIENT-06
+**Success Criteria** (what must be TRUE):
+
+  1. Maintainer can navigate a canonical map of relevant personas and stable JTBD IDs showing situation, desired outcome, current capability, smallest gap, and SDK/app/provider ownership boundary.
+  2. Every JTBD and capability decision exposes dated sources, rationale, owner/repository, requirement and phase links, proof contract, evidence, freshness trigger, non-goals, and promotion or reopen condition.
+  3. Maintainer can distinguish horizon (`short`, `mid`, `long`) from status (`shipped`, `committed`, `candidate`, `conditional`, `rejected`, `external`, `superseded`) and can inspect prior states through dated append-only transitions.
+  4. A validator reports broken or contradictory links among JTBD records, requirements, phases, evidence, backlog, trajectory items, and milestone archives.
+  5. The v2.2 handoff records clean repository/worktree state, exact-SHA proof, unresolved blockers, accepted caveats, and evidence-based candidates without presenting future work as committed.
+
+**Plans**: TBD
+
+## Durable Trajectory Baseline
+
+This baseline is a revisable compass, not a release promise. The source anchors
+and promotion rules live in [REQUIREMENTS.md](REQUIREMENTS.md) and the detailed
+evidence lives under [research/](research/). Future discovery may change the
+direction through dated transitions that retain prior rationale and evidence.
+
+| Horizon | Status | Baseline direction | Promotion or reconsideration rule |
+|---------|--------|--------------------|-----------------------------------|
+| Short | `committed` in v2.2 | Phases 31-36: repository/planning truth, SDK safety, green CI, release integrity, clean contribution operations, and JTBD provenance | Replan with a dated decision retaining source, owner, rationale, impact, and prior state |
+| Mid | `candidate` | Customer and transaction discovery; quote-before-mutate; bounded causal MockServer scenarios with provider proof kept distinct | Promote only for a named JTBD with current provider research, smallest coherent surface, owner, and proof contract |
+| Long | `conditional` | Packaged Accrue adoption; demand-backed B2B/manual/invoice flows; deliberate public-contract graduation | Activate only when consumer adoption, support burden, maturity, procurement, or stabilization evidence justifies it |
+
+Candidate and conditional IDs remain in `REQUIREMENTS.md` under **Future
+Requirements** and are intentionally absent from the committed phase mappings.
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status   | Completed  |
-|-------|-----------|----------------|----------|------------|
-| 1. Core Transport & Client Setup | v1.0 | 3/3 | Complete | pre-archival |
-| 2. Webhook Verification | v1.0 | 2/2 | Complete | pre-archival |
-| 3. Core Entities (Customers & Addresses) | v1.0 | 3/3 | Complete | pre-archival |
-| 4. Transactions & Hosted Checkout | v1.0 | 2/2 | Complete | pre-archival |
-| 5. Subscriptions Management | v1.0 | 3/3 | Complete | pre-archival |
-| 6. Transactions Retrieval | v1.1 | 1/1 | Complete | 2026-04-29 |
-| 7. Accrue Seam Lock | v1.1 | 2/2 | Complete | 2026-04-29 |
-| 8. Reliability Primitives | v1.2 | 4/4 | Complete    | 2026-05-30 |
-| 9. Pagination Ergonomics | v1.2 | 1/1 | Complete    | 2026-05-30 |
-| 10. Subscriptions Surface Completion | v1.2 | 3/3 | Complete    | 2026-05-30 |
-| 11. Type-Safety Pass | v1.2 | 5/5 | Complete    | 2026-06-04 |
-| 12. Documentation Pass | v1.2 | 7/7 | Complete    | 2026-06-04 |
-| 13. Process Guard | v1.2 | 1/1 | Complete   | 2026-06-09 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 31. Repository & Planning Truth | v2.2 | 9/9 | Complete    | 2026-09-10 |
+| 32. Dependency & SDK Trust Boundary | v2.2 | 16/16 | Complete    | 2026-09-23 |
+| 33. Deterministic Green CI | v2.2 | 2/4 | In Progress|  |
+| 34. Release Integrity | v2.2 | 0/TBD | Not started | - |
+| 35. Review, Ownership & Worktree Operations | v2.2 | 0/TBD | Not started | - |
+| 36. JTBD Coverage, Durable Trajectory & Handoff | v2.2 | 0/TBD | Not started | - |
 
 ---
-
-## Future Work — Accrue Integration
-
-Driven by `~/projects/accrue` consuming oarlock as its Paddle backend. See `.planning/BACKLOG.md` for any prioritized entries that survive milestone close.
-
-Per project memory, Accrue-side asks should be triaged into `BACKLOG.md` rather than auto-inserted as phases here.
-
-## Post-v1.2 Direction
-
-Once v1.2 is clean, green, and released, prefer this order:
-
-1. Support operations: refunds/credits via `Paddle.Adjustments`.
-2. Customer self-serve billing: smallest provider-native portal/session/payment-management surface.
-3. Catalog read surface: products/prices read/list before any broad CRUD.
-
-Do not mirror Paddle endpoints for their own sake. Promote only work tied to a real Phoenix SaaS adopter job.
+*Roadmap created: 2026-09-09 for milestone v2.2*

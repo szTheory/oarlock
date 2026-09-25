@@ -1,234 +1,260 @@
-# Domain Pitfalls: Milestone v1.1 — Accrue Seam Hardening
+# Domain Pitfalls
 
-**Domain:** Elixir SDK extension + seam integration test + consumer contract doc
-**Researched:** 2026-04-29
-**Confidence:** HIGH — grounded in current repo source and test patterns
+**Domain:** Trustworthy stewardship of an existing Elixir SDK: security, delivery, worktrees, review, and durable JTBD/provenance planning
+**Project:** oarlock / Paddle Elixir SDK
+**Milestone:** v2.2 Trust, Coverage & Green Delivery
+**Researched:** 2026-09-09
+**Overall confidence:** HIGH for repository facts; MEDIUM for changing external behavior verified in official primary documentation
 
----
+## Executive Warning
 
-## A. `Paddle.Transactions.get/2` (Phase 6)
+The highest-risk mistake is treating v2.2 as generic cleanup. The repository already contains concrete trust failures: a prior SUMMARY claimed code that had not been committed; root planning identifies v2.2 as active while `ROADMAP.md` says there is no active milestone; local `main` is 155 commits ahead of `origin/main`; GitHub reports `main` is unprotected; two old PRs remain open; and a linked agent worktree remains locked. These are not cosmetic inconsistencies. They show that claims, source state, hosted proof, and release automation can diverge.
 
-### A-1: Validation error atom mismatched with `Subscriptions.get/2`
-**What goes wrong:** `Subscriptions.get/2` returns `{:error, :invalid_subscription_id}`. A copy-paste
-implementation returns `{:error, :invalid_id}` or `{:error, :invalid_transaction_id}` — different
-enough to silently fail pattern-matches in Accrue code.
-**Why it happens:** The atom is embedded in a private guard that nobody reads against the existing module.
-**Prevention:** Phase 6 plan must explicitly state the error atom is `:invalid_transaction_id` (mirrors
-the `_subscription_id` suffix convention) and include a test case:
-`assert {:error, :invalid_transaction_id} = Transactions.get(client, nil)` in
-`test/paddle/transactions_test.exs`.
+The second critical mistake is preserving the current retry/idempotency story as safe. oarlock configures Req with `retry: :transient`, which retries all HTTP methods, while Paddle's official SDK guidance says arbitrary client-supplied idempotency keys are not supported and warns that a timed-out create may already have succeeded. Safety work must change runtime behavior and public claims together.
 
-### A-2: `checkout` silently dropped on GET response
-**What goes wrong:** `Transactions.create/2` returns `checkout.url` from the POST because the fixture
-includes `"checkout"`. A GET response from Paddle for a completed transaction also has a `"checkout"`
-key — but if the `get/2` implementer copies the happy-path test fixture from `create/2` and omits
-`"checkout"`, the field arrives as `nil` instead of `%Checkout{}`. Accrue's reconciliation reads
-`transaction.checkout.url` and crashes.
-**Why it happens:** `build_transaction/1` already exists in `lib/paddle/transactions.ex` and handles
-the checkout case, but only if the fixture contains a non-nil `"checkout"` map. A bare-fixture test
-never exercises the hydration branch.
-**Prevention:** Phase 6 test in `test/paddle/transactions_test.exs` must include a fixture where
-`"checkout"` is a map **and** assert `assert %Checkout{url: url} = transaction.checkout` (not just
-`assert transaction.checkout != nil`). The existing `build_transaction/1` private helper in
-`lib/paddle/transactions.ex` must be reused — do not write a second builder.
+## Critical Pitfalls
 
-### A-3: `checkout.raw_data` clobbered when reusing `build_transaction/1`
-**What goes wrong:** `Http.build_struct/2` (line 28 of `lib/paddle/http.ex`) overwrites `:raw_data`
-with the **top-level** data map. The nested `%Checkout{}` must receive `data["checkout"]` as its
-`:raw_data`, not the transaction root. If the implementer calls
-`Http.build_struct(Checkout, data)` instead of `Http.build_struct(Checkout, data["checkout"])`,
-`checkout.raw_data` contains the full transaction payload — a forward-compat footgun Accrue will
-trip on when it traverses raw fields.
-**Prevention:** Phase 6 test must assert `assert transaction.checkout.raw_data == response_data["checkout"]`
-(mirrors line 50 of `test/paddle/transactions_test.exs`). This assertion already exists for `create/2`;
-a `get/2` test must repeat it explicitly.
+### Pitfall 1: Credentials and one-shot secrets escape through structs, telemetry, and `raw_data`
 
-### A-4: Forgetting to `alias Paddle.Client` — wrong guard on `get/2` head
-**What goes wrong:** `Transactions.get/2` signature written as `def get(client, transaction_id)` without
-the `%Client{} = client` guard that every other public function has. Passes dialyzer during happy-path
-testing but breaks the explicit-client pattern that Accrue relies on for multi-tenant dispatch.
-**Prevention:** Phase 6 plan must show the function head as
-`def get(%Client{} = client, transaction_id)` and list `alias Paddle.Client` as a required addition
-to the top of `lib/paddle/transactions.ex`.
+**What goes wrong:** API keys, portal-session URLs, notification endpoint secrets, request bodies, or sensitive response fields reach logs, telemetry handlers, crash reports, or developer inspection output.
 
----
+**Why it happens:** Redaction is treated as a property of one promoted field instead of an end-to-end data-flow boundary. `Paddle.Http.Telemetry` emits whole `%Req.Request{}` values on start/stop/error and a whole `%Req.Response{}` on stop. `%Paddle.Client{}` contains both `api_key` and a Req request configured with bearer auth. `%Paddle.NotificationSetting{}` exposes `endpoint_secret_key` and preserves it again in `raw_data`. `%Paddle.PortalSession{}` replaces promoted `urls` during inspection but still prints `raw_data`, which can contain those same authenticated URLs.
 
-## B. Seam Integration Test (Phase 7)
+**Consequences:** Credential compromise, unauthorized API access, customer portal session hijacking, webhook forgery, and secret retention in observability systems.
 
-### B-1: HMAC fixture goes stale when `verify_signature/4` tolerates a fixed timestamp
-**What goes wrong:** The webhook step computes a fixed HMAC in the test fixture using the
-`signature_header/3` helper pattern from `test/paddle/webhooks_test.exs` (line 110). If the verifier
-is called without the `now:` option override, `System.os_time(:second)` is used, the timestamp in the
-fixture is seconds-old, and the test fails with `:stale_timestamp` the next day.
-**Why it happens:** `@now` pinning (line 6, `webhooks_test.exs`) is local to that describe block and
-not carried over to the seam test automatically.
-**Prevention:** Phase 7 seam test MUST call
-`Webhooks.verify_signature(raw_body, header, @secret, now: @ts)` where `@ts` is the same integer used
-to build the fixture header. Add a comment in the seam test file:
-`# @ts must match the ts= segment in the fixture header — do not use wall clock`.
+**Warning signs:**
 
-### B-2: Req.Test stub state leaks between steps because adapters are per-`Req.new`
-**What goes wrong:** Each step in the seam test creates its own `client_with_adapter/1` inline closure.
-If a step's adapter does not return and another step's adapter handles its request, the assert in the
-second step passes against wrong data — silent cross-step contamination.
-**Why it happens:** The per-adapter closure pattern (all tests in the repo) is safe when each adapter
-handles exactly one request. In a multi-step test with sequential calls, the wrong adapter can consume
-the wrong request if two `client` values share adapter state.
-**Prevention:** Each step in the seam test must use a **separate** `client` binding with its own
-`client_with_adapter/1` call — never reuse a `client` across two steps. Add a comment at the top of
-the seam test: `# Each step uses its own client — adapters are one-shot closures, never reuse`.
+- Telemetry metadata contains `request`, `response`, `headers`, `body`, or `raw_data` without an allowlist.
+- Redaction tests construct structs without realistic `raw_data`.
+- `inspect/1` of a client, notification setting, or provider-built portal session contains a canary.
 
-### B-3: Multi-step fixture chain where step N silently absorbs step N+1's request
-**What goes wrong:** If a single `client` is used for two sequential calls (e.g. `Customers.create` and
-`Addresses.create`), the adapter closure for the first call captures both requests if the function
-returns without fully exhausting its request. The second call returns a stale response from the first
-fixture, and assertions pass with wrong struct types.
-**Prevention:** Same as B-2. Additionally, Phase 7 must assert the resource type at each step:
-`assert {:ok, %Customer{}} = ...`, `assert {:ok, %Address{}} = ...`, etc. Never assert only
-`{:ok, _}` in the seam test.
+**Prevention:** In **SDK Safety & Contract Truth**, define allowlisted telemetry containing method, sanitized route, status, duration, attempt count, and normalized error class—never request/response structs or bodies. Implement deny-by-default `Inspect` behavior for every credential- or secret-bearing struct, including nested raw payloads. Add canary tests for all telemetry outcomes and sensitive structs.
 
-### B-4: Assertions too tight — any non-breaking Paddle field addition breaks the test
-**What goes wrong:** The seam test pattern-matches exact fixture maps: `assert subscription == %{...}`
-or uses `^response_data` with a full literal. Any new field Paddle adds to a response that the fixture
-doesn't include causes a match failure, defeating the point of a stability test.
-**Prevention:** Phase 7 seam test must use struct-field assertions for the locked contract fields only:
-`assert subscription.status == "active"`, `assert transaction.checkout.url =~ "https://"`. The
-`raw_data` field provides the escape hatch. Never pattern-match the full fixture map at the seam level.
+**Detection / proof:** Attach a telemetry handler and recursively assert unique canaries are absent; inspect provider-built structs with secrets duplicated in promoted and `raw_data` fields; run docs-truth guards.
 
-### B-5: Assertions too loose — test passes when the contract has broken
-**What goes wrong:** The opposite of B-4: assertions like `assert is_struct(transaction)` or
-`assert {:ok, _} = result` pass even if `transaction.checkout` is `nil` or `subscription.id` is
-missing — meaning a hydration regression is invisible.
-**Prevention:** Phase 7 seam test must assert each locked field named in `PROJECT.md`'s "Locked struct
-surfaces" section. Minimum per step:
-- Customer step: `assert customer.id =~ "ctm_"`
-- Address step: `assert address.customer_id == customer.id`
-- Transaction step: `assert %Checkout{url: url} = transaction.checkout; assert is_binary(url)`
-- Webhook step: `assert %Event{event_type: "transaction.completed"} = event`
-- Subscription get step: `assert %Subscription{id: sub_id} = subscription; assert is_binary(sub_id)`
-- Cancel step: `assert subscription.status in ["canceled", "active"]` (scheduled cancel is valid)
+**Fact vs inference:** Metadata and struct contents are repository facts. Exploit impact is a security inference. Elixir officially supports `Inspect` `:only`/`:except` to hide private fields.
 
-### B-6: Seam test inadvertently exercises subscription mutations (scope creep)
-**What goes wrong:** While writing the `cancel/2` step, a planner adds `Subscriptions.update/3` or
-`Subscriptions.pause/3` to "make the test more realistic." These functions don't exist; the test fails
-compilation, but worse, the reviewer conflates the failure with a real seam bug.
-**Prevention:** Phase 7 plan must list the exact six functions under test (B-02 path from BACKLOG.md)
-and include a "NOT in scope" callout: `update/3`, `pause/3`, `resume/3` are explicitly excluded. Any
-phase 7 test file must pass `mix credo --strict` before merge.
+**Provenance:** `lib/paddle/http/telemetry.ex`, `lib/paddle/client.ex`, `lib/paddle/notification_setting.ex`, `lib/paddle/portal_session.ex`, `lib/paddle/http.ex`; [Elixir Inspect](https://hexdocs.pm/elixir/Inspect.html); [Paddle authentication](https://developer.paddle.com/api-reference/about/authentication/). Confidence: HIGH/MEDIUM.
 
----
+### Pitfall 2: Automatic mutation retries create duplicate or ambiguous provider state
 
-## C. Consumer-Facing Seam Surface Doc (Phase 7)
+**What goes wrong:** A POST/PATCH/DELETE succeeds at Paddle, its response is lost, and Req repeats it. A caller receives an error or second result without knowing the first operation's state.
 
-### C-1: Documenting unstable mid-tier struct fields as locked
-**What goes wrong:** `%Paddle.Transaction{}` has `:details` and `:payments` which are raw maps copied
-from the API response with no nested struct hydration and no `raw_data` on the sub-map itself. If the
-doc marks these fields as "locked", Accrue writes code against `transaction.details["totals"]["subtotal"]`
-and that path breaks silently when Paddle changes the nested structure.
-**Prevention:** Phase 7 doc (`guides/accrue-seam.md` or equivalent) must assign fields a stability
-tier. Tier definitions:
-- **locked** — typed struct with `:raw_data` (e.g. `:id`, `:status`, `checkout.url`)
-- **additive** — present as raw data; new sub-keys safe, removals breaking
-- **raw** — forwarded from API, no contract (`:details`, `:payments`, `:items` on Transaction)
-The doc must not promote `:details` or `:payments` above **raw** tier.
+**Why it happens:** `Paddle.Client.new!/1` sets `retry: :transient` globally. Req documents that `:transient` retries all HTTP methods; `:safe_transient` limits HTTP-response retries to GET/HEAD. oarlock also exposes `idempotency_key` for creates, but Paddle says arbitrary operations do not support client-supplied idempotency keys. A mock asserting header presence is not provider deduplication proof.
 
-### C-2: Listing private functions or aliasing internal modules
-**What goes wrong:** ExDoc surfaces `Paddle.Internal.Attrs` if it is not marked `@moduledoc false`.
-A doc pass that lists "all public modules" may inadvertently document `Paddle.Internal.*`, leading
-Accrue to call `Paddle.Internal.Attrs.normalize/1` directly.
-**Prevention:** Phase 7 must verify `@moduledoc false` is set on every `Paddle.Internal.*` module
-before generating the doc. Add a CI step: `mix docs` must not include any module whose name contains
-`Internal` in the rendered output.
+**Consequences:** Duplicate creates, charges or credits; repeated lifecycle mutation; and a misleading reliability guarantee that downstream Accrue may trust.
 
-### C-3: Documentation rot — doc diverges from `defstruct` field list
-**What goes wrong:** The doc lists `:invoice_number` as a locked field on `%Paddle.Transaction{}`.
-A future phase removes or renames it. The doc is not regenerated, Accrue reads the doc, codes against
-`:invoice_number`, and gets `nil` at runtime.
-**Prevention:** Phase 7 must add at least one ExDoc doctest in `lib/paddle/transaction.ex` that
-asserts the struct fields directly:
-```elixir
-iex> Map.keys(%Paddle.Transaction{}) -- [:__struct__]
-[:id, :status, ...]
-```
-This doctest runs in `mix test` and fails immediately if a field is added or removed without updating
-the test. An alternative: add a contract test in `test/paddle/transaction_test.exs` that asserts
-`Map.keys(%Transaction{})` matches the documented field list exactly.
+**Warning signs:** any mutation inherits `:transient`; tests prove only header presence; 5xx/timeout tests do not model “provider committed, response lost”; docs call a mutation idempotent solely because a key is accepted.
 
-### C-4: Implying retry or SLA guarantees the library doesn't offer
-**What goes wrong:** The seam surface doc says "Paddle.Http retries on transient failures." The current
-`Req` client is configured with `retry: false` in all tests (confirmed in `client_with_adapter/1`
-across every test file). If `retry:` is enabled in production clients, behavior differs from the doc;
-if it is not, the statement is wrong.
-**Prevention:** Phase 7 doc must say "no retry behavior is enforced by the SDK; configure `retry:`
-on the `Req` instance you pass to `Paddle.Client.new!/1` if desired." Never state SLAs, timeouts, or
-retry counts that the library does not pin.
+**Prevention:** In **SDK Safety & Contract Truth**, default automatic retry to safe reads. Make mutation replay opt-in only where current Paddle docs establish safe semantics; otherwise return a typed ambiguous-outcome error with reconciliation guidance. Honor `Retry-After` on 429 without replaying unsafe mutations. Deprecate, remove, or relabel unsupported `idempotency_key` options with migration notes.
 
-### C-5: Stability-tier vocabulary mismatch between oarlock doc and what Accrue assumes
-**What goes wrong:** oarlock doc uses "additive" for fields where Accrue team reads "additive" to mean
-"we won't break it," but oarlock means "new keys safe; removal is a major bump." Both are true, but
-the ambiguity causes Accrue to encode logic against unstable nested keys.
-**Prevention:** Phase 7 doc must include a one-paragraph "Stability vocabulary" section:
-> **locked** — field present and typed in all versions of this minor series; removal is a major bump.
-> **additive** — new sub-keys may appear without a bump; existing keys will not be removed within a minor series.
-> **raw** — forwarded from the Paddle API; no contract; inspect `raw_data` instead.
+**Detection / proof:** A method-by-status retry matrix covers every verb; adapter tests prove no automatic mutation replay; docs contain no unsupported provider guarantee; sandbox/provider proof is required before claiming deduplication.
 
----
+**Fact vs inference:** Req and Paddle behavior are verified facts. Duplicate effects are reachable risks Paddle explicitly warns about, not observed incidents.
 
-## D. Accrue Release Coordination (Phase 6 + Phase 7)
+**Provenance:** `lib/paddle/client.ex`, resource option types, HTTP tests; [Req retry options](https://req.hexdocs.pm/Req.Steps.html#retry/1-request-options); [Paddle SDK retry/idempotency guidance](https://developer.paddle.com/sdks/libraries/); [Paddle rate limiting](https://developer.paddle.com/api-reference/about/rate-limiting/). Confidence: HIGH/MEDIUM.
 
-### D-1: Phase 6 ships code but no Hex release; Accrue is blocked waiting
-**What goes wrong:** `Transactions.get/2` lands in `main`. Accrue's `mix.exs` pins
-`{:oarlock, "~> 1.0"}` (or a git sha). Without a published `1.1.0` release on Hex, Accrue cannot
-consume the new function even though the code exists.
-**Prevention:** Phase 6 execution plan must include a "release gate" task:
-1. Bump `version` in `mix.exs` to `1.1.0`.
-2. Tag `v1.1.0` on `main`.
-3. Run `mix hex.publish`.
-The plan must be blocked from marking Phase 6 complete until the Hex publish step is done.
-The `BACKLOG.md` entry for B-01 must note the Hex version it shipped in.
+### Pitfall 3: Publishing outruns the full exact-SHA CI contract
 
-### D-2: `"~> 1.0"` version constraint in Accrue rejects `1.1.0`
-**What goes wrong:** `~> 1.0` in Elixir/Mix means ">=1.0.0 and <2.0.0" — `1.1.0` IS accepted.
-However, if Accrue pinned `"~> 1.0.0"` (patch-level), it means ">=1.0.0 and <1.1.0", which rejects
-`1.1.0`. This distinction is easy to miss when reading the lockfile.
-**Prevention:** Before tagging `v1.1.0`, check `~/projects/accrue/mix.exs` for the oarlock version
-constraint. If it is `"~> 1.0.0"`, coordinate the bump to `"~> 1.1"` or `">= 1.1.0"` with the
-Accrue team before publishing. Document the check as a step in Phase 6's release task.
+**What goes wrong:** A tag and Hex package are produced from a SHA that never passed the same complete contract expected of normal CI.
 
-### D-3: Seam test scope creep pulls in subscription mutations via fixture
-**What goes wrong:** To make the seam test fixture look "production-realistic," a planner adds a
-subscription with `scheduled_change: %{action: "pause"}` in the fixture — implying `pause/3` is a
-real function. Or a comment in the test file says "TODO: add pause step." Accrue reads the comment,
-files an issue, and the planner adds `pause/3` mid-phase.
-**Prevention:** Phase 7 seam test fixture must only contain `action: "cancel"` in any
-`scheduled_change` map (already in the existing subscription fixtures). The test file header comment
-must include:
-```
-# Scope: customer → address → transaction → webhook → subscription get → cancel.
-# Subscription mutations (update/pause/resume) are OUT OF SCOPE for v1.1.
-```
+**Why it happens:** `release-please.yml` runs independently on pushes to `main`. Its publish job depends only on Release Please and reruns compile, library tests, version check, and Hex dry-run; it does not require `ci-contract`, Dialyzer/specs, demo PostgreSQL, package-smoke, optional-dependency proof, or SUMMARY drift. Manual recovery has the same weaker subset. GitHub reports no branch protection/ruleset. The last hosted remote-main push (`fb3d9a1`) shows CI failed while independent Release Please succeeded on that SHA.
 
----
+**Consequences:** False-green release status, broken optional/demo/downstream behavior, unverifiable provenance, and painful recovery after distribution.
 
-## Phase Assignment Summary
+**Warning signs:** publish `needs` omits the canonical contract; release and CI run concurrently for one SHA; manual recovery accepts a ref/version without full-gate evidence; “CI green” lacks SHA, run URL, attempt, and job results.
 
-| Pitfall | Phase |
-|---------|-------|
-| A-1: validation atom mismatch | 6 |
-| A-2: checkout silently nil on GET | 6 |
-| A-3: checkout.raw_data clobbered | 6 |
-| A-4: missing %Client{} guard | 6 |
-| B-1: HMAC fixture stale timestamp | 7 |
-| B-2: Req adapter state leaks between steps | 7 |
-| B-3: adapter absorbs wrong step's request | 7 |
-| B-4: assertions too tight | 7 |
-| B-5: assertions too loose | 7 |
-| B-6: subscription mutation scope creep | 7 |
-| C-1: unstable fields marked locked | 7 |
-| C-2: Internal modules in public doc | 7 |
-| C-3: doc rot / field list divergence | 7 |
-| C-4: implied retry/SLA guarantee | 7 |
-| C-5: stability-tier vocabulary mismatch | 7 |
-| D-1: no Hex release after code ships | 6 |
-| D-2: Accrue `~> 1.0.0` constraint rejects 1.1.0 | 6 |
-| D-3: mutation scope creep via fixture comment | 7 |
+**Prevention:** In **Green CI & Release Integrity**, use one immutable source SHA as the join key. Protect `main`; require the uniquely named `CI contract` from GitHub Actions on the latest relevant SHA; prevent bypass; use strict checks or merge queue if warranted. Publish only after successful full-contract evidence for the tag's resolved SHA. Reuse the same gate for automated and recovery paths. Serialize publishing and retain dry-run/package evidence. Use a dedicated expiring least-privilege Hex key.
+
+**Detection / proof:** A deliberately failed required job blocks merge and publish; tests reject missing/stale/mismatched/skipped/failed SHA evidence; the ledger links hosted run and package verification for the same SHA.
+
+**Fact vs inference:** Workflow topology, remote run results, and absent protection are facts. No bad package publication is asserted.
+
+**Provenance:** workflow YAML; GitHub protection API checked 2026-09-09; [failed main CI](https://github.com/szTheory/oarlock/actions/runs/27216688735); [same-SHA Release Please](https://github.com/szTheory/oarlock/actions/runs/27216687066); [GitHub protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches); [Hex publishing](https://hex.pm/docs/publish). Confidence: HIGH.
+
+### Pitfall 4: Cancellation and automation-token behavior erase proof or skip CI
+
+**What goes wrong:** A needed main run is canceled, a release is interrupted by a later push, or an automation-authored PR/tag fails to trigger required checks.
+
+**Why it happens:** `ci.yml` uses `cancel-in-progress: true` for every ref, including main. Release Please also cancels in-progress work despite publication side effects. GitHub documents that events created by `GITHUB_TOKEN` generally do not create new workflow runs; this repository's optional PAT makes behavior configuration-dependent.
+
+**Consequences:** Missing exact-SHA proof, release PRs without CI, partially executed automation, and risky manual retries.
+
+**Prevention:** In **Green CI & Release Integrity**, cancel obsolete PR-head CI only; never cancel main evidence or publish side effects. Queue releases. Assert credential mode and a deterministic trigger contract for automation PRs. If merge queue is later enabled, add `merge_group` to CI triggers.
+
+**Detection / proof:** Static workflow tests cover triggers, concurrency, token mode, and `needs`; an automated PR fixture produces the required check; the SHA monitor treats canceled/skipped/missing as unverified.
+
+**Provenance:** workflows and `scripts/ci_monitor.cjs`; [GitHub workflow triggering](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow); [GitHub concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency); [required checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks). Confidence: HIGH/MEDIUM.
+
+### Pitfall 5: “Cleanup” destroys unclassified work or preserves hidden worktree state forever
+
+**What goes wrong:** Unknown local changes are deleted, a completed agent worktree stays locked, a branch is assumed available while checked out elsewhere, or work begins from an undocumented dirty base.
+
+**Why it happens:** Cleanliness is treated as a destructive command instead of classification. At research time, `main` is 155 commits ahead of `origin/main`; active agents have modified research/toolchain files; untracked planning state exists; and `.claude/worktrees/agent-ae2a0ae67dfb5008f` is locked at an older branch. Intentional concurrent work and residue look alike without owner/base/purpose metadata.
+
+**Consequences:** Lost work, mixed commits, branch collisions, irreproducible PRs, and cleanup fear that lets residue accumulate.
+
+**Warning signs:** unclean entry; lock with unknown owner/process/purpose; `--force`, manual directory deletion, or broad restore proposed before inventory; PR mixes planning, runtime, toolchain, and unrelated fixes.
+
+**Prevention:** Make **Repository & Planning Truth** first. Capture status porcelain, worktree porcelain, branch/base SHA, ahead/behind, process liveness, owner, and disposition. Classify every path/worktree as active/preserve, commit, handoff, archive, ignore, remove, or repair. Never force-remove an unclean/locked worktree without a recoverable snapshot and ownership decision. Establish clean-entry/exit gates.
+
+**Detection / proof:** Commit before/after manifests; every retained worktree has owner/reason/revisit date; every removal was clean or has a recovery reference; main exits clean after concurrent work finishes.
+
+**Fact vs inference:** Current inventory is fact. Whether the linked worktree is abandoned is unknown and must not be inferred from age or lock alone.
+
+**Provenance:** Git porcelain commands observed 2026-09-09; [Git worktree](https://git-scm.com/docs/git-worktree). Confidence: HIGH.
+
+### Pitfall 6: Planning files disagree and summaries become stronger evidence than Git
+
+**What goes wrong:** Agents route from stale files, archived work looks active, requirements close with local-only proof, or a SUMMARY is believed despite absent commits.
+
+**Why it happens:** Files duplicate state without precedence/invariants. `PROJECT.md` and `STATE.md` say v2.2 is active while `ROADMAP.md` says “No active milestone.” `STATE.md` still says to start the next milestone. `MILESTONES.md` omits v1.2 and v1.4 although `ROADMAP.md` lists them. History records a Phase 7 SUMMARY claiming implementation/docs that remained uncommitted until retroactive repair.
+
+**Consequences:** Lost signal, phantom completion, repeated research, roadmap churn, and release/audit claims based on a state that never existed.
+
+**Prevention:** In **Repository & Planning Truth**, define canonical ownership per datum and machine-check cross-file invariants. Use append-only corrections. A summary may point to proof but cannot be proof itself. Record requirement → phase/plan → commit/SHA → proof class → command/run URL → caveat. Check status/HEAD immediately before completion summaries.
+
+**Detection / proof:** Planning integrity fails on milestone disagreement, missing log entries, dangling IDs/evidence paths, stale transitions, and uncommitted implementation claims.
+
+**Provenance:** root planning artifacts and v1.1 audit trail in `MILESTONES.md`. Confidence: HIGH.
+
+## Moderate Pitfalls
+
+### Pitfall 7: Candidate horizons silently become commitments
+
+**What goes wrong:** Mid-/long-term ideas are read as promised scope, inserted into near-term phases, or judged overdue.
+
+**Prevention:** In **JTBD Coverage & Durable Trajectory**, give each item an immutable ID and status (`committed`, `candidate`, `conditional`, `rejected`, `superseded`, `shipped`), horizon, source/date, persona/JTBD, rationale, owner/repository, proof, non-goals, freshness trigger, and promotion/reopen condition. Append status transitions rather than overwriting them. Only current milestone requirements are commitments.
+
+**Warning signs:** “will” for work absent from requirements; candidate lacks named job or proof; old rationale disappears after reprioritization.
+
+**Detection / proof:** Schema rejects entries without status/provenance; roadmap visually separates statuses; history stays discoverable.
+
+**Provenance:** `PROJECT.md` horizons, `BACKLOG.md` taxonomy, `threads/INDEX.md`, user direction on 2026-09-09. Confidence: HIGH.
+
+### Pitfall 8: Endpoint mirroring substitutes breadth for job coverage
+
+**What goes wrong:** Paddle resources are added because they exist, expanding compatibility burden without improving a validated adopter job.
+
+**Prevention:** In **JTBD Coverage & Durable Trajectory**, require a persona/job, source evidence, ownership boundary, existing-seam gap, and acceptance proof before promotion. Preserve anti-features: no Classic, framework/database coupling, app-owned entitlements/provisioning, or direct subscription create without provider-native API. Promote operational discovery only with adopter evidence.
+
+**Warning signs:** endpoint count as success; generated CRUD without workflow evidence; “parity” without a consumer.
+
+**Detection / proof:** Every public addition maps to a JTBD ID and consumer evidence; unmapped additions fail roadmap review.
+
+**Provenance:** `PROJECT.md`, `GSD-PREFERENCES.md`, resolved subscription-create thread. Confidence: HIGH.
+
+### Pitfall 9: Dependency upgrades are bundled, weakly reviewed, or reduce reproducibility
+
+**What goes wrong:** Runtime, Hex deps, actions, service images, and installers change together; failures cannot be attributed; mutable tags/latest installers change behavior without a source diff.
+
+**Prevention:** In **Green CI & Release Integrity**, inventory all update surfaces, then batch by risk: tooling/dev patch-minor, runtime patch-minor, direct runtime deps, majors, publishing infrastructure. Isolate lockfile diffs and run package-smoke/optional proof. Add dependency review where eligible. Continue full-SHA action pins and pin Release Please too; record readable versions beside SHAs. Deliberately address Hex/Rebar installers and `postgres:17`. Never combine dependency churn with retry semantics.
+
+**Warning signs:** one PR changes `.tool-versions`, both lockfiles, actions, and runtime code; cache restores across incompatible dimensions; mutable major action; latest installer during release.
+
+**Detection / proof:** Dependency PR records versions, advisories, lockfile review, compatibility matrix, rollback, and exact gates; CI verifies toolchain availability early.
+
+**Fact vs inference:** Most actions are SHA-pinned, Release Please is `@v4`, PostgreSQL is `postgres:17`, and tool installers fetch during runs. Actual variability must be measured.
+
+**Provenance:** workflows/lockfiles; [GitHub dependency review](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review); [GitHub action SHA guidance](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax); [Actions threat protection](https://docs.github.com/en/code-security/tutorials/secure-your-organization/protect-against-threats); [Hex publishing](https://hex.pm/docs/publish). Confidence: HIGH/MEDIUM.
+
+### Pitfall 10: PR/triage policy becomes ceremony—or remains absent
+
+**What goes wrong:** Mixed PRs remain unreviewable, stale PRs have no next action, sensitive files lack accountable review, or heavyweight rules block a single maintainer without adding assurance.
+
+**Why it happens:** No PR template, CODEOWNERS, issue templates, or visible triage contract was found. GitHub shows two open PRs from June 2026 and no issues; one is a failing Release Please PR. Boilerplate alone will not resolve ownership.
+
+**Prevention:** In **Review, Ownership & Triage**, require a concise PR contract: intent/persona/JTBD or issue, bounded change, risk, compatibility/security/release impact, non-goals, exact commands/hosted run, rollback. Give every open item type, priority, owner, state, next action, and close/revisit condition. Use CODEOWNERS only where a real eligible reviewer exists. Prefer small dependency-ordered PRs to one cleanup mega-PR.
+
+**Detection / proof:** Every open PR has disposition; real PR validates review/check configuration; stale automation PRs close/supersede with provenance.
+
+**Provenance:** `.github/` and authenticated GitHub inventory, 2026-09-09; [PR #4](https://github.com/szTheory/oarlock/pull/4); [PR #5](https://github.com/szTheory/oarlock/pull/5); [protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches). Confidence: HIGH.
+
+### Pitfall 11: Client validation fixes break legitimate mock/custom use
+
+**What goes wrong:** Empty keys, unsupported environments, or malformed URLs fail late today; an overcorrection later rejects MockServer/custom adapters or hard-codes a credential format Paddle may change.
+
+**Prevention:** In **SDK Safety & Contract Truth**, validate stable invariants only: nonblank key, known environment atom, absolute HTTP(S) URL, consistent defaults, and documented custom/mock escape hatch. Do not embed a brittle full key regex. Separate construction validation from network authentication and keep errors redacted.
+
+**Warning signs:** `environment: :anything` maps to sandbox; blank key constructs; custom URL becomes impossible; errors print the secret.
+
+**Detection / proof:** Table tests cover sandbox/live/custom and invalid inputs; canaries never appear; MockServer remains green.
+
+**Provenance:** `lib/paddle/client.ex`; project MockServer constraint; [Paddle authentication](https://developer.paddle.com/api-reference/about/authentication/). Confidence: HIGH/MEDIUM.
+
+## Minor Pitfalls
+
+### Pitfall 12: Fast CI is achieved by deleting independent proof
+
+**What goes wrong:** Dialyzer, demo, package-smoke, optional-dependency, or planning-integrity gates are removed solely to reduce duration.
+
+**Prevention:** Optimize queue time, caches, duplicated setup, and critical path first. Preserve parallel proof and require one lightweight contract job. Measure median/tail duration before changes.
+
+**Detection:** Optimization PR includes timing evidence and an unchanged or explicitly superseded proof matrix.
+
+### Pitfall 13: Local, MockServer, hosted, sandbox, and live evidence collapse into “verified”
+
+**What goes wrong:** Local proof is overstated as provider/release proof, or dismissed despite its valid class.
+
+**Prevention:** Retain typed evidence classes; every claim names class, SHA, environment, command/run, timestamp, result, and caveat. Never strengthen evidence through wording.
+
+**Detection:** Evidence lint rejects bare “verified”; docs truth preserves the proof ladder.
+
+## Phase-Specific Warnings
+
+| Milestone phase topic | Likely pitfall | Mandatory mitigation / exit evidence |
+|---|---|---|
+| Repository & Planning Truth (first) | Destroy concurrent work; infer lock means abandoned; contradictory history | Inventory/classify every dirty path, branch, remote delta, PR, and worktree; reconcile canonical state with append-only errata; planning integrity passes |
+| SDK Safety & Contract Truth | Partial redaction; unsafe all-method retries; false idempotency guarantee | Allowlisted telemetry; Inspect tests including `raw_data`; safe-read retry matrix; ambiguous mutation contract; compatibility/docs migration together |
+| Green CI & Release Integrity | Publish before full exact-SHA proof; cancellation; bot PR skips CI; dependency mega-upgrade | Protected main; authoritative required contract; full-gate tag-SHA dependency; serialized publish; recovery parity; staged upgrades; hosted failure proof |
+| Review, Ownership & Triage | Templates without ownership; cleanup mega-PR; stale bots | Minimal PR contract; maintainer-compatible review; triaged open work; explicit owners/next actions; small sequenced PRs |
+| JTBD Coverage & Durable Trajectory | Candidate read as promise; endpoint mirroring; overwritten rationale | Canonical persona/JTBD/provenance registry; status/horizon semantics; promotion/reopen rules; append-only status history |
+| Milestone verification/close | Local green mistaken for hosted green; SUMMARY treated as proof | Exact source SHA and hosted jobs; package/tag/version agreement; clean worktrees/planning invariants; then summarize/archive |
+
+## Recommended Ordering
+
+1. **Repository & Planning Truth** — establish actual state/evidence before changing or deleting anything.
+2. **SDK Safety & Contract Truth** — close credential and mutation risks before public breadth.
+3. **Green CI & Release Integrity** — enforce the repaired contract at merge/publish; split upgrades.
+4. **Review, Ownership & Triage** — institutionalize clean worktrees, small PRs, ownership, and queue discipline.
+5. **JTBD Coverage & Durable Trajectory** — encode short/mid/long compass once state/status/evidence vocabulary is stable.
+6. **Exact-SHA milestone verification** — prove the chain before shipping v2.2.
+
+## Deeper Phase Research Flags
+
+- **Retry migration:** inventory every mutation's retry/idempotency API, provider semantics, compatibility impact, and Accrue usage before choosing deprecation versus breaking correction.
+- **Release gate:** verify whether rulesets, branch protection, reusable workflows, merge queue, and attestations fit repository plan/ownership. Do not design around unavailable features.
+- **Dependency reproducibility:** measure installer/action/container variability and cache correctness before choosing pins.
+- **JTBD completeness:** validate persona and operational-discovery candidates against Accrue and a cold-adopter journey before v2.3 promotion.
+
+## Sources
+
+### Repository-primary (HIGH)
+
+- `.planning/PROJECT.md`, `STATE.md`, `ROADMAP.md`, `MILESTONES.md`, `EVIDENCE.md`, `GSD-PREFERENCES.md`, `BACKLOG.md`, `threads/INDEX.md`, `RETROSPECTIVE.md`
+- `.github/workflows/ci.yml`, `release-please.yml`, `hex-publish.yml`, `scripts/ci_monitor.cjs`
+- `lib/paddle/client.ex`, `http.ex`, `http/telemetry.ex`, `notification_setting.ex`, `portal_session.ex`
+- Git porcelain and authenticated GitHub protection/run/PR queries observed 2026-09-09
+
+### Current official primary documentation (MEDIUM through fallback provider)
+
+- [Paddle shared SDK patterns](https://developer.paddle.com/sdks/libraries/)
+- [Paddle authentication](https://developer.paddle.com/api-reference/about/authentication/)
+- [Paddle rate limiting](https://developer.paddle.com/api-reference/about/rate-limiting/)
+- [Paddle versioning](https://developer.paddle.com/api-reference/about/versioning/)
+- [Req retry options](https://req.hexdocs.pm/Req.Steps.html#retry/1-request-options)
+- [Elixir Inspect](https://hexdocs.pm/elixir/Inspect.html)
+- [Git worktree](https://git-scm.com/docs/git-worktree)
+- [GitHub workflow triggering](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
+- [GitHub concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency)
+- [GitHub protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [GitHub required checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)
+- [GitHub dependency review](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review)
+- [GitHub Actions threat protection](https://docs.github.com/en/code-security/tutorials/secure-your-organization/protect-against-threats)
+- [Hex publishing](https://hex.pm/docs/publish)
+
+## Confidence Notes
+
+- Repository findings are HIGH because they come from tracked files, Git porcelain, and authenticated GitHub queries.
+- External behavior is MEDIUM under the GSD seam because Brave and Context7 were unavailable; official primary documents were retrieved with the web-search fallback and cross-checked against local behavior.
+- No duplicate charge, credential incident, or bad Hex publication is claimed to have occurred. These are reachable risks, not observed incidents.

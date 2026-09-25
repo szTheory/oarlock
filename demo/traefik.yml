@@ -1,0 +1,10 @@
+http:
+  routers:
+    demo:
+      rule: "Host(`demo.docker.localhost`)"
+      service: web
+  services:
+    web:
+      loadBalancer:
+        servers:
+          - url: "http://web:4000"

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "claims": [
+    {
+      "selector": {
+        "kind": "dirty_path",
+        "worktree_role": "main",
+        "path": ".planning/research/.cache/"
+      },
+      "owner": "repository operator",
+      "provenance": "Phase 31 planning invocation on 2026-09-09 identified this generated research cache as pre-existing user-owned state",
+      "confidence": "high",
+      "revisit_at": "2026-10-09",
+      "proposed_disposition": "preserve"
+    },
+    {
+      "selector": {
+        "kind": "dirty_path",
+        "worktree_role": "main",
+        "path": ".planning/state.json"
+      },
+      "owner": "repository operator",
+      "provenance": "Phase 31 planning invocation on 2026-09-09 identified this contradictory planning mirror as pre-existing user-owned state",
+      "confidence": "high",
+      "revisit_at": "2026-10-09",
+      "proposed_disposition": "preserve"
+    },
+    {
+      "selector": {
+        "kind": "dirty_path",
+        "worktree_role": "main",
+        "path": ".tool-versions"
+      },
+      "owner": "repository operator",
+      "provenance": "Phase 31 planning invocation on 2026-09-09 identified this modification as pre-existing user-owned state",
+      "confidence": "high",
+      "revisit_at": "2026-10-09",
+      "proposed_disposition": "preserve"
+    }
+  ]
+}

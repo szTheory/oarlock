@@ -1,113 +1,176 @@
 ---
-gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Production Surface
-status: completed
-last_updated: "2026-06-09T13:43:17.273Z"
-last_activity: 2026-06-09 -- v1.2 Production Surface archived
+gsd_state_version: "1.0"
+milestone: v2.2
+milestone_name: Trust, Coverage & Green Delivery
+current_phase: 33
+current_phase_name: Deterministic Green CI
+status: executing
+stopped_at: Updated draft PR candidate with history-ledger and GSD-plan fixes; exact-SHA run pending
+last_updated: "2026-09-24T20:58:29Z"
+last_activity: 2026-09-24
+last_activity_desc: Completed Phase 33 Plan 03 with hosted baseline and controlled CI workflow; candidate main gate remains open
+state_head: 63bb822b00b61cd17d6aabab3f92b82886d8f3c0
 progress:
   total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  completed_phases: 2
+  total_plans: 29
+  completed_plans: 27
 ---
 
 # Project State
 
-## Current Position
-
-Milestone: v1.2 Production Surface
-Phase: 13
-Plan: All plans completed
-Status: Executed and verified
-Last activity: 2026-06-09 -- Phase 13 execution complete
-
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-29 at v1.2 start)
+See: `.planning/PROJECT.md` (updated 2026-09-10)
 
-**Core value:** Native Elixir interaction with Paddle Billing API v1 via explicit `%Paddle.Client{}` passing, typed struct responses, and pure-function webhook verification.
-**Current focus:** Milestone complete
+**Core value:** A production-quality, idiomatic Elixir SDK for Paddle Billing serving as a pure, standalone foundation for Accrue's second-processor strategy.
+**Current focus:** Phase 33 — Deterministic Green CI
+
+## Current Position
+
+Phase: 33 (Deterministic Green CI) — EXECUTING
+Plan: 3 of 4
+Status: In progress — Plans 33-01/03 complete; Plan 33-04 requires broad-history review, effective main rule, and current-main proof
+Last activity: 2026-09-24 — Phase 33 Plan 03 recorded four hosted timing samples and controlled CI inputs
+
+Progress: [███░░░░░░░] 33%
+
+## Performance Metrics
+
+**Milestone coverage:**
+
+- Committed requirements mapped: 29/29 (100%)
+- Planned phases: 6
+- Plans completed: 26
+
+**Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 31 P01 | 18min | 2 tasks | 4 files |
+| Phase 31 P02 | 14min | 2 tasks | 4 files |
+| Phase 31 P03 | 12min | 2 tasks | 4 files |
+| Phase 31 P04 | 9min | 2 tasks | 4 files |
+| Phase 31 P05 | 8min | 3 tasks | 2 files |
+| Phase 31 P06 | 8min | 2 tasks | 6 files |
+| Phase 31 P07 | 13min | 2 tasks | 6 files |
+| Phase 31 P08 | 9min | 2 tasks | 8 files |
+| Phase 31 P09 | 18min | 2 tasks | 5 files |
+| Phase 32 P01 | 5min | 2 tasks | 4 files |
+| Phase 32 P02 | 3min | 2 tasks | 8 files |
+| Phase 32 P11 | 7min | 2 tasks | 5 files |
+| Phase 32 P03 | 5min | 2 tasks | 2 files |
+| Phase 32 P04 | 9min | 2 tasks | 7 files |
+| Phase 32 P05 | 8min | 3 tasks | 9 files |
+| Phase 32 P06 | 6min | 2 tasks | 8 files |
+| Phase 32 P09 | 5min | 2 tasks | 6 files |
+| Phase 32 P07 | 9min | 2 tasks | 5 files |
+| Phase 32 P08 | 7min | 2 tasks | 2 files |
+| Phase 32 P10 | 14min | 2 tasks | 8 files |
+| Phase 32 P12 | 6min | 3 tasks | 12 files |
+| Phase 32 P13 | 17min | 3 tasks | 8 files |
+| Phase 32 P14 | 17min | 2 tasks | 4 files |
+| Phase 32 P15 | 5min | 2 tasks | 2 files |
+| Phase 33 P33-01 | 40min | 2 tasks | 5 files |
+| Phase 33 P33-02 | 21min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
-### Shipped milestones
+### Decisions
 
-- **v1.0 (pre-archival)** — Phases 1-5: Core Transport, Webhook Verification, Core Entities, Transactions & Hosted Checkout, Subscriptions Management. v1.0 was not formally archived through `/gsd-complete-milestone` but is summarized retroactively in `.planning/ROADMAP.md` and `.planning/MILESTONES.md`.
-- **v1.1 (2026-04-29)** — Phases 6-7: Transactions Retrieval, Accrue Seam Lock. See `.planning/milestones/v1.1-ROADMAP.md` and `.planning/milestones/v1.1-REQUIREMENTS.md`.
+- [v2.2]: Repair the repository-to-release trust chain before adding Paddle API breadth.
+- [v2.2]: Keep the six natural safety, CI, release, operations, and orientation boundaries despite coarse granularity; each boundary has an independently reviewable proof contract.
+- [v2.2]: Treat short/mid/long horizon separately from commitment status; only the 29 v2.2 requirements are committed.
+- [v2.2]: Preserve provenance through dated transitions; future discovery may revise direction but must not erase prior source, rationale, evidence, or promotion conditions.
+- [Phase 31]: Repository inventory separates immutable observed facts from exact evidence-backed ownership dispositions.
+- [Phase 31]: Repository inspection uses NUL-delimited Git porcelain, bounded buffers, optional locks disabled, and prune only in dry-run mode.
+- [Phase 31]: ROADMAP supplies the active graph and STATE supplies its pointer; disagreement blocks without a selected active scope.
+- [Phase 31]: Completion requires roadmap acceptance, every declared summary, substantive verification, and requirement/evidence linkage.
+- [Phase 31]: The state.json mirror is non-authoritative and receives a proposal-only disposition unless a repository-file consumer is demonstrated.
+- [Phase 31]: Milestone, tag, peeled source SHA, tagged mix.exs package declaration, and publication status remain separately sourced identities; unknown is never inferred.
+- [Phase 31]: Frozen archive contradictions produce warnings and dated EVIDENCE corrections, while only the mutable MILESTONES index is repaired.
+- [Phase 31]: v1.0 remains an explicit pre-archive exception and v1.5 retains an explicit missing-local-tag caveat.
+- [Phase 31]: Every authoritative repository file is accepted only after resolved containment, regular-file checks, bounded same-descriptor reads, and stable identity agree.
+- [Phase 31]: Unsafe ownership sources remain unknown and emit redacted incomplete diagnostics without rejected payload bytes.
+- [Phase 31]: Phase and milestone traversal validates the repository boundary before enumerating candidate artifacts.
+- [Phase 31]: Completion proof is accepted only from exact paths beneath one resolved active-phase directory and leading YAML frontmatter.
+- [Phase 31]: Milestone ranges compare complete normalized endpoint identities while retaining documented parenthetical count annotations.
+- [Phase 31]: Git observation failure is incomplete evidence with bounded command/status/cause details, never successful absence or an inferred mismatch.
+- [Phase 31]: Frozen history is evaluated from explicit base/head Git objects; a clean candidate worktree is not preservation evidence.
+- [Phase 31]: Tag existence and peeled source SHA use distinct PIDENT diagnostics so neither authority can substitute for the other.
+- [Phase 31]: Treat all six prohibition descriptors as untrusted repository input and require exact IDs, resolved test metadata, repository-contained regular files, and named non-vacuous TAP red/green proof.
+- [Phase 31]: Fetch and assert actual historical tags in ephemeral CI while preserving v1.5 as explicitly absent rather than creating or guessing its identity.
+- [Phase 31]: Require planning truth by workflow job ID in the aggregate and display name in the exact-SHA hosted monitor.
+- [Phase 32]: Use a Req 0.7 module adapter with per-test callbacks stored in request-private state.
+- [Phase 32]: Keep compatibility, lock resolution, and online audit results as separate evidence tiers.
+- [Phase 32]: Refresh only the stale Bandit lock entry to patched 1.12.5 when the required audit exposes active advisories.
+- [Phase 32]: Reuse the Plan 01 module-adapter contract independently inside each resource test module, storing the existing closure under the same namespaced request-private key.
+- [Phase 32]: Treat pre-migration Req runtime warnings as compatibility RED while preserving every existing resource behavior assertion.
+- [Phase 32]: Use the established request-private module-adapter pattern independently in each remaining compatibility-sensitive fixture, preserving every existing assertion.
+- [Phase 32]: Treat acceptance as a 13-row fail-fast local matrix whose receipt is atomically renamed only after every row and tracked-diff equality pass.
+- [Phase 32]: Propagate the root's selected ASDF Elixir and Erlang versions into isolated package and sibling Accrue Mix projects without modifying either consumer.
+- [Phase 32]: Infer sandbox or live only from exact canonical base URLs and classify noncanonical base-URL-only clients as custom.
+- [Phase 32]: Reject unknown and duplicate client option names before reading values or constructing Req, without rendering option values.
+- [Phase 32]: Redact client api_key, base_url, and req wholesale while preserving visible environment identity and stored runtime state.
+- [Phase 32]: Own retry eligibility in Paddle.Http with a request-local Req callback: only GET/HEAD retry the exact transient allowlist, with three retries/four attempts and a 60000 ms cap only for 429 Retry-After.
+- [Phase 32]: Treat every mutation transport failure and terminal mutation HTTP 408/5xx response as ambiguous and non-retryable while preserving the established Paddle.Error seam.
+- [Phase 32]: Expose only static operation, optional resource ID, provider request ID, and fixed lookup/webhook/provider-dashboard reconciliation actions; never replay or auto-reconcile mutations.
+- [Phase 32]: Use literal operation and normalized route labels at every Plan 05 request call while keeping runtime IDs confined to encoded dispatch paths and explicit mutation resource context.
+- [Phase 32]: Make Paddle.Customers.PortalSessions the sole request owner and retain Paddle.PortalSessions.create/2 as a validating compatibility delegate.
+- [Phase 32]: Model terminal transient pagination fixtures as four physical attempts so resource tests prove the central bounded-read policy rather than disabling it.
+- [Phase 32]: Use one literal list operation/route pair for both initial and continuation pages so runtime filters, IDs, and cursors remain dispatch-only.
+- [Phase 32]: Keep notification create retry restriction typing while removing unsupported idempotency typing; update/delete remain option-free and all three mutations rely on the central one-attempt policy.
+- [Phase 32]: Attach only validated notification-setting IDs as mutation resource context, never destinations, endpoint secrets, bodies, or dynamic route labels.
+- [Phase 32]: Classify every public raw_data-bearing type from source and every field on the six capability-bearing values so additions fail until explicitly reviewed.
+- [Phase 32]: Redact promoted capability fields and complete raw_data or transport containers with the stable [REDACTED] marker while leaving stored terms unchanged.
+- [Phase 32]: Use one literal list-subscription operation and route across initial and continuation pages while cursor material remains dispatch-only.
+- [Phase 32]: Use validated subscription IDs for lifecycle reconciliation, while transaction create retains no substitute resource ID before provider confirmation.
+- [Phase 32]: Remove resource-level positive and negative idempotency cases; only supported restrictive retry options remain typed.
+- [Phase 32]: Prepend terminal telemetry ahead of Req retry and carry attempt timing only in request-private state so every physical attempt emits one pair.
+- [Phase 32]: Normalize telemetry exceptions to transport_error, http_error, or exception and responses to fixed ok/error results without exposing transport state.
+- [Phase 32]: Use process-owned subscribers with unique handler IDs and deterministic detach to prove concurrent request isolation.
+- [Phase 32]: Describe only Elixir ~> 1.19 as supported and Elixir 1.19.5 / OTP 28.1 as the fully exercised toolchain; do not infer broader BEAM support from local success.
+- [Phase 32]: Treat package/downstream, sandbox, hosted-CI, and live-provider results as separate evidence tiers that cannot substitute for one another.
+- [Phase 32]: Accept the final Phase 32 contract only after byte-identical concurrent readers, interruption rejection, and two equal complete 13-row receipt manifests pass without tracked drift.
+- [Phase 32]: Validate public mutation options as a unique keyword list containing only one optional boolean :retry entry, with errors built only from static text and key names.
+- [Phase 32]: Run public option validation before domain normalization or internal request-option merging so the validated client remains the sole source of origin, bearer authentication, headers, and adapter.
+- [Phase 32]: Let the public boundary accept boolean retry syntax while retaining Paddle.Http's method-aware rejection of retry: true for mutations and its one-attempt behavior for retry: false.
+- [Phase 32]: Normalize only string-keyed binary provider error fields and map-list errors; malformed values become conservative defaults while outer raw_data is preserved.
+- [Phase 32]: Document address streams as lazy bare Address enumerables whose validation and provider failures raise during enumeration.
+- [Phase 32]: Bounded verifier receipts are fresh local SAFE evidence only; full 13-row and double-manifest modes remain separate acceptance authority.
+- [Phase 32]: Full compatibility invalidates acceptance before preflight; bounded receipts promote only from EXIT-zero finalization.
+- [Phase 32]: Validate duplicate lifecycle retry keys before Keyword.pop/2 so contradictory caller authority cannot be order-collapsed or dispatched.
+- [Phase 32]: Use static retry-only ArgumentError text and a shared private guard across scheduled pause, immediate pause, and resume.
 
-### Locked Accrue-facing seam (carried forward)
+### Pending Todos
 
-- Structs: `%Paddle.Transaction{}`, `%Paddle.Transaction.Checkout{}`, `%Paddle.Subscription{}`, `%Paddle.Subscription.ScheduledChange{}`, `%Paddle.Subscription.ManagementUrls{}`, `%Paddle.Event{}`.
-- Functions: `Paddle.Webhooks.verify_signature/4`, `Paddle.Webhooks.parse_event/1`, `Paddle.Transactions.get/2` (added in v1.1), full Customers/Addresses/Subscriptions surfaces.
-- Documented in `guides/accrue-seam.md` (closed enumeration, locked/additive/opaque tiers).
-- v1.2 must extend this seam additively only — no field renames or removals on locked structs. Phase 10 carries an explicit struct-shape regression test for `%Paddle.Subscription{}`.
+None.
 
-### v1.1 milestone-close findings (carried forward)
+### Blockers/Concerns
 
-- TXN-03 implementation drift caught only at milestone close; remediated retroactively in commits `813438d`, `4470053`, `65cc23b`. v1.2 Phase 13 closes this recurrence vector with a pre-commit hook that cross-checks SUMMARY claims against `git status`, plus a parallel CI gate.
+- Local/remote divergence and remote CI failures need exact-SHA reconciliation; local success is not hosted proof.
+- Req 0.7.4 passes the complete local compatibility matrix and online audit; hosted exact-SHA proof remains separate.
+- Hosted rulesets, CI history, release environment behavior, and automation credentials require phase-local verification.
+- GitHub and Hex access are available. Strict Credo, ExDoc, Hex audit, focused CI contract suites, and all 275 Mix tests pass locally; hosted exact-SHA proof remains separate.
+- User authorized a PR instead of directly pushing the roughly 400-commit local history. Draft PR #6 is open at the current published candidate; do not merge until its full diff, required CI, and history are reviewed. Hosted runs exposed and fixed two CI blockers: Hex 2.5.1 install layout detection and first-introduction validation for the canonical evidence ledger. A subsequent run passed history integrity but found the Phase 33 plan artifacts missing from the remote candidate; those files are now prepared locally for the next candidate update.
+- Remote `main` remains `fb3d9a185f104194e85987541519a6168e0b568c`, with an observed failed CI run and a successful Release Please run; `CI contract` is not currently required by its effective branch rule. Phase 33-03 timing has no accepted successful full-contract baseline yet. Phase 33-04 main protection/current-main proof remains unverified.
 
-### v1.2 phase plan estimates
+## Deferred Items
 
-Total estimated plans: 13 (used as `progress.total_plans`; will be reconciled as each phase plans through `/gsd-plan-phase`).
+| Horizon | Status | Direction | Promotion condition |
+|---------|--------|-----------|---------------------|
+| Mid | Candidate | Customer/transaction discovery, quote-before-mutate, causal MockServer/provider proof | Named JTBD, current provider research, smallest surface, owner, proof contract |
+| Long | Conditional | Packaged Accrue adoption, demand-backed B2B/manual/invoice flows, public-contract graduation | Consumer adoption or stabilization evidence |
 
-- Phase 8 (Reliability Primitives): ~3 plans — one per REL-01 / REL-02 / REL-03.
-- Phase 9 (Pagination Ergonomics): ~1 plan — single `stream/3` + `all/3` helper pair.
-- Phase 10 (Subscriptions Surface Completion): ~3 plans — create / pause / resume each adapter-backed.
-- Phase 11 (Type-Safety Pass): ~2 plans — `@spec` sweep, then `:dialyxir` wiring + CI gate.
-- Phase 12 (Documentation Pass): ~3 plans — `@doc`/`@moduledoc` sweep, README rewrite, two guides.
-- Phase 13 (Process Guard): ~1 plan — hook + CI gate landed together.
+Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; this digest does not promote them.
 
-### v1.2 outline (approved 2026-04-29)
+## Session Continuity
 
-Six phases, numbered 8-13. See `.planning/ROADMAP.md` for full success criteria. Plan file: `~/.claude/plans/well-we-kind-of-federated-swing.md`.
+Last session: 2026-09-24T19:49:47Z
+Stopped at: GSD progress cleanup; Phase 33 plan artifacts and initial-ledger history fix prepared for another exact-SHA hosted run
+Resume file: .planning/phases/33-deterministic-green-ci/.continue-here.md
 
-### Release-truth reset (2026-05-30)
+## Operator Next Steps
 
-- Local `main` was 33 commits ahead of `origin/main`; remote CI was green only for stale remote SHA `74f56c5`, not for current local HEAD.
-- Local checks before reset: `mix test`, `mix compile --warnings-as-errors`, and `mix format --check-formatted` passed; `mix docs --warnings-as-errors` failed on a public changelog reference to hidden `Paddle.Http.request/4`.
-- Local release-truth gate passed on 2026-05-30: `mix format --check-formatted`, `mix deps.unlock --check-unused`, `mix compile --warnings-as-errors`, `mix test` (145 tests, 0 failures), and `mix docs --warnings-as-errors`.
-- Immediate gate before Phase 10: push local main and require GitHub CI green on the pushed SHA.
-- Roadmap decision: finish v1.2 before new feature-heavy milestones; post-v1.2 order is refunds/credits, customer self-serve billing, then catalog read/list support.
-- Phase 10 planning must revalidate whether direct `Paddle.Subscriptions.create/2` is a real Paddle Billing surface; if not, replace SUB-04 with the correct transaction/invoice-backed recurring-start surface.
-
-## Performance Metrics
-
-(Reset for v1.2 — populated as phases complete.)
-
-## Performance Metrics
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 08 P01 | 12min | 3 tasks | 5 files |
-| Phase 08 P02 | 11min | 2 tasks | 8 files |
-| Phase 08 P03 | 10min | 2 tasks | 6 files |
-| Phase 08 P04 | 8min | 2 tasks | 3 files |
-| Phase 09 P01 | 24min | 4 tasks | 9 files |
-| Phase 10-subscriptions-surface-completion P01 | 22min | 2 tasks | 3 files |
-| Phase 10-subscriptions-surface-completion P02 | 3min | 2 tasks | 2 files |
-| Phase 10-subscriptions-surface-completion P03 | 3min | 3 tasks | 5 files |
-| Phase 12-documentation-pass P01 | 2min | 3 tasks | 4 files |
-| Phase 12-documentation-pass P02 | 5min | 2 tasks | 6 files |
-| Phase 12-documentation-pass P03 | 2min | 2 tasks | 5 files |
-| Phase 12-documentation-pass P04 | 6min | 2 tasks | 3 files |
-| Phase 12-documentation-pass P06 | 1min | 3 tasks | 1 files |
-| Phase 13-process-guard P01 | 12min | 3 tasks | 4 files |
-
-## Last session
-
-- Timestamp: 2026-06-04T18:38:22Z
-- Stopped at: Completed Phase 12 Plan 6
-- Resume file: None
-
-## Decisions
-
-- [Phase 12-documentation-pass]: Explicitly enforce @moduledoc false on internal and configuration modules to prevent their leakage into public hexdocs.
-- [Phase 12-documentation-pass]: Documented core controllers (Customers, Addresses, Webhooks) with explicit module pipelines, error structures, and domain documentation links.
-
-- [Phase 12-documentation-pass]: Documented Subscription and Transaction domain structs with concise field descriptions and external links to Paddle Billing domain rules.
-- [Phase 12-documentation-pass]: Escaped string interpolation in module docstrings to fix compilation errors.
-- [Phase 12-documentation-pass]: Applied 'Hybrid Explicit' approach to README.md and Getting Started guide code examples, transforming direct assignments (`{:ok, struct} = ...`) into explicit `case` blocks.
-- [Phase 10-subscriptions-surface-completion]: Implemented only resume/3 (no resume_immediately/resume_at variants) to keep seam narrow. — Avoid seam bloat while covering full provider capability through effective_from and on_resume options.
-- [Phase 10-subscriptions-surface-completion]: Rejected idempotency_key on resume/pause mutations; only retry is forwarded as request opt. — Preserves the create-only idempotency boundary and avoids false lifecycle mutation safety assumptions.
+- Publish only the explicit reviewable candidate files prepared for PR #6; keep the PR draft. Confirm the exact-SHA run passes planning truth and CI contract, then record timing from that successful full-contract run before workflow performance edits. Reconcile Phase 32 stale verification and Phase 31 UAT debt without converting unsupported human claims into passes. Do not push local `main` directly.

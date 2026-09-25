@@ -1,0 +1,56 @@
+# Oarlock Milestone Roadmap Ratchet
+
+Use this prompt when discovering, shaping, or refreshing an Oarlock milestone. Treat it as a guide for evidence-led decisions, not permission to expand scope or override the repository's planning authority.
+
+## Mission
+
+Help Oarlock become a dependable, elegant, secure, and easy-to-adopt Elixir SDK for Paddle Billing. Optimize for correct provider behavior, useful typed coverage, clear Elixir ergonomics, honest proof, safe operations, and a codebase that stays understandable. Favor the smallest coherent work that materially improves an adopter's outcome. Do not use endpoint count, activity, test count, or coverage percentage as a proxy for quality.
+
+Oarlock is a pure, standalone Paddle Billing API v1 SDK and a foundation for Accrue's second-processor strategy. Keep application policy, persistence, entitlements, and framework integration in consuming applications. Respect current project non-goals, including Paddle Classic and broad speculative endpoint mirroring.
+
+## Before proposing a milestone
+
+1. Read the current `.planning/PROJECT.md`, `ROADMAP.md`, `REQUIREMENTS.md`, `STATE.md`, `BACKLOG.md`, `BACKLOG-ARCHIVE.md`, `EVIDENCE.md`, `MILESTONES.md`, `GSD-PREFERENCES.md`, and `RETROSPECTIVE.md`; follow the authority rules recorded in GSD preferences.
+2. Inspect the current source, tests, CI, public docs, open changes, and relevant primary Paddle documentation. Separate verified repository facts from external claims and assumptions.
+3. Start with adopter jobs and evidence. Consider SDK developers and maintainers, Accrue consumers, SaaS teams, support and finance operators, on-call engineers, and security reviewers. Use industry or business-model examples (such as B2B, usage-priced, commerce, or sensitive-data contexts) only where they reveal a concrete SDK contract or failure mode; do not add industry policy to the SDK.
+4. Compare meaningful approaches across user value, compatibility, security, reliability, developer experience, operability, maintainability, and implementation cost. Explain material tradeoffs and converge on a bounded recommendation. Do not fan out speculative options just to appear comprehensive.
+
+## Roadmap discipline
+
+- Preserve the distinction between committed work and candidates. Keep near-, mid-, and long-term horizons discoverable, with status, evidence, rationale, owner, proof contract, non-goals, freshness trigger, and promotion or reopen conditions where the planning model requires them.
+- Use Oarlock's existing `.planning` candidates as the starting point. Refresh or promote them only when current adopter evidence, provider behavior, security needs, or operational evidence supports the change. Record dated transitions and preserve prior rationale; do not silently rewrite history or copy LatticeStripe scope into Oarlock.
+- Prefer resolving trust, compatibility, correctness, documentation, and adoption gaps before adding API breadth. Apply YAGNI and Pareto reasoning while retaining meaningful error and boundary coverage.
+- Make the plan decision-complete: goal, user outcome, in/out boundaries, interfaces or public contract impact, dependencies, acceptance criteria, failure cases, validation commands, documentation, and durable handoff. State assumptions explicitly and avoid leaving consequential choices to the implementer.
+
+## Verification and delivery
+
+- Automate recurring verification as early as practical. Aim for no human UAT when deterministic tests, contract checks, MockServer-backed scenarios, package/demo smoke tests, or other reliable automation can prove the behavior. Hand off only judgments or external states that cannot be reproduced safely; identify the limitation and retain evidence.
+- Choose tests for information value and risk reduction. Cover relevant happy paths, errors, and boundaries. Use unit, integration, seam, smoke, end-to-end, or digital-twin-style tests where each catches a distinct class of regression. Use property-based testing deliberately for high-value invariants and input spaces, not as a default tax.
+- Shift recurring, stable, high-signal checks into CI when their guarantee justifies their runtime and maintenance cost. Measure critical-path time, keep fast deterministic feedback, and streamline, split, or remove checks that do not add distinct confidence. Never speed up CI by silently dropping required proof.
+- State proof boundaries honestly: local tests, MockServer or other deterministic simulation, downstream package/demo checks, hosted exact-SHA CI, and real Paddle sandbox/live provider state are different evidence classes. Never claim one proves another.
+- Keep `main` green as an ongoing operating habit: after every merge or direct update, verify required CI against the exact current `main` SHA. If it fails, prioritize diagnosis and repair before merging more work or releasing; a prior green run and local success do not prove the current head.
+- Finish milestones in a tidy, reviewable state: resolve or disposition PRs, keep `main` and its required CI green, update accurate docs and planning artifacts, and leave worktrees clean. Release when the delivered change and project policy warrant it; pursue timely releases for meaningful adopter-facing work without manufacturing a release for every milestone.
+
+## Craft, privacy, and durable memory
+
+- Make the code and docs clear to the next human: small coherent abstractions, explicit behavior, idiomatic Elixir, accurate examples, and comments that explain non-obvious invariants. Keep quality high across correctness, security, compatibility, performance, accessibility where applicable, reliability, operability, and maintainability, stopping when added complexity exceeds likely value.
+- Apply relevant 12-factor principles, especially externalized configuration, stateless process boundaries where appropriate, and logs that support operations without exposing sensitive data.
+- Never commit personal data, credentials, customer data, private local paths, or secrets. Use only privacy-safe synthetic fixtures. If local comparisons require fingerprints, keep them local and non-reversible; do not commit correlation artifacts that can expose identity or sensitive values.
+- Record durable decisions, evidence, lessons, and corrections in the canonical `.planning` owner with dates and provenance. Update or supersede stale information rather than growing duplicate sources of truth. Keep archives immutable except for the repository's explicit correction process.
+- Before handing off or recommending the next GSD command, preserve the current decision, exact next action, required inputs, unresolved blockers, validation evidence, and any context needed after a context reset. Verify the next step can find its needed signal in committed artifacts.
+
+## Expected response
+
+Return a concise recommendation with:
+
+1. The proposed milestone goal and the user outcome it improves.
+2. Evidence and relevant personas/JTBD, with uncertainty clearly labeled.
+3. A bounded scope and prioritized candidates with promotion rationale.
+4. Quality and automation strategy, including CI value/runtime tradeoffs and honest proof boundaries.
+5. Acceptance criteria, dependencies, release/closeout implications, and the `.planning` artifacts that must carry the decision forward.
+
+Do not start implementation merely because this prompt was supplied. Follow the active GSD workflow and the user's current request.
+
+## Source and adaptation note
+
+Adapted on 2026-09-23 from the maintainer-supplied `stripe ratchet prompt new milestone roadmap.txt` and LatticeStripe maintainer intent, then grounded in Oarlock's current `.planning` authority, project scope, roadmap, requirements, and evidence policy. The source projects provide planning principles only; Oarlock's own repository evidence and provider contract govern Oarlock decisions.

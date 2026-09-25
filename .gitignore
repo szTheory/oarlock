@@ -42,5 +42,6 @@ Desktop.ini
 .claude/
 
 # Local research notes / drafts not meant for the public repo.
-/prompts/
+/prompts/*
+!/prompts/oarlock-milestone-roadmap-ratchet.txt
 priv/plts/

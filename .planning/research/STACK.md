@@ -1,143 +1,145 @@
-# Technology Stack: v1.1 Accrue Seam Hardening
+# Technology Stack
 
-**Project:** oarlock (Paddle Elixir SDK)
-**Milestone:** v1.1
-**Researched:** 2026-04-29
-**Overall confidence:** HIGH — all conclusions drawn from direct code inspection of the existing
-test suite and production modules.
+**Project:** oarlock — Paddle Billing SDK for Elixir
 
----
+**Milestone:** v2.2 Trust, Coverage & Green Delivery
 
-## No New Dependencies Required for v1.1
+**Researched:** 2026-09-09
 
-The existing stack covers all three deliverables. No additions to `mix.exs` are needed.
+**Overall confidence:** MEDIUM — repository observations are direct and HIGH confidence; changing ecosystem facts were checked against primary sources but the configured research seam classifies verified web fallback evidence as MEDIUM.
 
----
+## Recommendation in One Sentence
 
-## Itemized Rationale
+Keep the existing Elixir/Req/Mix/GitHub Actions architecture, urgently move off vulnerable Req 0.5.17, add only Credo plus built-in Hex auditing, and encode delivery discipline in pinned workflows, repository-native scripts, templates, rulesets, and provenance-bearing Markdown rather than introducing a new platform.
 
-### (a) `Paddle.Transactions.get/2`
+## Local Baseline and Immediate Risk
 
-No new dependency. This is a pure structural copy of `Paddle.Subscriptions.get/2`
-(`lib/paddle/subscriptions.ex:13–18`):
+| Evidence observed in this repository | Confidence | Implication |
+|---|---:|---|
+| `mix.exs` requires `{:req, "~> 0.5.17"}` and `mix.lock` resolves 0.5.17. | HIGH | This is not merely stale: Hex lists CVE-2026-49755 (high-severity decompression-bomb DoS, fixed in 0.6.1) and CVE-2026-49756 (multipart header injection, fixed in 0.6.0). Upgrade before other SDK changes. |
+| Root quality gates already include formatting, warnings-as-errors, ExUnit, custom public-spec checks, Dialyzer, package smoke, optional-dependency proof, demo/PostgreSQL proof, and a final `CI contract` job. | HIGH | Preserve these proof classes. Improve orchestration and determinism instead of replacing the stack. |
+| Checkout, setup-beam, and cache are already pinned to full SHAs; `googleapis/release-please-action@v4` is not. | HIGH | Complete SHA pinning and let Dependabot propose reviewed pin updates. |
+| The CI contract writes `ci-contract-proof.json` but does not upload it. Release Please can create a release and publish in a separate workflow without first consuming that exact-SHA proof. | HIGH | Persist proof and add a fail-closed exact-SHA gate before release creation and before Hex credentials are exposed. |
+| Jobs use mutable `ubuntu-latest`, mutable `postgres:17`, and unversioned `mix local.hex` / `mix local.rebar`. Most `_build` cache keys omit OTP/Elixir/Mix environment. | HIGH | Pin the runner/tool/service inputs and make compiled caches toolchain- and environment-specific. |
+| No `.github/dependabot.yml`, `.github/CODEOWNERS`, or PR template exists. Worktree inspection reports a modified main tree and a locked linked agent worktree. | HIGH | Add lightweight repository-native maintenance controls; classify existing work before any cleanup. |
+| `.planning/PROJECT.md` already defines committed/candidate/conditional horizons and provenance expectations. | HIGH | Keep Markdown as the system of record and validate cross-links/status vocabulary in CI; do not add a planning database. |
 
-- Same `Http.request/4` call pattern via `Paddle.Http`.
-- Same `Http.build_struct/2` hydration for `%Paddle.Transaction{}` and nested
-  `%Paddle.Transaction.Checkout{}` (both structs already exist).
-- Same `validate_transaction_id/1` guard (mirrors `validate_subscription_id/1`).
-- Tests follow the exact pattern in `test/paddle/subscriptions_test.exs` using
-  `Req.new(adapter: fn ... end)` inline adapters — no fixture files, no extra libs.
+## Recommended Stack
 
-The `transaction_payload/0` helper in `test/paddle/transactions_test.exs` already
-provides the full shape of a `%Paddle.Transaction{}` response (including the nested
-`checkout` map). The `get/2` tests will reuse this payload directly.
+### Core SDK Runtime
 
-### (b) End-to-End Accrue Seam Integration Test (SEAM-01)
+| Technology | Target | Purpose | Why / integration point |
+|---|---:|---|---|
+| Elixir | retain exact `.tool-versions` value after dirty-state classification (currently 1.19.5-otp-28) | SDK implementation and Mix build | No runtime migration is needed for v2.2. The file is currently modified, so first establish whether these values are intended user work. |
+| Erlang/OTP | retain exact `.tool-versions` value after classification (currently 28.1) | BEAM runtime | Existing code and CI are already designed around this pair. Compatibility breadth should be an explicit public-contract decision, not an accidental matrix expansion. |
+| Req | **0.7.4 stable** (`~> 0.7.4`) | HTTP client | Upgrade in the first isolated PR. It clears both advisories affecting 0.5.17 and includes authentication redaction and retry improvements. Req 0.7 has breaking internal changes; run the root, MockServer, package-smoke, demo, and Dialyzer suites and adapt function adapters/tests deliberately. |
+| telemetry | retain `~> 1.4` (latest observed 1.4.2) | Events and measurements | No extra telemetry package is needed. Fix metadata at `Paddle.Http.Telemetry` so request structs, headers, tokens, bodies, and secrets never enter emitted metadata. |
 
-No new dependency. The existing `Req` adapter pattern is fully sufficient for a
-multi-step seam test.
+**Versioning consequence:** Hex requires SemVer and says breaking changes while package major is `0` require a minor bump. If the Req upgrade changes oarlock's supported dependency contract or observable behavior, release it as `0.2.0`; do not confuse that package version with GSD milestone `v2.2`.
 
-**Why the adapter pattern scales to multi-step tests:**
+### Elixir Quality and Security Tooling
 
-Each call in the seam path gets its own `client_with_adapter/1` scope. The test
-composes six independent adapter-backed `%Paddle.Client{}` values — one per
-resource call — chained via `with` or sequential assertions in a single ExUnit test
-body. The adapter closure captures and returns the pre-canned response for that
-step. No shared state, no process isolation issues. This is the same pattern used
-across all 23 Phase 5 subscription tests (`test/paddle/subscriptions_test.exs`).
+| Technology | Target | Purpose | Why / integration point |
+|---|---:|---|---|
+| Mix / ExUnit / formatter | bundled with pinned Elixir | Compile, test, format | Keep as the authoritative fast path. Define one local/CI alias such as `mix quality` that runs deterministic gates in documented order; CI jobs may still fan out for wall-clock speed. |
+| Credo | **1.7.19** (`~> 1.7`, dev/test only, `runtime: false`) | Static code-quality analysis | The one justified new Mix dependency. Establish a reviewed `.credo.exs` baseline, then gate `mix credo --strict`; avoid mass cosmetic rewrites mixed with safety fixes. |
+| Dialyxir | retain **1.4.7** | Type analysis | Already current and integrated. Keep PLTs cached by OS, exact OTP, exact Elixir, and `mix.lock`. |
+| ExDoc | upgrade from `~> 0.34` to **`~> 0.40`** (latest observed 0.40.3) | Package documentation | Current constraint holds the project on 0.34. Upgrade separately and make warning-free docs release evidence. |
+| Hex client | pin **2.5.1** in automation | Dependency audit and publish | Replace unversioned installation with `mix local.hex 2.5.1 --force`. Run `mix hex.audit` before tasks that load the application; current Hex audits both advisories and retired packages, so no `mix_audit` dependency is needed. |
+| rebar3 | pin **3.27.0** in `.tool-versions` | Erlang dependency builds | `erlef/setup-beam` reads a `rebar` entry in strict mode. Remove repeated unversioned `mix local.rebar` steps after the pinned setup is proven. |
 
-**Webhook step (step 4 — `transaction.completed`):**
+Recommended root dependency delta:
 
-No new fixture tooling is needed. `test/paddle/webhooks_test.exs` already
-demonstrates the deterministic approach:
+```elixir
+{:req, "~> 0.7.4"},
+{:ex_doc, "~> 0.40", only: :dev, runtime: false},
+{:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+{:dialyxir, "~> 1.4.7", only: [:dev, :test], runtime: false}
+```
 
-1. Build a raw JSON string inline (e.g., `raw_body = ~s({...transaction.completed
-   payload...})`).
-2. Derive the HMAC-SHA256 signature deterministically using the private
-   `signature/3` helper pattern already in that test file (`:crypto.mac/4`).
-3. Call `Webhooks.verify_signature/4` with a pinned `now:` timestamp and
-   `Webhooks.parse_event/1`.
+Resolve and commit exact transitive versions in `mix.lock`; requirements remain appropriately ranged for a library.
 
-The `transaction.completed` event payload is structurally identical in shape to
-the patterns used in Phase 2 — the `%Paddle.Event{}` struct captures `event_type`
-and `data` (raw map). No additional fields on `transaction.completed` require new
-struct hydration at the webhook layer; `data` stays as `raw_data` by design.
+### CI and Release Infrastructure
 
-**Why a richer fixture/replay tool is NOT warranted:**
+| Technology / control | Target | Purpose | Why / integration point |
+|---|---:|---|---|
+| GitHub-hosted runner | `ubuntu-24.04` | Stable CI image family | Replace `ubuntu-latest` so image-family changes are intentional. Hosted patch images remain mutable, so proof must record runner/tool versions and SHA. |
+| `actions/checkout` | retain pinned v6.0.2 SHA | Source checkout | Already follows GitHub's immutable full-SHA guidance. |
+| `erlef/setup-beam` | retain pinned v1.24.0 SHA | Exact BEAM/rebar setup | Give each step an `id`, consume exact-version outputs in cache keys/proof, and let it install Hex/Rebar. |
+| `actions/cache` | retain pinned v4.3.0 SHA | Dependency/build/PLT caches | Split source dependency cache from compiled `_build`; include job/Mix environment plus exact OTP and Elixir in compiled keys. Never use broad restore keys across incompatible toolchains. |
+| `googleapis/release-please-action` | **v5.0.0, SHA `45996ed1f6d02564a971a2fa1b5860e934307cf7`** | Release PR, tag, release | Current mutable `@v4` is the only unpinned `uses:` reference. Upgrade and pin separately because v5 moves the action runtime to Node 24. |
+| `actions/upload-artifact` | **v7.0.1, SHA `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`** | Durable CI contract artifact | Add only to the contract job; upload `ci-contract-proof.json` with bounded retention and a SHA-bearing name. Include run URL/ID/attempt, exact tools, job results, and lockfile hash. |
+| PostgreSQL service | **17.11**, official image digest resolved during implementation | Deterministic demo proof | Replace mutable `postgres:17`; retain a human-readable tag comment beside the digest. This stays a test fixture. |
+| GitHub `hex-production` environment | repository setting | Protect `HEX_API_KEY` | Move the scoped, expiring `api:write` key into an environment secret. Restrict deployments to release tags and optionally require a non-self reviewer. |
 
-Tools like `ExVCR` or `Bypass` exist to record/replay real HTTP traffic or stand
-up a mock server process. This project does not make live HTTP calls in tests by
-design (per the comment at line 4 of `test/paddle/subscriptions_test.exs`). The
-`Req` adapter is a function — there is no HTTP process to intercept. `ExVCR` would
-add cassette file management overhead with zero benefit. `Bypass` would add a
-supervision tree and port management for a pattern already solved inline.
+### Exact-SHA Release Topology
 
-The seam test's only coordination requirement is passing IDs between steps (e.g.,
-`transaction_id` returned in step 3, used in step 5's subscription fixture). This
-is satisfied by binding the adapter response to a local variable — no inter-process
-state needed.
+1. `CI` runs on PRs and pushes to `main`; all proof jobs feed one stable required check named `CI contract`.
+2. `CI contract` always runs, fails on failed/skipped dependencies, writes a self-describing proof, uploads it, and emits the same data to `$GITHUB_STEP_SUMMARY`.
+3. `Release Please` starts with a credential-free `quality-gate` invoking existing `scripts/ci_monitor.cjs assert-ci --sha "$GITHUB_SHA"` with `actions: read`. `release-please` must `needs: quality-gate` and run only on trusted `main` pushes; manual dispatch must name and prove an explicit SHA.
+4. When Release Please creates a tag, resolve it to a commit and assert it equals the proven SHA before `publish-hex` receives the `hex-production` environment or secret.
+5. `publish-hex` still builds and dry-runs the package as defense in depth, but a reduced test subset must not substitute for the canonical CI contract.
+6. Apply the same monitor and ref-resolution check to `hex-publish.yml`; reduce its workflow permission from `contents: write` to `contents: read` plus `actions: read`.
 
-### (c) Consumer-Facing Seam Surface Doc (SEAM-02)
+Configure a `main` ruleset requiring `CI contract`, review, resolved conversations, and no force pushes. Keep write permissions only on the Release Please job; all others stay read-only.
 
-No new dependency. Pure ExDoc with a guide page is the right choice.
+### PR, Triage, Worktree, and Planning Controls
 
-**Recommended approach:** A single `guides/consumer-contract.md` file added to
-`mix.exs` extras, rendered by `ex_doc` (already part of the established CI matrix
-per Phase 1 research). This produces a page under the "Guides" section in
-HexDocs — standard Elixir library practice for consumer-facing documentation.
+| Control | Implementation | Why |
+|---|---|---|
+| Dependency maintenance | `.github/dependabot.yml`: weekly grouped updates for `mix` at `/`, `mix` at `/demo`, and `github-actions` at `/`; cap open PRs and retain same-line version comments for action SHAs. | Covers lockfiles and action pins without another bot. Updates still require full CI and review. |
+| Ownership | `.github/CODEOWNERS`: maintainer globally plus explicit ownership for `/.github/`, `/mix.exs`, `/mix.lock`, `/lib/paddle/http/`, release config, and planning governance. | Auto-requests reviewers; owning `/.github/` protects CODEOWNERS itself. |
+| Small PRs | One `.github/pull_request_template.md` requiring JTBD/requirement link, scope/non-goals, risk, proof results, docs/compatibility/release impact, and clean-worktree evidence. | Preserves signal without a PR management product. |
+| Triage | A small label vocabulary (`bug`, `security`, `adopter-request`, `maintenance`, `blocked`, `needs-evidence`); add issue forms only if volume justifies them. Record promotions in `.planning`. | GitHub is intake; `.planning` remains durable orientation. |
+| Worktree hygiene | A report-only `bin/check_worktree_hygiene.sh` using `git status --porcelain=v1`, `git worktree list --porcelain`, and `git worktree prune --dry-run --verbose`; document add/remove/repair and lock-with-reason. | Stable Git output is scriptable. Never auto-delete, stash, reset, unlock, or prune user work. |
+| Planning provenance | Keep the GSD Markdown artifacts and canonical persona/JTBD ledger. Extend the existing Node/shell drift check to validate IDs, horizon status, source, owner, proof class/link, date, and promotion/reopen condition. | Diffable and already integrated. A no-dependency validator prevents drift without a second source of truth. |
 
-The `.cheatmd` format (`@cheatmd`) is purpose-built for cheatsheets (two-column
-grids). It is visually appropriate if the doc is primarily a quick-reference table.
-A plain `.md` guide page is better for the prose + table mix that SEAM-02 calls
-for (function signatures, stability tiers, explicit "not on roadmap" callouts).
-Use a standard guide page.
+## Explicit Non-Additions
 
-**Why mkdocs / typedoc-equivalent is NOT appropriate:**
+| Do not add now | Reason | Reconsider when |
+|---|---|---|
+| `mix_audit` | Hex 2.5.1 `mix hex.audit` covers advisories and retirements. A second task duplicates triage. | A documented coverage gap appears. |
+| Sobelow in root | It targets Phoenix/web patterns; root is framework-free and its known risks need focused fixes/tests. | Threat-model the demo separately if it becomes a supported deployment. |
+| SAST mega-suite, custom CodeQL/Semgrep, or a secret-scanner action | GitHub native protection, Hex audit, Credo, Dialyzer, focused tests, and review address current risks with owners. | A named threat/control gap exists. |
+| OpenSSF Scorecard, custom SBOM, or custom artifact attestations | Useful for later public-contract graduation; first establish exact-SHA gating and clean proof. | Consumer/procurement evidence requires them. |
+| Merge queue | GitHub recommends it for busy branches with many daily merges; current maintainer-scale traffic does not justify `merge_group` complexity. | Sustained concurrent PR traffic makes update churn measurable. |
+| Renovate, Mergify, Graphite, stacked-PR tooling, or worktree manager | Dependabot, rulesets, templates, CODEOWNERS, Git, and `gh` cover current jobs. | Native controls demonstrably fail at actual scale. |
+| Dockerized root dev, Nix, Bazel, Earthly, or self-hosted runners | `.tool-versions`, `mix.lock`, pinned actions, and explicit runner/service versions are sufficient. | Evidence shows a concrete reproducibility gap. |
+| Planning database, external board, or knowledge graph | The need is durable provenance, not another truth source. | Markdown scale/query needs become empirically unmanageable. |
+| Coverage-percentage gate | Percentage rewards incidental execution and can obscure contract gaps. | A risk-based uncovered-code policy and stable baseline exist. |
 
-This is a pure Elixir library. External doc sites (mkdocs, docusaurus) introduce a
-build pipeline, a separate output artifact, and diverge from where Elixir consumers
-expect to find docs (HexDocs). The content is already in the codebase — `@doc`,
-`@moduledoc`, and `@spec` annotations. ExDoc renders this correctly without a
-second toolchain.
+## Implementation Order
 
-### Dev/CI Tools (`mix_audit`, Contract-Test Linters)
+1. **Security dependency repair:** Req 0.7.4, full compatibility proof, then `mix hex.audit`.
+2. **Deterministic quality:** pinned Hex/rebar/runner/PostgreSQL, Credo, ExDoc, cache keys, and measured timings.
+3. **Exact-SHA delivery:** persisted proof, gated release/publish paths, protected environment, and `main` ruleset.
+4. **Repository operations:** Dependabot, CODEOWNERS, PR template, triage vocabulary, and report-only worktree checks.
+5. **Durable orientation:** drift validation across persona/JTBD, requirements, evidence, and horizon provenance.
 
-No new dependency.
+Each should be a small PR or cohesive pair. Do not mix the Req security migration with formatting, release orchestration, or planning rewrites.
 
-- **`mix_audit`** — useful for hex vulnerability scanning, but this is a new
-  library milestone adding no new hex deps (only code + a guide file). Adding
-  `mix_audit` to CI is a valid future step for the project in general, but it
-  does not unlock anything for v1.1 and should be a separate backlog entry if
-  desired.
-- **Contract-test linters** — no Elixir-ecosystem tool in this category applies
-  to the oarlock surface (these exist for HTTP API schemas like OpenAPI). The
-  seam integration test (SEAM-01) IS the contract test; ExUnit assertions on typed
-  structs serve that role directly.
-- **`doctor`** (doc coverage) — legitimate long-term addition, but no gap in v1.1
-  justifies adding it now. All public functions already carry `@doc` and `@spec`
-  from v1.0.
+## Sources and Provenance
 
----
+### Repository evidence (HIGH)
 
-## Current Locked Stack (Reference)
+- `.planning/PROJECT.md`, `.planning/config.json`, `mix.exs`, `mix.lock`, `.tool-versions`; CI/release workflows; CI monitor/tests; hook installer — inspected 2026-09-09.
+- `git status --short --branch` and `git worktree list --porcelain` — point-in-time local evidence from 2026-09-09, not committed truth.
 
-| Technology | Version (mix.lock) | Role |
-|------------|--------------------|------|
-| Elixir | ~> 1.19 | Language |
-| req | 0.5.17 | HTTP client + test adapter |
-| jason | 1.4.4 | JSON (req transitive dep, used in tests) |
-| telemetry | 1.4.1 | Telemetry events |
-| finch | 0.21.0 | HTTP transport (req transitive dep) |
-| ExUnit | stdlib | Testing |
-| ExDoc | (CI, not in mix.exs) | Documentation |
-| Credo | (CI, not in mix.exs) | Linting |
-| Dialyzer | (CI, not in mix.exs) | Static analysis |
+### Primary external guidance (MEDIUM per confidence seam)
 
----
+- [Req advisories](https://hex.pm/packages/req/advisories) and [Req 0.7.4 changelog](https://github.com/wojtekmach/req/blob/v0.7.4/CHANGELOG.md).
+- [Hex audit 2.5.1](https://hex.hexdocs.pm/Mix.Tasks.Hex.Audit.html), [Hex 2.5.1 release](https://github.com/hexpm/hex/releases/tag/v2.5.1), and [Hex publishing](https://hex.pm/docs/publish).
+- [Credo 1.7.19](https://hex.pm/packages/credo), [Credo strict usage](https://hexdocs.pm/credo/basic_usage.html), [ExDoc 0.40.3](https://hex.pm/packages/ex_doc), and [Dialyxir 1.4.7](https://hex.pm/packages/dialyxir).
+- [setup-beam action definition](https://raw.githubusercontent.com/erlef/setup-beam/fc68ffb90438ef2936bbb3251622353b3dcb2f93/action.yml), [setup-beam README](https://github.com/erlef/setup-beam/blob/main/README.md), and [rebar3 3.27.0](https://github.com/erlang/rebar3/releases/tag/3.27.0).
+- [GitHub Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use), [Dependabot for actions](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/auto-update-actions), and [Dependabot ecosystem support](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
+- [GitHub environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments), [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases), and [artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations).
+- [Git worktree](https://git-scm.com/docs/git-worktree), [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), and [PR templates](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository).
+- [PostgreSQL 17.11](https://www.postgresql.org/docs/17/release-17-11.html), [Release Please v5.0.0](https://github.com/googleapis/release-please-action/releases/tag/v5.0.0), and [upload-artifact v7.0.1](https://github.com/actions/upload-artifact/releases/tag/v7.0.1). Action SHAs were cross-checked through official Git refs/API on 2026-09-09.
 
-## Sources
+## Open Questions for Phase Planning
 
-- Direct inspection: `mix.exs`, `mix.lock`, `test/paddle/subscriptions_test.exs`,
-  `test/paddle/transactions_test.exs`, `test/paddle/webhooks_test.exs`,
-  `lib/paddle/subscriptions.ex`
-- Project context: `.planning/PROJECT.md`, `.planning/BACKLOG.md`
+- Confirm whether uncommitted `.tool-versions` values are intentional before treating them as the compatibility baseline.
+- Spike Req 0.7.4 against function adapters, custom request steps, MockServer, and Accrue before locking the public requirement and package bump.
+- Verify repository visibility/plan before requiring environment reviewers or immutable releases; availability varies.
+- Measure hosted CI durations/cache hit rates and optimize the measured critical path rather than collapsing parallel jobs by intuition.
+- Resolve and record the official PostgreSQL 17.11 image digest at implementation time.

@@ -2,6 +2,12 @@ defmodule Paddle.Subscriptions do
   @moduledoc """
   Provides operations for managing Paddle Subscriptions.
 
+  Subscription reads use bounded retries for documented transient failures.
+  Updates, cancellations, pauses, and resumes always make one attempt. If a
+  lifecycle mutation may have reached Paddle but its outcome is unknown, the
+  returned `%Paddle.Error{}` is non-retryable and carries the static operation,
+  validated subscription ID, and fixed consumer reconciliation actions.
+
   ## Example Pipeline
 
   ```elixir
@@ -47,8 +53,14 @@ defmodule Paddle.Subscriptions do
                      scheduled_change_action collection_mode
                      next_billed_at order_by after per_page)
 
+  @update_allowlist ~w(customer_id address_id business_id currency_code next_billed_at discount collection_mode billing_details scheduled_change custom_data proration_billing_mode items)
+
   @doc """
   Retrieves a subscription by ID.
+
+  This safe read uses bounded transient retries. The runtime subscription ID is
+  encoded only into the dispatch path; request context uses the normalized
+  `/subscriptions/:subscription_id` route.
 
   ## Examples
 
@@ -73,13 +85,62 @@ defmodule Paddle.Subscriptions do
   def get(%Client{} = client, subscription_id) do
     with :ok <- validate_subscription_id(subscription_id),
          {:ok, %{"data" => data}} when is_map(data) <-
-           Http.request(client, :get, subscription_path(subscription_id)) do
+           Http.request(client, :get, subscription_path(subscription_id),
+             operation: :get_subscription,
+             route: "/subscriptions/:subscription_id"
+           ) do
+      {:ok, build_subscription(data)}
+    end
+  end
+
+  @doc """
+  Updates a subscription.
+
+  This lifecycle mutation makes one attempt. Ambiguous transport or terminal
+  HTTP 408/5xx failures return a non-retryable `%Paddle.Error{}` with
+  `operation: :update_subscription`, the validated subscription ID, and fixed
+  lookup/webhook/provider-dashboard reconciliation actions.
+
+  ## Examples
+
+  ```elixir
+  # Immediate upgrade
+  case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "prorated_immediately") do
+    {:ok, %Paddle.Subscription{} = subscription} -> subscription
+  end
+
+  # Scheduled downgrade
+  case Paddle.Subscriptions.update(client, "sub_123", items: [...], proration_billing_mode: "next_billing_period") do
+    {:ok, %Paddle.Subscription{} = subscription} ->
+      # subscription.scheduled_change will be populated
+      subscription
+  end
+  ```
+  """
+  @spec update(Paddle.Client.t(), subscription_id(), map() | keyword()) ::
+          {:ok, Paddle.Subscription.t()}
+          | {:error, Paddle.Error.t() | :invalid_subscription_id | :invalid_params}
+  def update(%Client{} = client, subscription_id, params) do
+    with :ok <- validate_subscription_id(subscription_id),
+         {:ok, params_map} <- normalize_params(params),
+         body <- Attrs.allowlist(params_map, @update_allowlist),
+         {:ok, %{"data" => data}} when is_map(data) <-
+           Http.request(client, :patch, subscription_path(subscription_id),
+             json: body,
+             operation: :update_subscription,
+             route: "/subscriptions/:subscription_id",
+             resource_id: subscription_id
+           ) do
       {:ok, build_subscription(data)}
     end
   end
 
   @doc """
   Lists subscriptions.
+
+  Initial and continuation pages use the same bounded read policy and the
+  literal `:list_subscriptions` operation with route `/subscriptions`. Provider
+  cursor paths and query values remain dispatch-only.
 
   ## Examples
 
@@ -108,7 +169,11 @@ defmodule Paddle.Subscriptions do
     with {:ok, params} <- normalize_params(params),
          query <- Attrs.allowlist(params, @list_allowlist),
          {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, "/subscriptions", params: query) do
+           Http.request(client, :get, "/subscriptions",
+             params: query,
+             operation: :list_subscriptions,
+             route: "/subscriptions"
+           ) do
       {:ok, build_page(data, meta)}
     end
   end
@@ -173,6 +238,10 @@ defmodule Paddle.Subscriptions do
   @doc """
   Cancels a subscription at the end of the next billing period.
 
+  Cancellation makes one attempt. An ambiguous failure is non-retryable and
+  identifies only `:cancel_subscription`, the validated subscription ID, and
+  fixed consumer reconciliation actions.
+
   ## Examples
 
   ```elixir
@@ -200,6 +269,9 @@ defmodule Paddle.Subscriptions do
   @doc """
   Cancels a subscription immediately.
 
+  Immediate cancellation shares the same one-attempt, ambiguity-aware request
+  contract as scheduled cancellation.
+
   ## Examples
 
   ```elixir
@@ -226,6 +298,10 @@ defmodule Paddle.Subscriptions do
 
   @doc """
   Pauses a subscription at the end of the next billing period.
+
+  Pause options are `:resume_at`, `:on_resume`, and the restrictive
+  `retry: false`. The mutation always makes one attempt; ambiguous failures
+  expose static `:pause_subscription` reconciliation context.
 
   ## Examples
 
@@ -265,6 +341,9 @@ defmodule Paddle.Subscriptions do
   @doc """
   Pauses a subscription immediately.
 
+  Immediate pause uses the same supported options and one-attempt ambiguity
+  contract as scheduled pause.
+
   ## Examples
 
   ```elixir
@@ -302,6 +381,10 @@ defmodule Paddle.Subscriptions do
 
   @doc """
   Resumes a paused subscription.
+
+  Resume options are `:effective_from`, `:on_resume`, and the restrictive
+  `retry: false`. The mutation always makes one attempt; ambiguous failures
+  expose static `:resume_subscription` reconciliation context.
 
   ## Examples
 
@@ -345,7 +428,10 @@ defmodule Paddle.Subscriptions do
              client,
              :post,
              cancel_path(subscription_id),
-             json: %{"effective_from" => effective_from}
+             json: %{"effective_from" => effective_from},
+             operation: :cancel_subscription,
+             route: "/subscriptions/:subscription_id/cancel",
+             resource_id: subscription_id
            ) do
       {:ok, build_subscription(data)}
     end
@@ -359,9 +445,11 @@ defmodule Paddle.Subscriptions do
              client,
              :post,
              pause_path(subscription_id),
-             Keyword.merge(
-               [json: Map.put(pause_body, "effective_from", effective_from)],
-               request_opts
+             Keyword.merge(request_opts,
+               json: Map.put(pause_body, "effective_from", effective_from),
+               operation: :pause_subscription,
+               route: "/subscriptions/:subscription_id/pause",
+               resource_id: subscription_id
              )
            ) do
       {:ok, build_subscription(data)}
@@ -376,7 +464,12 @@ defmodule Paddle.Subscriptions do
              client,
              :post,
              resume_path(subscription_id),
-             Keyword.merge([json: resume_body], request_opts)
+             Keyword.merge(request_opts,
+               json: resume_body,
+               operation: :resume_subscription,
+               route: "/subscriptions/:subscription_id/resume",
+               resource_id: subscription_id
+             )
            ) do
       {:ok, build_subscription(data)}
     end
@@ -384,19 +477,7 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_pause_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
-      case Keyword.pop(opts, :retry) do
-        {retry_value, remaining} ->
-          with :ok <- reject_idempotency_key!(remaining, "pause"),
-               :ok <- reject_unknown_pause_opts(remaining),
-               {:ok, body} <- build_pause_body(remaining) do
-            request_opts =
-              if retry_value == nil and not Keyword.has_key?(opts, :retry),
-                do: [],
-                else: [retry: retry_value]
-
-            {:ok, body, request_opts}
-          end
-      end
+      normalize_pause_keyword_opts(opts)
     else
       raise ArgumentError, "pause options must be a keyword list"
     end
@@ -405,17 +486,18 @@ defmodule Paddle.Subscriptions do
   defp normalize_pause_opts(_opts),
     do: raise(ArgumentError, "pause options must be a keyword list")
 
-  defp reject_idempotency_key!(opts, operation) do
-    if Keyword.has_key?(opts, :idempotency_key) do
-      raise ArgumentError,
-            "idempotency_key is not supported for #{operation} operations; only retry is supported"
-    else
-      :ok
+  defp normalize_pause_keyword_opts(opts) do
+    ensure_unique_retry_opt!(opts)
+    {retry_value, remaining} = Keyword.pop(opts, :retry)
+
+    with :ok <- reject_unknown_pause_opts(remaining),
+         {:ok, body} <- build_pause_body(remaining) do
+      {:ok, body, retry_request_opts(opts, retry_value)}
     end
   end
 
   defp reject_unknown_pause_opts(opts) do
-    supported_keys = [:resume_at, :on_resume, :idempotency_key]
+    supported_keys = [:resume_at, :on_resume]
 
     case Enum.find(Keyword.keys(opts), &(&1 not in supported_keys)) do
       nil ->
@@ -427,9 +509,8 @@ defmodule Paddle.Subscriptions do
   end
 
   defp build_pause_body(opts) do
-    with {:ok, body} <- maybe_put_resume_at(%{}, Keyword.get(opts, :resume_at)),
-         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
-      {:ok, body}
+    with {:ok, body} <- maybe_put_resume_at(%{}, Keyword.get(opts, :resume_at)) do
+      maybe_put_on_resume(body, Keyword.get(opts, :on_resume))
     end
   end
 
@@ -466,19 +547,7 @@ defmodule Paddle.Subscriptions do
 
   defp normalize_resume_opts(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
-      case Keyword.pop(opts, :retry) do
-        {retry_value, remaining} ->
-          with :ok <- reject_idempotency_key!(remaining, "resume"),
-               :ok <- reject_unknown_resume_opts(remaining),
-               {:ok, body} <- build_resume_body(remaining) do
-            request_opts =
-              if retry_value == nil and not Keyword.has_key?(opts, :retry),
-                do: [],
-                else: [retry: retry_value]
-
-            {:ok, body, request_opts}
-          end
-      end
+      normalize_resume_keyword_opts(opts)
     else
       raise ArgumentError, "resume options must be a keyword list"
     end
@@ -487,8 +556,30 @@ defmodule Paddle.Subscriptions do
   defp normalize_resume_opts(_opts),
     do: raise(ArgumentError, "resume options must be a keyword list")
 
+  defp normalize_resume_keyword_opts(opts) do
+    ensure_unique_retry_opt!(opts)
+    {retry_value, remaining} = Keyword.pop(opts, :retry)
+
+    with :ok <- reject_unknown_resume_opts(remaining),
+         {:ok, body} <- build_resume_body(remaining) do
+      {:ok, body, retry_request_opts(opts, retry_value)}
+    end
+  end
+
+  defp ensure_unique_retry_opt!(opts) do
+    if Enum.count(opts, fn {key, _value} -> key == :retry end) > 1 do
+      raise ArgumentError, "retry may be supplied only once"
+    end
+  end
+
+  defp retry_request_opts(opts, retry_value) do
+    if retry_value == nil and not Keyword.has_key?(opts, :retry),
+      do: [],
+      else: [retry: retry_value]
+  end
+
   defp reject_unknown_resume_opts(opts) do
-    supported_keys = [:effective_from, :on_resume, :idempotency_key]
+    supported_keys = [:effective_from, :on_resume]
 
     case Enum.find(Keyword.keys(opts), &(&1 not in supported_keys)) do
       nil ->
@@ -500,9 +591,8 @@ defmodule Paddle.Subscriptions do
   end
 
   defp build_resume_body(opts) do
-    with {:ok, body} <- maybe_put_effective_from(%{}, Keyword.get(opts, :effective_from)),
-         {:ok, body} <- maybe_put_on_resume(body, Keyword.get(opts, :on_resume)) do
-      {:ok, body}
+    with {:ok, body} <- maybe_put_effective_from(%{}, Keyword.get(opts, :effective_from)) do
+      maybe_put_on_resume(body, Keyword.get(opts, :on_resume))
     end
   end
 
@@ -551,7 +641,10 @@ defmodule Paddle.Subscriptions do
 
   defp next_page(client, path) do
     with {:ok, %{"data" => data, "meta" => meta}} when is_list(data) and is_map(meta) <-
-           Http.request(client, :get, path) do
+           Http.request(client, :get, path,
+             operation: :list_subscriptions,
+             route: "/subscriptions"
+           ) do
       {:ok, build_page(data, meta)}
     end
   end
