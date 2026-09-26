@@ -33,7 +33,7 @@ jobs:
           version-type: strict
 
       - name: Restore library deps
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             deps
@@ -98,7 +98,7 @@ jobs:
           version-type: strict
 
       - name: Restore library deps
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             deps
@@ -106,7 +106,7 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-beam.outputs.otp-version }}-${{ steps.setup-beam.outputs.elixir-version }}-dev-test-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
 
       - name: Restore PLTs
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: plt-cache
         with:
           path: priv/plts
@@ -166,7 +166,7 @@ jobs:
           version-type: strict
 
       - name: Cache demo deps
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             demo/deps
@@ -246,7 +246,7 @@ jobs:
           version-type: strict
 
       - name: Cache library deps
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             deps
