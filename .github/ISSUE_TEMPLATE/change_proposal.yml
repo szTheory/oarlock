@@ -1,0 +1,47 @@
+name: Change proposal
+description: Propose one bounded improvement to Oarlock.
+title: "[Proposal]: "
+labels:
+  - kind:proposal
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Propose one change and the user need it addresses. Keep unrelated ideas
+        separate. Do not include vulnerability details here; use the private
+        security reporting route linked from the issue chooser.
+  - type: textarea
+    id: intent
+    attributes:
+      label: User need and intended outcome
+      description: Who needs what, and what should become possible?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the behavior from an Oarlock consumer's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Bound this proposal and name what it does not include.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale and relevant evidence
+      description: Explain why this helps and link evidence or examples when available.
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Checks or compatibility considerations
+      description: Mention affected integrations, compatibility, or proof when relevant.
+    validations:
+      required: false
