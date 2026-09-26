@@ -97,9 +97,13 @@ test("quality proof identity is required by workflow and proof writer", () => {
   assert.match(workflow, /needs:[\s\S]*?- quality[\s\S]*?if:\s*\$\{\{\s*always\(\)\s*\}\}/);
 });
 
-test("CI contract records a nonempty Rebar version for its retained proof", () => {
-  const proofTools = hasStep(jobBlock("ci-contract"), "Install proof toolchain", /mix local\.hex --force/);
-  assert.match(proofTools, /REBAR_VERSION=.*awk '\$1 == "rebar" \{ print \$2; exit \}'/);
+test("CI contract records setup-beam Hex and Rebar versions for its retained proof", () => {
+  const ciContract = jobBlock("ci-contract");
+  assert.match(ciContract, /install-hex:\s*true/);
+  assert.match(ciContract, /install-rebar:\s*true/);
+  const proofTools = hasStep(ciContract, "Record proof toolchain", /HEX_VERSION=/);
+  assert.match(proofTools, /REBAR_VERSION:\s*\$\{\{\s*steps\.setup-beam\.outputs\.rebar3-version\s*\}\}/);
+  assert.match(proofTools, /echo "rebar-version=\$REBAR_VERSION"/);
   assert.match(proofTools, /test -n "\$REBAR_VERSION"/);
 });
 
