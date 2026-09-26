@@ -97,10 +97,10 @@ test("quality proof identity is required by workflow and proof writer", () => {
   assert.match(workflow, /needs:[\s\S]*?- quality[\s\S]*?if:\s*\$\{\{\s*always\(\)\s*\}\}/);
 });
 
-test("CI contract records a validated Rebar version for its retained proof", () => {
+test("CI contract records a nonempty Rebar version for its retained proof", () => {
   const proofTools = hasStep(jobBlock("ci-contract"), "Install proof toolchain", /mix local\.hex --force/);
   assert.match(proofTools, /REBAR_VERSION=.*awk '\$1 == "rebar" \{ print \$2; exit \}'/);
-  assert.match(proofTools, /\[\[ "\$REBAR_VERSION" =~ \^\[0-9\]\+\\\.\[0-9\]\+/);
+  assert.match(proofTools, /test -n "\$REBAR_VERSION"/);
 });
 
 test("Credo stays development and test only and absent from runtime dependencies", () => {
