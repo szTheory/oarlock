@@ -1,0 +1,40 @@
+name: Bug report
+description: Report one reproducible problem with Oarlock.
+title: "[Bug]: "
+labels:
+  - kind:bug
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Report one problem. Do not include credentials, customer data, or
+        vulnerability details in a public issue.
+  - type: textarea
+    id: intent
+    attributes:
+      label: What are you trying to do?
+      description: State the single outcome you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the observed result and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Smallest reproduction
+      description: Provide steps or a minimal Elixir example, with sensitive values removed.
+      render: elixir
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Checks and environment
+      description: List relevant versions, commands, results, and links to evidence you actually ran.
+    validations:
+      required: false
