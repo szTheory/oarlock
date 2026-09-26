@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog uses **[Semantic Versioning](https://semver.org/spec/v2.0.0.html)** headings like **`[0.1.0]`** for **published Hex releases**. Separately, maintainers track **planning milestones** labeled **v1.x/v2.x** in `.planning/` — those labels describe shipped tranches of work, **not** a second installable version axis on Hex. This repo remains **0.x** on Hex until a real **1.0.0** release.
 
+## [0.1.3](https://github.com/szTheory/oarlock/compare/v0.1.2...v0.1.3) (2026-09-26)
+
+
+### Bug Fixes
+
+* **35-06:** close reviewed triage and worktree gaps ([889d091](https://github.com/szTheory/oarlock/commit/889d091def2dd9e62c92f1e7401ab10d387cc77e))
+* close Phase 35 review gaps ([8905feb](https://github.com/szTheory/oarlock/commit/8905febdb55342aa07590bf6c108b079a1e12af0))
+
 ## [0.1.2](https://github.com/szTheory/oarlock/compare/v0.1.1...v0.1.2) (2026-09-25)
 
 
