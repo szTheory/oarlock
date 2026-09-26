@@ -107,8 +107,8 @@ test("CI contract records setup-beam Hex and Rebar versions for its retained pro
   );
   assert.match(ciContract, new RegExp(`otp-version:\\s*"${versions.erlang}"`));
   assert.match(ciContract, new RegExp(`elixir-version:\\s*"${versions.elixir}"`));
-  assert.match(ciContract, /rebar3-version:\s*">0"/);
-  assert.match(ciContract, /version-type:\s*loose/);
+  assert.match(ciContract, /rebar3-version:\s*"3\.25\.1"/);
+  assert.match(ciContract, /version-type:\s*strict/);
   assert.match(ciContract, /install-hex:\s*true/);
   assert.match(ciContract, /install-rebar:\s*true/);
   const proofTools = hasStep(ciContract, "Record proof toolchain", /HEX_VERSION=/);
