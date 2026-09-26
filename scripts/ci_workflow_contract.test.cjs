@@ -111,7 +111,11 @@ test("CI contract records setup-beam Hex and Rebar versions for its retained pro
   assert.match(ciContract, /version-type:\s*strict/);
   assert.match(ciContract, /install-hex:\s*true/);
   assert.match(ciContract, /install-rebar:\s*true/);
-  const proofTools = hasStep(ciContract, "Record proof toolchain", /HEX_VERSION=/);
+  const proofTools = hasStep(ciContract, "Record proof toolchain", /HEX_ENTRY=/);
+  assert.match(proofTools, /-type d -name 'hex-\*'/);
+  assert.match(proofTools, /-type f -name 'hex-\*\.ez'/);
+  assert.match(proofTools, /HEX_VERSION="\$\{HEX_ENTRY##\*\/hex-\}"/);
+  assert.match(proofTools, /HEX_VERSION="\$\{HEX_VERSION%\.ez\}"/);
   assert.match(proofTools, /REBAR_VERSION:\s*\$\{\{\s*steps\.setup-beam\.outputs\.rebar3-version\s*\}\}/);
   assert.match(proofTools, /echo "rebar-version=\$REBAR_VERSION"/);
   assert.match(proofTools, /test -n "\$REBAR_VERSION"/);

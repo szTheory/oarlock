@@ -378,7 +378,9 @@ jobs:
         env:
           REBAR_VERSION: ${{ steps.setup-beam.outputs.rebar3-version }}
         run: |
-          HEX_VERSION="$(find "$HOME/.mix/archives" -maxdepth 1 -type f -name 'hex-*.ez' -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)\.ez$|\1|')"
+          HEX_ENTRY="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort -V | tail -1)"
+          HEX_VERSION="${HEX_ENTRY##*/hex-}"
+          HEX_VERSION="${HEX_VERSION%.ez}"
           test -n "$HEX_VERSION"
           test -n "$REBAR_VERSION"
           echo "hex-version=$HEX_VERSION" >> "$GITHUB_OUTPUT"
