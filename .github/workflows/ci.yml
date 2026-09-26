@@ -366,8 +366,10 @@ jobs:
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         id: setup-beam
         with:
-          version-file: .tool-versions
-          version-type: strict
+          otp-version: "28.1"
+          elixir-version: "1.19.5-otp-28"
+          rebar3-version: ">0"
+          version-type: loose
           install-hex: true
           install-rebar: true
 
