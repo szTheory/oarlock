@@ -7,6 +7,9 @@ const MAX_BUFFER = 4 * 1024 * 1024;
 const TIMEOUT_MS = 15_000;
 const ARCHIVE_PREFIX = ".planning/milestones/";
 const EVIDENCE_PATH = ".planning/EVIDENCE.md";
+const JTBD_PATH = ".planning/JTBD-COVERAGE.md";
+const JTBD_HORIZONS = new Set(["short", "mid", "long"]);
+const JTBD_STATUSES = new Set(["shipped", "committed", "candidate", "conditional", "rejected", "external", "superseded"]);
 
 class ObservationError extends Error {}
 
@@ -69,6 +72,17 @@ function validCorrectionRow(line) {
     && cells.slice(2).some((cell) => /\b(?:correction|erratum)\b/i.test(cell));
 }
 
+function requirementEvidenceId(line) {
+  if (!/^\s*\|.*\|\s*$/.test(line)) return null;
+  const cells = line.split("|").slice(1, -1).map(cell => cell.trim());
+  if (cells.length !== 7 || !/^[A-Z][A-Z0-9]*-[0-9]+$/.test(cells[0])
+    || !validDate(cells[1]) || !/^v[0-9]+\.[0-9]+$/.test(cells[2])
+    || !/^\[[^\]\n]+\]\(phases\/[0-9]+-[a-z0-9-]+\/[0-9]+-VERIFICATION\.md\)$/.test(cells[3])
+    || !/\bcorrection\b/i.test(cells[4]) || !cells[5]
+    || !/^(?:Verified|Satisfied \(scoped historical override\))$/.test(cells[6])) return null;
+  return cells[0];
+}
+
 function compareEvidence(baseContent, headContent) {
   if (!headContent.subarray(0, baseContent.length).equals(baseContent)) {
     return { valid: false, additions: [], reason: "base ledger bytes are missing, modified, or reordered" };
@@ -83,8 +97,16 @@ function compareEvidence(baseContent, headContent) {
   }
   const additions = suffix.split("\n");
   if (additions.at(-1) === "") additions.pop();
-  const invalid = additions.filter((line) => !validCorrectionRow(line));
-  if (invalid.length > 0) return { valid: false, additions, reason: "added ledger content is not a valid dated correction row" };
+  const requirementIds = new Set(baseContent.toString("utf8").split(/\r?\n/)
+    .map(line => /^\s*\|\s*([A-Z][A-Z0-9]*-[0-9]+)\s*\|/.exec(line)?.[1]).filter(Boolean));
+  const invalid = additions.filter((line) => {
+    if (validCorrectionRow(line)) return false;
+    const id = requirementEvidenceId(line);
+    if (!id || requirementIds.has(id)) return true;
+    requirementIds.add(id);
+    return false;
+  });
+  if (invalid.length > 0) return { valid: false, additions, reason: "added ledger content is not a valid dated correction or unique requirement evidence row" };
   return { valid: true, additions, reason: null };
 }
 
@@ -106,6 +128,76 @@ function validInitialEvidence(content) {
   if (tableRows.length < 3 || !/^\s*\|\s*Date\s*\|/.test(tableRows[0]) || !/^\s*\|[-| ]+\|\s*$/.test(tableRows[1])) return false;
   const rows = tableRows.slice(2);
   return rows.length > 0 && rows.every(validCorrectionRow);
+}
+
+function jtbdHistoryById(content) {
+  const lines = content.toString("utf8").split(/\r?\n/);
+  const sections = new Map();
+  for (let start = 0; start < lines.length; start += 1) {
+    const heading = lines[start].match(/^## (JTBD-[A-Z0-9-]+)\s*$/);
+    if (!heading) continue;
+    let end = start + 1;
+    while (end < lines.length && !/^## /.test(lines[end])) end += 1;
+    const section = lines.slice(start + 1, end);
+    const historyAt = section.findIndex((line) => /^### Status history\s*$/.test(line));
+    if (historyAt < 0) {
+      sections.set(heading[1], { rows: [], hasHistory: false });
+      continue;
+    }
+    const history = section.slice(historyAt + 1);
+    const headerAt = history.findIndex((line) => /^\s*\|/.test(line));
+    const rows = headerAt < 0 ? [] : history.slice(headerAt + 1).filter((line) => /^\s*\|/.test(line) && !/^\s*\|\s*:?-{3,}/.test(line));
+    sections.set(heading[1], { rows, hasHistory: headerAt >= 0 });
+    start = end - 1;
+  }
+  return sections;
+}
+
+function parseJtbdTransition(line) {
+  if (!/^\s*\|.*\|\s*$/.test(line)) return null;
+  const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+  if (![10, 11].includes(cells.length)) return null;
+  const [date, priorHorizon, newHorizon, priorStatus, newStatus, source, owner, rationale, evidence] = cells;
+  const caveat = cells.at(-1);
+  const evidenceClass = cells.length === 11 ? cells[9] : null;
+  if (!validDate(date) || !new Set([...JTBD_HORIZONS, "unknown"]).has(priorHorizon)
+    || !JTBD_HORIZONS.has(newHorizon) || !new Set([...JTBD_STATUSES, "unknown"]).has(priorStatus)
+    || !JTBD_STATUSES.has(newStatus) || [source, owner, rationale, evidence, caveat].some((value) => !value)
+    || (evidenceClass !== null && !evidenceClass)) return null;
+  return { date, priorHorizon, newHorizon, priorStatus, newStatus };
+}
+
+function compareJtbdHistory(baseContent, headContent) {
+  const base = jtbdHistoryById(baseContent);
+  const head = jtbdHistoryById(headContent);
+  const violations = [];
+  for (const [id, prior] of base) {
+    const current = head.get(id);
+    if (!current || !prior.hasHistory || !current.hasHistory || current.rows.length < prior.rows.length
+      || prior.rows.some((row, index) => row !== current.rows[index])) {
+      violations.push({ code: "HIST_JTBD_HISTORY_NOT_APPEND_ONLY", artifact: JTBD_PATH, change: "rewritten-or-truncated", record: id });
+      continue;
+    }
+  }
+  for (const [id, current] of head) {
+    if (!current.hasHistory) {
+      violations.push({ code: "HIST_JTBD_TRANSITION_INVALID", artifact: JTBD_PATH, change: "missing-history", record: id });
+      continue;
+    }
+    let previous = null;
+    for (const [index, row] of current.rows.entries()) {
+      const transition = parseJtbdTransition(row);
+      if (!transition) {
+        violations.push({ code: "HIST_JTBD_TRANSITION_INVALID", artifact: JTBD_PATH, change: "invalid-transition", record: id, row: index + 1 });
+        continue;
+      }
+      if (previous && (transition.priorHorizon !== previous.newHorizon || transition.priorStatus !== previous.newStatus || transition.date <= previous.date)) {
+        violations.push({ code: "HIST_JTBD_TRANSITION_INVALID", artifact: JTBD_PATH, change: "discontinuous-transition", record: id, row: index + 1 });
+      }
+      previous = transition;
+    }
+  }
+  return violations;
 }
 
 function inspectHistory(baseRevision, headRevision, options = {}) {
@@ -145,6 +237,16 @@ function inspectHistory(baseRevision, headRevision, options = {}) {
         code: "HIST_EVIDENCE_NOT_APPEND_ONLY", artifact: EVIDENCE_PATH, change: "invalid-new-ledger",
         reason: "new ledger must contain the canonical evidence sections and a valid dated correction table",
       });
+    }
+
+    const baseJtbd = readObject(result.base, JTBD_PATH, options, false);
+    const headJtbd = readObject(result.head, JTBD_PATH, options, false);
+    if (baseJtbd && !headJtbd) {
+      result.violations.push({ code: "HIST_JTBD_HISTORY_NOT_APPEND_ONLY", artifact: JTBD_PATH, change: "canonical-ledger-deleted" });
+    } else if (baseJtbd && headJtbd) {
+      result.violations.push(...compareJtbdHistory(baseJtbd, headJtbd));
+    } else if (!baseJtbd && headJtbd) {
+      result.violations.push(...compareJtbdHistory(Buffer.from(""), headJtbd));
     }
   } catch (error) {
     result.status = "incomplete";
@@ -203,4 +305,4 @@ function main(argv = process.argv.slice(2), options = {}) {
 
 if (require.main === module) process.exitCode = main();
 
-module.exports = { compareEvidence, inspectHistory, main, validCorrectionRow, validInitialEvidence };
+module.exports = { compareEvidence, compareJtbdHistory, inspectHistory, main, validCorrectionRow, validInitialEvidence };

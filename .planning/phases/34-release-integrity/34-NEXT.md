@@ -1,5 +1,13 @@
-# Phase 34: Release Integrity — Planning Handoff
+---
+phase: 34
+status: complete
+updated: 2026-09-27
+---
 
-Phase 34 is the next active phase, as defined by `.planning/ROADMAP.md`. Its goal is to bind automatic and recovery publication to the accepted exact-SHA CI and package identity. Requirements are SHIP-01 through SHIP-04.
+# Phase 34 — Completed handoff
 
-Planning has not started and no plan is declared here. Use `$gsd-discuss-phase 34` or `$gsd-plan-phase 34` to begin Phase 34 planning. This marker only anchors the canonical current-phase directory while Phase 34 is pending.
+All six plans and 11 automated UAT outcomes are complete. The explicit historical release disposition is already recorded.
+
+This historical phase has no outstanding execution or UAT command. Its former next-step instructions are superseded by Phase 37 closeout reconciliation. Follow `.planning/STATE.md` and `.planning/v2.2-CLOSEOUT-PLAN.md` for the current exact action; never restart this phase merely because this receipt exists.
+
+The prior document is retained byte-for-byte in Phase 37 preservation receipts. Phase 37 verifies the actual current candidate and workspace; it does not repeat completed product UAT.

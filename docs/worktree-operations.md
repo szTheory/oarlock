@@ -68,3 +68,99 @@ A CI checkout proves only the exact SHA and files tested by that CI run. It does
 ## Dated local observation
 
 On 2026-09-26, a read-only observation confirmed `workflow.use_worktrees: false`. Git also reported a locked linked tree on `refs/heads/worktree-agent-ae2a0ae67dfb5008f` at `56296a20841fc22a3bc232923d0e4589cfd9c4cb`; its machine-local path and lock reason are transient and intentionally omitted here. No worktree state was changed. A lock is evidence to preserve and investigate, not authority to unlock or remove.
+
+## Finite milestone closeout
+
+`closeout_check.cjs` composes preservation, candidate review and final workstation
+checks. It only reads sources and emits JSON; exit 0 means that stage passed and
+exit 2 means incomplete, unsafe or mismatched evidence. There is no cleanup flag.
+Unknown work can be preserved and investigated, but unresolved dispositions still
+block final closeout. A passing candidate check cannot replace current-main proof.
+
+Keep three identities separate:
+
+- **S:** an immutable private snapshot of every registered source tree, including
+  refs, original index, staged blobs, working files, deletions, modes and untracked
+  files. Its receipt ID and observed source HEAD identify historical facts.
+- **P:** the reviewed payload commit directly on the observed main base. The
+  candidate clone stays clean at P, and the open PR and retained eight-lane CI
+  artifact must identify P. CI's tested merge checkout is recorded separately.
+- **E:** the final source checkout HEAD, descended from P through reviewed
+  evidence-only commits. The checker resolves E from Git. A tracked handoff uses
+  `handoff_document_sha: "git:HEAD"`; it never embeds its own future commit SHA.
+
+Select a durable operator-controlled vault outside every checkout using
+`OARLOCK_CLOSEOUT_VAULT`. Its directory must be private (mode 0700), and paths
+beneath it must not escape through symlinks. Keep `locations.json` (the candidate
+clone's absolute `candidate` path), copied payloads and all local receipts there;
+never commit personal paths, raw patches or vault contents. The checked-in
+schema-v1 closeout manifest contains receipt IDs, disposition groups, exact
+candidate base/payload identities and reviewed Git diff records.
+
+The explicit capture harness is shared with real temporary-repository tests. Run
+it only after reviewing source and external destination paths, with a **new**
+receipt ID for each observation. It bundles refs, copies all byte versions, restores
+them independently, and rejects concurrent source changes. It never cleans a
+source tree:
+
+```sh
+node - <<'JS'
+const { capture } = require('./scripts/fixtures/closeout_snapshot.cjs');
+const { observe } = require('./scripts/closeout_check.cjs');
+capture(process.cwd(), process.env.OARLOCK_CLOSEOUT_VAULT,
+  'operator-selected-new-receipt', observe);
+JS
+
+node scripts/closeout_check.cjs --stage preservation \
+  --manifest .planning/phases/37-milestone-closeout-reconciliation/37-CLOSEOUT.json \
+  --json > "$OARLOCK_CLOSEOUT_VAULT/preservation-check.json"
+```
+
+The preservation stage requires the source still match S. Candidate/final stages
+retain S as historical preservation and independently revalidate its restored
+bytes; they do not require today's checkout to remain dirty like S. Each original
+dirty path must have an explicit disposition. Adopted paths require reviewed
+candidate blob/mode identities, and every main-to-P diff row must match the
+manifest exactly. External preservation is a retained destination, not permission
+to discard unknown work.
+
+```sh
+node scripts/closeout_check.cjs --stage candidate \
+  --manifest /path/to/reviewed-candidate-manifest.json --json \
+  > "$OARLOCK_CLOSEOUT_VAULT/candidate-check.json"
+```
+
+After candidate proof, reconcile the source trees under the recorded authorization,
+retaining their original history and snapshots. Write final summaries, validation
+and phase verification before finalizing the tracked schema-v2 handoff. Only an
+explicit subset of planning evidence paths may differ between P and E; executable,
+configuration and test changes require a new payload and new hosted proof. The
+checker also enforces frozen-history integrity.
+
+Review the complete P-to-E diff, then retain `evidence-tail.json` **outside** Git
+with `schema_version: 1`, `payload_sha`, `evidence_sha`, and the exact `changes`
+returned by `diffIdentity(root, P, E)`. Each row includes path, old/new mode,
+old/new blob ID and change status. This is the operator's review receipt, not an
+automatic approval: a missing or different row, SHA, executable mode or path
+outside the narrow evidence allowlist fails closed. No tracked file needs to
+contain its own hash.
+
+```sh
+node scripts/closeout_check.cjs --stage final \
+  --manifest .planning/phases/37-milestone-closeout-reconciliation/37-CLOSEOUT.json \
+  --json > "$OARLOCK_CLOSEOUT_VAULT/final-check.json"
+node scripts/jtbd_coverage.cjs --check-handoff --json \
+  > "$OARLOCK_CLOSEOUT_VAULT/handoff-check.json"
+```
+
+Final checks require the complete original tree census, all trees clean and
+unlocked, a valid S/P/E lineage, no open operational blockers, the live PR still
+at P, and independently verified current main at the candidate base. Repeated
+checks write no tracked files and leave the same evidence valid. A moved main,
+changed candidate, changed source or later commit invalidates the relevant check;
+resume that specific step instead of repeating completed UAT.
+
+The existing required Node lane discovers `scripts/closeout_check.test.cjs` via
+`scripts/*.test.cjs`. Its temporary-Git fixtures exercise restore and finalization
+without network access or any dependency on the operator's workstation. The live
+workstation and hosted checks above remain separate acceptance evidence.

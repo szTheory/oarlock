@@ -358,6 +358,9 @@ jobs:
       - name: Smoke live planning health JSON
         run: node scripts/planning_health.cjs --json
 
+      - name: Validate JTBD coverage
+        run: node scripts/jtbd_coverage.cjs --json
+
   quality:
     name: quality checks
     runs-on: ubuntu-24.04

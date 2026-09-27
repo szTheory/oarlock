@@ -41,6 +41,7 @@ defmodule Paddle.Http.TelemetryTest do
              step_index(req.error_steps, :retry)
   end
 
+  @tag phase32_bounded_proof: true, phase32_proof_id: :safe_02_telemetry_allowlist
   test "a successful physical attempt emits exact allowlisted start and stop payloads" do
     req =
       request(fn request ->

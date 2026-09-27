@@ -1,10 +1,10 @@
 ---
 schema_version: 1
 open_count: 0
-waived_count: 0
+waived_count: 1
 fixed_count: 11
-total_count: 11
-last_updated: 2026-09-11T01:37:55.720Z
+total_count: 12
+last_updated: 2026-09-27T17:51:34.707Z
 ---
 
 # Broken Windows Ledger
@@ -26,6 +26,7 @@ last_updated: 2026-09-11T01:37:55.720Z
 | 9 | 32 | deviation | README.md |  | Extended all first-read proof boundaries to the full six-tier evidence ladder | fixed |  | 2026-09-10T22:36:57.409Z | 2026-09-10T22:37:20.379Z |
 | 10 | 32 | deviation | .planning/STATE.md |  | Reconciled visible execution progress after the state handler advanced to already-completed Plan 11 | fixed |  | 2026-09-10T22:38:23.982Z | 2026-09-10T22:38:24.092Z |
 | 11 | 32 | deviation | .planning/STATE.md |  | Reconciled stale visible state prose after the SDK last-plan transition | fixed |  | 2026-09-11T01:37:35.442Z | 2026-09-11T01:37:55.720Z |
+| 12 | 34 | unrun-verify | .github/workflows/hex-publish.yml |  | First live Hex API and served-tarball checksum observation awaits the next qualifying release; no release was manufactured. | waived | Maintainer accepted historical v0.1.2 exception on 2026-09-26; publication readback completed, future gates stay strict | 2026-09-25T16:33:56.510Z | 2026-09-27T17:51:34.707Z |
 
 ````json
 [
@@ -160,6 +161,19 @@ last_updated: 2026-09-11T01:37:55.720Z
     "reason": "",
     "recorded_at": "2026-09-11T01:37:35.442Z",
     "resolved_at": "2026-09-11T01:37:55.720Z"
+  },
+  {
+    "id": 12,
+    "kind": "unrun-verify",
+    "phase": "34",
+    "file": ".github/workflows/hex-publish.yml",
+    "line": null,
+    "description": "First live Hex API and served-tarball checksum observation awaits the next qualifying release; no release was manufactured.",
+    "status": "waived",
+    "reason": "Maintainer accepted historical v0.1.2 exception on 2026-09-26; publication readback completed, future gates stay strict",
+    "recorded_at": "2026-09-25T16:33:56.510Z",
+    "resolved_at": "2026-09-27T17:51:34.707Z",
+    "milestone": "v2.2"
   }
 ]
 ````

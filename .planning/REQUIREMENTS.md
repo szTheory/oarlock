@@ -56,29 +56,29 @@ in the linked research files.
 
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
-- [ ] **SHIP-01**: Automatic and recovery publishing both fail before accessing release secrets unless the exact release SHA passed the complete required CI contract.
-- [ ] **SHIP-02**: Release automation verifies agreement among source SHA, tag, package version, built artifact, and published package.
-- [ ] **SHIP-03**: Publishing is serialized, least-privileged, and recovery follows the same quality and identity contract as automatic release.
-- [ ] **SHIP-04**: Maintainer can trace every release to durable evidence for its exact SHA, CI run, artifact, dry run, publication, and post-publish verification.
+- [x] **SHIP-01**: Automatic and recovery publishing both fail before accessing release secrets unless the exact release SHA passed the complete required CI contract.
+- [x] **SHIP-02**: Release automation verifies agreement among source SHA, tag, package version, built artifact, and published package.
+- [x] **SHIP-03**: Publishing is serialized, least-privileged, and recovery follows the same quality and identity contract as automatic release.
+- [x] **SHIP-04**: Maintainer can trace every release to durable evidence for its exact SHA, CI run, artifact, dry run, publication, and post-publish verification.
 
 ### PR, Triage, and Worktree Operations
 
 **Source basis:** USER-2026-09-09, RES-STACK, RES-FEATURES, RES-ARCH, RES-PITFALLS
 
-- [ ] **OPS-01**: Contributor receives concise contribution, security-reporting, ownership, issue, and PR guidance that requires one bounded intent and proportional evidence.
-- [ ] **OPS-02**: Maintainer can disposition every existing or new issue and PR with a controlled triage state, owner, scope decision, and next action.
-- [ ] **OPS-03**: Each task can use an isolated worktree with clean-entry and clean-exit checks; dirty, locked, stale, or unknown work is reported and never deleted automatically.
-- [ ] **OPS-04**: Dependency updates arrive as grouped, reviewable PRs that run the same compatibility and security contract as other changes.
+- [x] **OPS-01**: Contributor receives concise contribution, security-reporting, ownership, issue, and PR guidance that requires one bounded intent and proportional evidence.
+- [x] **OPS-02**: Maintainer can disposition every existing or new issue and PR with a controlled triage state, owner, scope decision, and next action.
+- [x] **OPS-03**: Each task can use an isolated worktree with clean-entry and clean-exit checks; dirty, locked, stale, or unknown work is reported and never deleted automatically.
+- [x] **OPS-04**: Dependency updates arrive as grouped, reviewable PRs that run the same compatibility and security contract as other changes.
 
 ### JTBD Coverage and Durable Trajectory
 
 **Source basis:** USER-2026-09-09, RES-SUMMARY, RES-FEATURES, RES-ARCH, RES-PITFALLS, SHIPPED-V2.1
 
-- [ ] **ORIENT-01**: Maintainer can view a canonical coverage map of relevant personas and stable JTBD IDs, including situation, desired outcome, current capability, smallest gap, and SDK/app/provider ownership boundary.
-- [ ] **ORIENT-02**: Every JTBD and capability decision records dated sources, rationale, owner or repository, requirement and phase links, proof contract, evidence, freshness trigger, non-goals, and promotion or reopen condition.
-- [ ] **ORIENT-03**: Maintainer can view a canonical trajectory that separates `short`/`mid`/`long` horizon from `shipped`/`committed`/`candidate`/`conditional`/`rejected`/`external`/`superseded` status.
-- [ ] **ORIENT-04**: Planning changes append dated status transitions while retaining previous rationale and evidence instead of silently rewriting history.
-- [ ] **ORIENT-05**: A validator detects broken or inconsistent links among JTBD records, requirements, phases, evidence, backlog entries, trajectory items, and milestone archives.
+- [x] **ORIENT-01**: Maintainer can view a canonical coverage map of relevant personas and stable JTBD IDs, including situation, desired outcome, current capability, smallest gap, and SDK/app/provider ownership boundary.
+- [x] **ORIENT-02**: Every JTBD and capability decision records dated sources, rationale, owner or repository, requirement and phase links, proof contract, evidence, freshness trigger, non-goals, and promotion or reopen condition.
+- [x] **ORIENT-03**: Maintainer can view a canonical trajectory that separates `short`/`mid`/`long` horizon from `shipped`/`committed`/`candidate`/`conditional`/`rejected`/`external`/`superseded` status.
+- [x] **ORIENT-04**: Planning changes append dated status transitions while retaining previous rationale and evidence instead of silently rewriting history.
+- [x] **ORIENT-05**: A validator detects broken or inconsistent links among JTBD records, requirements, phases, evidence, backlog entries, trajectory items, and milestone archives.
 - [ ] **ORIENT-06**: Milestone handoff records clean repository and worktree status, exact-SHA proof, remaining blockers, accepted caveats, and evidence-based candidates for the next discovery cycle.
 
 ## Future Requirements
@@ -141,20 +141,22 @@ promotes them through the provenance rules above.
 | CI-03 | Phase 33 | Complete |
 | CI-04 | Phase 33 | Complete |
 | CI-05 | Phase 33 | Complete |
-| SHIP-01 | Phase 34 | Pending |
-| SHIP-02 | Phase 34 | Pending |
-| SHIP-03 | Phase 34 | Pending |
-| SHIP-04 | Phase 34 | Pending |
-| OPS-01 | Phase 35 | Pending |
-| OPS-02 | Phase 35 | Pending |
-| OPS-03 | Phase 35 | Pending |
-| OPS-04 | Phase 35 | Pending |
-| ORIENT-01 | Phase 36 | Pending |
-| ORIENT-02 | Phase 36 | Pending |
-| ORIENT-03 | Phase 36 | Pending |
-| ORIENT-04 | Phase 36 | Pending |
-| ORIENT-05 | Phase 36 | Pending |
-| ORIENT-06 | Phase 36 | Pending |
+| SHIP-01 | Phase 34 | Complete |
+| SHIP-02 | Phase 34 | Complete |
+| SHIP-03 | Phase 34 | Complete |
+| SHIP-04 | Phase 34 | Complete |
+| OPS-01 | Phase 35 | Complete |
+| OPS-02 | Phase 35 | Complete |
+| OPS-03 | Phase 35 | Complete |
+| OPS-04 | Phase 35 | Complete |
+| ORIENT-01 | Phase 36 | Complete |
+| ORIENT-02 | Phase 36 | Complete |
+| ORIENT-03 | Phase 36 | Complete |
+| ORIENT-04 | Phase 36 | Complete |
+| ORIENT-05 | Phase 36 | Complete |
+| ORIENT-06 | Phase 37 | Pending |
+
+**2026-09-27 closeout assignment:** The milestone audit accepted Phase 36 implementation but identified ORIENT-06 operational acceptance as partial. Its unchanged requirement moves to Phase 37 for preservation/disposition, current exact-SHA proof and live clean-close acceptance. Phase 36's completed plans and automated UAT remain historical delivery evidence; no new requirement is added.
 
 **Coverage:**
 
@@ -165,4 +167,4 @@ promotes them through the provenance rules above.
 
 ---
 *Requirements defined: 2026-09-09*
-*Last updated: 2026-09-09 after v2.2 roadmap creation*
+*Last updated: 2026-09-27 to assign the audited operational gap to Phase 37*

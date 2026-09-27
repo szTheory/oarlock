@@ -40,10 +40,10 @@ coverage:
       - kind: unit
         ref: "node --test scripts/ci_workflow_contract.test.cjs"
         status: pass
-      - kind: static
+      - kind: other
         ref: "actionlint .github/workflows/ci.yml"
         status: pass
-      - kind: hosted
+      - kind: e2e
         ref: "run 36062578662; all eight required jobs passed"
         status: pass
     human_judgment: false
@@ -54,7 +54,7 @@ coverage:
       - kind: unit
         ref: "node --test scripts/ci_timing.test.cjs"
         status: pass
-      - kind: hosted
+      - kind: e2e
         ref: "node scripts/ci_timing.cjs --sha e75a3b1fd8b9bb86b30602f4c36c97cb60b26d97 --run-id 36062578662 --repo szTheory/oarlock --json"
         status: pass
     human_judgment: false

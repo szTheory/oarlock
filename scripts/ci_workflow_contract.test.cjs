@@ -6,6 +6,8 @@ const test = require("node:test");
 const root = join(__dirname, "..");
 const workflow = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8");
 const proofWriter = readFileSync(join(__dirname, "ci_proof.cjs"), "utf8");
+const seamTest = readFileSync(join(root, "test", "paddle", "seam_test.exs"), "utf8");
+const demoBillingFlowTest = readFileSync(join(root, "demo", "test", "demo_web", "integration", "billing_flow_test.exs"), "utf8");
 
 function jobBlock(id) {
   const start = workflow.indexOf(`  ${id}:\n`);
@@ -76,6 +78,11 @@ test("every CI-01 proof has an executable step in a required aggregate dependenc
     /Guard base-to-head planning history/,
     /Smoke live planning health JSON/,
   ]) assert.match(planning, pattern);
+  const planningHealth = hasStep(planning, "Smoke live planning health JSON", /run:\s*node scripts\/planning_health\.cjs --json/);
+  const jtbdCoverage = hasStep(planning, "Validate JTBD coverage", /run:\s*node scripts\/jtbd_coverage\.cjs --json/);
+  assert.ok(planning.indexOf(jtbdCoverage) > planning.indexOf(planningHealth), "JTBD coverage follows the planning-health smoke in the required planning-truth job");
+  const nodeSuite = hasStep(planning, "Run clean production Node suite", /run:\s*node --test scripts\/\*\.test\.cjs scripts\/prohibitions\/\*\.test\.cjs/);
+  assert.match(nodeSuite, /scripts\/\*\.test\.cjs/, "the recurring planning lane must run JTBD fixtures through its Node test glob");
 
   const quality = jobBlock("quality");
   assert.match(quality, /name:\s+quality checks/);
@@ -91,6 +98,23 @@ test("quality proof identity is required by workflow and proof writer", () => {
   assert.match(workflow, /quality:\s*\n\s+name:\s+quality checks/);
   assert.match(proofWriter, /"quality"/);
   assert.match(workflow, /needs:[\s\S]*?- quality[\s\S]*?if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+});
+
+test("integration seam, demo E2E, and package smoke stay in required CI", () => {
+  const requiredTest = jobBlock("test");
+  hasStep(requiredTest, "Run tests", /^\s*run:\s*mix test\s*$/m);
+  assert.match(seamTest, /test "locks the Accrue seam across the customer, checkout, webhook, and subscription lifecycle flow"/);
+
+  const demo = jobBlock("demo-postgres");
+  hasStep(demo, "Run demo tests", /^\s*run:\s*mix test\s*$/m);
+  assert.match(demoBillingFlowTest, /test "E2E Billing Flow:/);
+  assert.match(demoBillingFlowTest, /test "E2E Offline Flow:/);
+
+  hasStep(jobBlock("package-smoke"), "Build and compile fresh package consumer", /run:\s*bin\/package_smoke\.sh/);
+  const aggregate = jobBlock("ci-contract");
+  for (const id of ["test", "demo-postgres", "package-smoke"]) {
+    assert.match(aggregate, new RegExp(`needs:[\\s\\S]*?\\n\\s+- ${id}\\n`), `${id} must remain required by the aggregate CI contract`);
+  }
 });
 
 test("proof toolchain extracts the Rebar version format emitted by rebar3", () => {
