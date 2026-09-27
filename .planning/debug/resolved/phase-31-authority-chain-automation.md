@@ -1,22 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: 'Phase 31 UAT gap G-31-3: "Only the documented authority chain and canonical phase directory contribute proof." User requests recurring automated integration/e2e/smoke or CI coverage so no human UAT is required.'
 created: 2026-09-10T01:05:33Z
-updated: 2026-09-10T01:09:41Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
+hypothesis: The diagnosed PROHIB-REPO-02-TRANSPARENCY proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-07-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-hypothesis: Confirmed two-layer cause: unresolved prohibition metadata deterministically forces `human_needed`, and the authority-chain tests are local phase evidence rather than wired recurring/fail-first CI enforcement.
-test: Completed. Local suite and live smoke are green; PLAN metadata, enforcement descriptor, e2e coverage, and CI wiring were compared directly.
-expecting: Confirmed.
-next_action: Return root-cause-only diagnosis; do not implement changes.
-candidate_causes:
-  - "code/metadata: PROHIB-REPO-02-TRANSPARENCY remains unresolved with no verification reference, so the verifier requires human disposition by policy"
-  - "config/CI: recurring GitHub workflows omit the planning-health regression suite and live planning-health smoke command"
-  - "data/fixture coverage: the local suite may not explicitly exercise every named class (generated, cached, archived, merely present) as independent inputs"
-and_gate: "No for the immediate human_needed status: unresolved/null metadata alone is sufficient. Yes for the requested zero-human recurring guarantee: authoritative machine-verifiable prohibition disposition and recurring CI execution are both required."
 
 ## Symptoms
 
@@ -92,9 +87,14 @@ started: Discovered during Phase 31 UAT.
   found: The live command exits 0, selects milestone v2.2 / Phase 31 through ROADMAP+STATE, and returns no authority/completion errors.
   implication: Current repository behavior is healthy; the reported gap concerns durable automated proof and verifier disposition, not a live authority-selection defect.
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-07-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/prohibitions/planning_authority.test.cjs, scripts/fixtures/prohibitions/planning_phantom_authority.cjs, and .github/workflows/ci.yml
+  found: PROHIB-REPO-02-TRANSPARENCY is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: "PROHIB-REPO-02-TRANSPARENCY was carried into 31-02-PLAN.md as `status: unresolved`, `verification: null`, and descriptor-less, so GSD's fail-closed prohibition policy cannot treat the otherwise-green behavioral suite as authoritative and emits human_needed. For the requested zero-human recurring guarantee, the repository also lacks a fail-first wired prohibition check and a filesystem/CLI e2e case for the exact decoy matrix, and no push/PR/release workflow or CI-contract dependency runs planning_health tests or the live smoke."
-fix: "Not applied (diagnose-only). Suggested direction: convert the prohibition to resolved/test with a valid wired descriptor plus machine-provable violating and clean fixtures; add a filesystem-level CLI regression for generated/cache/archive/merely-present artifacts and canonical completion; run the planning-health suite/live smoke in recurring CI and include that job in the aggregate CI contract."
-verification: "Diagnosis confirmed by 37/37 local planning-health tests passing, live planning-health exit 0, direct PLAN metadata inspection, GSD prohibition policy inspection, CLI invocation-site audit, and all-workflow command search showing no planning-health CI execution."
-files_changed: []
+fix: "Phase 31 Plan 07 resolved the authority prohibition with a fail-first subject-driven test and production clean control. Plan 09 wires all six prohibition checks, the Node suite, history guard, live planning-health smoke, and aggregate CI contract."
+verification: "Validated by 31-07-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/prohibitions/planning_authority.test.cjs", "scripts/fixtures/prohibitions/planning_phantom_authority.cjs", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-07-SUMMARY.md"]

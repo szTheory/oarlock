@@ -182,6 +182,7 @@ defmodule Paddle.Customers.AddressesTest do
                Addresses.list(client, "ctm_01", status: "archived")
     end
 
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_05_address_validation
     test "returns exact validation tuples before dispatch" do
       client =
         client_with_adapter(
@@ -195,6 +196,7 @@ defmodule Paddle.Customers.AddressesTest do
   end
 
   describe "stream/3" do
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_04_address_stream_pagination
     test "streams addresses across three nested pages in order and replays Paddle next URLs" do
       {client, requests} = client_with_get_sequence(address_pagination_requests())
 

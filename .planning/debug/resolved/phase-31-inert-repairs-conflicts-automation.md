@@ -1,21 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 31 UAT gap G-31-4: determine why the truth 'Repairs remain inert and authority conflicts remain blocking' still requires human UAT and what recurring automated integration/e2e/smoke or CI coverage is missing."
 created: 2026-09-10T01:11:37Z
-updated: 2026-09-10T01:14:33Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
-hypothesis: Confirmed — human UAT is caused by unresolved descriptor-less prohibition metadata, while zero-human recurring assurance is additionally blocked by missing planning-health CI and missing fail-first CLI/filesystem prohibition fixtures.
-test: Completed: PLAN/verification trace, focused and full local tests, live CLI, prohibition-enforcement contract audit, descriptor search, and workflow/CI-contract audit.
-expecting: Confirmed by direct evidence; alternatives are recorded under Eliminated.
-next_action: Return diagnose-only root cause and suggested automation direction to the orchestrator; do not implement changes.
+hypothesis: The diagnosed PROHIB-REPO-04-SAFETY proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-07-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-candidate_causes:
-  - "data: source PLAN prohibition metadata remains unresolved/null even after behavioral verification"
-  - "config: recurring CI/test entry points may not include scripts/planning_health.test.cjs"
-and_gate: "yes for the user's zero-human recurring goal: authoritative prohibition disposition and recurring CI/e2e enforcement are independently missing; either omission leaves human UAT or regression exposure"
 
 ## Symptoms
 
@@ -86,9 +82,14 @@ started: Discovered during Phase 31 UAT.
   found: CI-01 explicitly requires planning guards in every proposed change's complete proof contract, but CI-01 is pending and assigned to future Phase 33.
   implication: The repository itself recognizes recurring planning-guard CI as valuable, but that contract is not implemented yet; Phase 31's local Nyquist validation cannot substitute for it.
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-07-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/prohibitions/planning_repair_safety.test.cjs, scripts/fixtures/prohibitions/planning_conflict_repair.cjs, and .github/workflows/ci.yml
+  found: PROHIB-REPO-04-SAFETY is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: "Two contributing gaps cause G-31-4's human-UAT/zero-recurring-proof result: (1) data/verification-contract gap — `PROHIB-REPO-04-SAFETY` was intentionally left `status: unresolved`, `verification: null`, `flagged_unverified: true`, with no `check_*` descriptor or bad/clean fixtures, so GSD must fail closed and route it to human review even when ordinary behavioral tests pass; (2) config/coverage gap — the planning-health Node suite and live smoke are absent from push/PR/release CI and from the aggregate CI contract, and the local suite separates conflict blocking from healthy-run byte preservation instead of providing one fail-first CLI/filesystem check proving a conflicting input returns nonzero, selects no winner, executes no repair, and preserves bytes."
-fix: "Not applied (diagnose-only). Suggested direction: resolve the prohibition at the test tier and wire a node-test descriptor to a content-dependent known-bad conflict/repair-attempt fixture plus known-clean control; make the test drive `planning_health.cjs` through the filesystem/CLI boundary and assert nonzero blocking diagnostics, `active: null`, unchanged planning/repository state, and inert repair fields. Run the planning-health suite (and a live read-only smoke where stable) in push/PR CI, add the lane to `ci-contract` and the exact-SHA monitor. This naturally fulfills pending CI-01/Phase 33 planning-guard work."
-verification: "Diagnosis confirmed by direct PLAN and verifier metadata, GSD prohibition-policy inspection, absence of descriptor wiring, focused 3/3 and full 37/37 planning-health tests passing, live planning health exit 0/healthy, and all-workflow/CI-contract search showing no planning-health execution."
-files_changed: []
+fix: "Phase 31 Plan 07 resolved the repair-safety prohibition with a filesystem/CLI conflict fixture and production clean control. Plan 09 runs the six-check enforcement and live planning-health lane in required CI."
+verification: "Validated by 31-07-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/prohibitions/planning_repair_safety.test.cjs", "scripts/fixtures/prohibitions/planning_conflict_repair.cjs", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-07-SUMMARY.md"]

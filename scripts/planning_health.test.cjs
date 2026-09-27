@@ -139,6 +139,13 @@ function completedSnapshot() {
   return snapshot;
 }
 
+function completedSnapshotWithStatus(status) {
+  const snapshot = completedSnapshot();
+  const content = snapshot.documents[".planning/STATE.md"].content.replace("status: complete", `status: ${status}`);
+  snapshot.documents[".planning/STATE.md"] = { content, identity: { size: Buffer.byteLength(content) } };
+  return snapshot;
+}
+
 test("committed requirements: bounded parser excludes source anchors and future candidates", () => {
   const parsed = parseCommittedRequirements(planningDocuments()[".planning/REQUIREMENTS.md"], "v2.2");
   assert.deepEqual(parsed.requirements.map(({ id }) => id), ["REPO-01", "REPO-02"]);
@@ -188,6 +195,34 @@ test("authority: STATE status must be unique, supported, and consistent with ROA
   }));
   assert.equal(contradiction.active, null);
   assert.ok(contradiction.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
+});
+
+test("authority: supported nonterminal GSD lifecycle statuses route an incomplete phase", () => {
+  for (const status of ["unknown", "paused", "executing", "planning", "discussing", "verifying"]) {
+    const scope = resolveActiveScope(snapshotFrom({
+      ".planning/STATE.md": `---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: ${status}\n---\n`,
+    }));
+    assert.deepEqual(scope.active, { milestone: "v2.2", phase: "31" }, status);
+    assert.deepEqual(scope.diagnostics, [], status);
+  }
+});
+
+test("authority: terminal GSD statuses agree only with a completed roadmap phase", () => {
+  for (const status of ["complete", "completed"]) {
+    const scope = resolveActiveScope(completedSnapshotWithStatus(status));
+    assert.deepEqual(scope.active, { milestone: "v2.2", phase: "31" }, status);
+    assert.deepEqual(scope.diagnostics, [], status);
+  }
+
+  const incomplete = resolveActiveScope(snapshotFrom({
+    ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: completed\n---\n",
+  }));
+  assert.equal(incomplete.active, null);
+  assert.ok(incomplete.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
+
+  const completedButPlanning = resolveActiveScope(completedSnapshotWithStatus("planning"));
+  assert.equal(completedButPlanning.active, null);
+  assert.ok(completedButPlanning.diagnostics.some(({ code }) => code === "PSCOPE_PHASE_STATUS_CONFLICT"));
 });
 
 test("authority: duplicate STATE routing fields are ambiguous regardless of order or equality", () => {
@@ -317,6 +352,26 @@ test("authority collection: not-yet-started mapped phases need no directory", ()
   }
 });
 
+test("authority collection: active planning phase may await its first planning artifact", () => {
+  const snapshot = snapshotFrom({
+    ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: planning\n---\n",
+    ".planning/ROADMAP.md": `# Roadmap\n\n## Milestones\n\n- 🚧 **v2.2 Trust** — Phases 31-32 (active)\n\n## Phases\n\n- [ ] **Phase 31: Repository Truth** - current\n- [ ] **Phase 32: Later** - future\n\n### Phase 31: Repository Truth\n\n**Requirements**: REPO-01, REPO-02\n`,
+  });
+  snapshot.phaseArtifacts = [];
+  snapshot.artifactContents = {};
+  const health = evaluatePlanningHealth(snapshot);
+  assert.equal(health.activeScope.active.phase, "31");
+  assert.equal(health.diagnostics.some(({ code }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING"), false);
+
+  const executing = snapshotFrom({
+    ".planning/STATE.md": "---\nmilestone: v2.2\ncurrent_phase: 31\nstatus: executing\n---\n",
+    ".planning/ROADMAP.md": `# Roadmap\n\n## Milestones\n\n- 🚧 **v2.2 Trust** — Phases 31-32 (active)\n\n## Phases\n\n- [ ] **Phase 31: Repository Truth** - current\n- [ ] **Phase 32: Later** - future\n\n### Phase 31: Repository Truth\n\n**Requirements**: REPO-01, REPO-02\n`,
+  });
+  executing.phaseArtifacts = [];
+  executing.artifactContents = {};
+  assert.ok(evaluatePlanningHealth(executing).diagnostics.some(({ code }) => code === "PSCOPE_CANONICAL_PHASE_DIRECTORY_MISSING"));
+});
+
 test("completion: every declared proof link is required and a filename alone proves nothing", () => {
   const healthy = completedSnapshot();
   assert.deepEqual(validateCompletionProof(healthy, "31"), []);
@@ -332,6 +387,33 @@ test("completion: every declared proof link is required and a filename alone pro
     "PCOMP_ROADMAP_NOT_ACCEPTED",
     "PCOMP_SUMMARY_UNPROVEN",
     "PCOMP_VERIFICATION_UNPROVEN",
+  ]);
+});
+
+test("completion: explicit SATISFIED verifier rows count as requirement proof", () => {
+  const snapshot = completedSnapshot();
+  snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = `---
+status: passed
+---
+
+| Requirement | Status |
+|-------------|--------|
+| REPO-01 | ✓ SATISFIED |
+| REPO-02 | SATISFIED |
+`;
+  assert.deepEqual(validateCompletionProof(snapshot, "31"), []);
+
+  snapshot.artifactContents[".planning/phases/31-repository-truth/31-VERIFICATION.md"] = `---
+status: passed
+---
+
+| Requirement | Status |
+|-------------|--------|
+| REPO-01 | SATISFIED (pending review) |
+| REPO-02 | SATISFIED |
+`;
+  assert.deepEqual(validateCompletionProof(snapshot, "31").map(({ code }) => code), [
+    "PCOMP_REQUIREMENT_UNLINKED",
   ]);
 });
 

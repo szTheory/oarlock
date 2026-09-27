@@ -153,6 +153,12 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 - [x] **DOCS-02 / PROOF-02 closure**: Demo checkout and customer portal
   handoffs are directly verified through deterministic MockServer-backed
   LiveView/PhoenixTest coverage. *(Validated in Phase 30)*
+- [x] **SHIP-01..04**: Automatic and recovery release paths enforce exact-SHA
+  gates, serialized least-privilege publication, and durable evidence
+  requirements. Phase 34 closed with two explicit maintainer overrides for
+  the v0.1.2 pre-control exception; candidate-to-served-byte identity remains
+  unproven and its `release-evidence.json` asset is absent. Future release
+  gates remain strict. *(Validated in Phase 34)*
 
 ### Active
 
@@ -183,6 +189,8 @@ oarlock exposed a closed, documented consumer surface for Accrue:
 | **Repository Truth** | Planning and cleanup decisions need one bounded, non-mutating authority chain. | Phase 31 established fail-closed inventory, planning-health, history-integrity, and six recurring bad/clean prohibition proofs. |
 | **Planning Evidence** | Completion claims must be tied to exact canonical artifacts and per-requirement evidence. | Summaries, verification, requirement mappings, milestone identities, and archive links are validated independently; ambiguity blocks. |
 | **Planning-Truth CI** | Local green results cannot stand in for hosted exact-SHA proof. | CI now has a required planning-truth lane and the monitor requires its result for the exact commit SHA. |
+| **Candidate CI Closeout** | A passing check alone does not close a verification gap; candidate, PR event head, tested SHA, run attempt, and retained proof artifact must agree. | Phase 35 closed its hosted-CI gap against the exact open PR head, with all eight required jobs and artifact identity recorded; each PR keeps its own disposition. |
+| **v0.1.2 Pre-Control Exception** | The original candidate artifact and historical workflow evidence are unavailable, so two release facts cannot be proved retroactively. | The maintainer accepted a scoped historical exception; candidate-to-served-byte identity remains unproven and the release has no `release-evidence.json`. All future release gates remain strict. |
 
 ## Integration Consumers
 
@@ -217,4 +225,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-10 after Phase 31*
+*Last updated: 2026-09-26 after Phase 34*

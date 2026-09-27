@@ -1,7 +1,7 @@
 ---
 phase: "33"
 slug: "deterministic-green-ci"
-status: complete
+status: validated
 nyquist_compliant: true
 wave_0_complete: true
 created: "2026-09-24"
@@ -59,3 +59,13 @@ All repository behavior and workflow contracts should have automated checks. Rem
 - [x] `nyquist_compliant: true` set in frontmatter after phase validation
 
 **Approval:** approved — all task evidence, candidate/main hosted proof, and timing comparison passed.
+
+## Validation Audit 2026-09-26
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All eight task-to-requirement rows have executable local or hosted checks. Refreshed evidence passed 41 Node CI contract tests, 18 targeted ExUnit tests, `actionlint`, and the exact-current-main hosted gate. No additional tests were needed.

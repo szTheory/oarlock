@@ -9,6 +9,46 @@ VERIFY_RECEIPT_PATH="$EVIDENCE_DIR/phase32-verifier.receipt"
 RECEIPT_PATH="$FULL_RECEIPT_PATH"
 ACCRUE_CHECKOUT="${ACCRUE_CHECKOUT:-}"
 declare -a ROW_RESULTS=()
+BOUNDED_PROOF_DIR=""
+BOUNDED_PROOF_EVENTS_FILE=""
+BOUNDED_PROOF_LOG=""
+
+cleanup_bounded_proof_dir() {
+  if [[ -n "$BOUNDED_PROOF_DIR" && -d "$BOUNDED_PROOF_DIR" ]]; then
+    rm -rf "$BOUNDED_PROOF_DIR"
+  fi
+}
+trap cleanup_bounded_proof_dir EXIT
+
+bounded_proof_files() {
+  printf '%s\n' \
+    test/paddle/error_test.exs \
+    test/paddle/http_test.exs \
+    test/paddle/client_test.exs \
+    test/paddle/http/telemetry_test.exs \
+    test/paddle/inspection_safety_test.exs \
+    test/paddle/customers/addresses_test.exs \
+    test/paddle/seam_test.exs
+}
+
+bounded_expected_triples() {
+  cat <<'EOF'
+safe_01_full_receipt_invalidation|Paddle.SeamTest|test Phase 32 full receipt invalidation precedes every Accrue preflight
+safe_02_telemetry_allowlist|Paddle.Http.TelemetryTest|test a successful physical attempt emits exact allowlisted start and stop payloads
+safe_03_recursive_inspect_redaction|Paddle.InspectionSafetyTest|test all six capability-bearing values redact promoted, nested, and transport canaries
+safe_04_ambiguous_mutation|Paddle.ErrorTest|test context-aware constructors from_response/2 prefers body meta request_id and marks uncertain mutations
+safe_04_public_retry_options|Paddle.HttpTest|test validate_public_request_opts!/1 accepts only a unique boolean retry option
+safe_04_retry_decision|Paddle.HttpTest|test request/4 retry policy retry decisions are deterministic, safe-read-only, and cap only 429 Retry-After
+safe_04_address_stream_pagination|Paddle.Customers.AddressesTest|test stream/3 streams addresses across three nested pages in order and replays Paddle next URLs
+safe_05_custom_base_url|Paddle.ClientTest|test new!/1 base-URL-only custom client performs one adapter-backed request
+safe_05_address_validation|Paddle.Customers.AddressesTest|test list/3 returns exact validation tuples before dispatch
+safe_06_address_stream_docs|Paddle.SeamTest|test address stream documentation matches direct elements and raised enumeration failures
+safe_06_compiled_docs_types_specs|Paddle.SeamTest|test compiled docs types and specs agree with the Phase 32 decision tables
+safe_06_contract_receipt_finalization|Paddle.SeamTest|test Phase 32 bounded contract receipt finalizes only from successful exit
+safe_06_evidence_tier_separation|Paddle.SeamTest|test Phase 32 proof runners separate bounded verification from full acceptance
+safe_06_public_contract_docs|Paddle.SeamTest|test public documentation pins the secure dependency and runtime migration contract
+EOF
+}
 
 tracked_diff_fingerprint() {
   local snapshot
@@ -45,19 +85,93 @@ run_root_mix() {
   fi
 }
 
+validate_exact_lines() {
+  local expected="$1" observed="$2" label="$3" expected_sorted observed_sorted
+  expected_sorted="$BOUNDED_PROOF_DIR/${label}.expected.sorted"
+  observed_sorted="$BOUNDED_PROOF_DIR/${label}.observed.sorted"
+  LC_ALL=C sort "$expected" >"$expected_sorted"
+  LC_ALL=C sort "$observed" >"$observed_sorted"
+  [[ "$(wc -l <"$expected_sorted" | tr -d ' ')" == "$(wc -l <"$observed_sorted" | tr -d ' ')" ]] || {
+    printf '%s count differs from canonical manifest\n' "$label" >&2
+    return 1
+  }
+  [[ "$(uniq -d "$observed_sorted" | wc -l | tr -d ' ')" == "0" ]] || {
+    printf '%s contains duplicate identities\n' "$label" >&2
+    return 1
+  }
+  cmp -s "$expected_sorted" "$observed_sorted" || {
+    printf '%s differs from canonical manifest\n' "$label" >&2
+    diff -u "$expected_sorted" "$observed_sorted" >&2 || true
+    return 1
+  }
+}
+
+validate_bounded_source_manifest() {
+  local expected observed expected_sources observed_sources file tag_file
+  expected="$BOUNDED_PROOF_DIR/expected-triples"
+  observed="$BOUNDED_PROOF_DIR/observed-source-ids"
+  expected_sources="$BOUNDED_PROOF_DIR/expected-source-files"
+  observed_sources="$BOUNDED_PROOF_DIR/observed-source-files"
+  tag_file="$BOUNDED_PROOF_DIR/source-tags"
+  bounded_expected_triples >"$expected"
+  bounded_proof_files >"$expected_sources"
+  : >"$observed"
+  : >"$observed_sources"
+  while IFS= read -r -d '' file; do
+    : >"$tag_file"
+    awk '
+      function emit_tag(    line) {
+        if (tag !~ /phase32_proof_id:/) return
+        if (tag !~ /@tag[[:space:]]+phase32_bounded_proof:[[:space:]]*true/ || tag !~ /phase32_proof_id:[[:space:]]*:[a-z0-9_]+/) {
+          print "malformed or unpaired proof tag" > "/dev/stderr"; failed=1; return
+        }
+        line=tag
+        sub(/^.*phase32_proof_id:[[:space:]]*:/, "", line)
+        sub(/[^a-z0-9_].*$/, "", line)
+        print line
+      }
+      /@tag[[:space:]]/ { emit_tag(); tag=$0; next }
+      tag != "" && /^[[:space:]]+[a-z0-9_]+:/ { tag=tag " " $0; next }
+      tag != "" { emit_tag(); tag="" }
+      END { emit_tag(); if (failed) exit 2 }
+    ' "$file" >"$tag_file" || return 1
+    if [[ -s "$tag_file" ]]; then
+      printf '%s\n' "${file#"$ROOT_DIR/"}" >>"$observed_sources"
+      cat "$tag_file" >>"$observed"
+    fi
+  done < <(find "$ROOT_DIR/test" -type f -name '*_test.exs' -print0)
+  cut -d'|' -f1 "$expected" >"$BOUNDED_PROOF_DIR/expected-source-ids"
+  validate_exact_lines "$BOUNDED_PROOF_DIR/expected-source-ids" "$observed" source-proof-ids
+  validate_exact_lines "$expected_sources" "$observed_sources" source-proof-files
+}
+
+validate_exunit_summary() {
+  local summary tests failures expected_count
+  summary="$(grep -E '[0-9]+ tests?, [0-9]+ failures?' "$BOUNDED_PROOF_LOG" | tail -n 1 || true)"
+  [[ -n "$summary" ]] || { printf 'ExUnit completion summary missing\n' >&2; return 1; }
+  tests="$(printf '%s\n' "$summary" | sed -E 's/^([0-9]+) tests?, ([0-9]+) failures?.*/\1/')"
+  failures="$(printf '%s\n' "$summary" | sed -E 's/^[0-9]+ tests?, ([0-9]+) failures?.*/\1/')"
+  expected_count="$(wc -l <"$BOUNDED_PROOF_DIR/expected-triples" | tr -d ' ')"
+  [[ "$tests" == "$expected_count" && "$failures" == "0" ]] || {
+    printf 'ExUnit summary mismatch: tests=%s failures=%s expected=%s\n' "$tests" "$failures" "$expected_count" >&2
+    return 1
+  }
+}
+
 run_bounded_mix() {
-  run_root_mix \
-    test/paddle/error_test.exs:104 \
-    test/paddle/http_test.exs:137 \
-    test/paddle/http_test.exs:236 \
-    test/paddle/client_test.exs:154 \
-    test/paddle/http/telemetry_test.exs:43 \
-    test/paddle/inspection_safety_test.exs:119 \
-    test/paddle/customers/addresses_test.exs:198 \
-    test/paddle/customers/addresses_test.exs:185 \
-    test/paddle/seam_test.exs:1008 \
-    test/paddle/seam_test.exs:1056 \
-    test/paddle/seam_test.exs:1073
+  local events expected
+  BOUNDED_PROOF_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oarlock-phase32-bounded.XXXXXX")"
+  BOUNDED_PROOF_EVENTS_FILE="$BOUNDED_PROOF_DIR/runtime-triples"
+  BOUNDED_PROOF_LOG="$BOUNDED_PROOF_DIR/mix.log"
+  : >"$BOUNDED_PROOF_EVENTS_FILE"
+  validate_bounded_source_manifest || return 1
+  expected="$BOUNDED_PROOF_DIR/expected-triples"
+  bounded_expected_triples | LC_ALL=C sort >"$expected"
+
+  PHASE32_PROOF_EVENTS_FILE="$BOUNDED_PROOF_EVENTS_FILE" \
+    run_root_mix --only phase32_bounded_proof $(bounded_proof_files) 2>&1 | tee "$BOUNDED_PROOF_LOG"
+  validate_exact_lines "$expected" "$BOUNDED_PROOF_EVENTS_FILE" runtime-proof-triples
+  validate_exunit_summary
 }
 
 run_package_smoke() {
@@ -143,7 +257,7 @@ fake_matrix() {
 
 self_test() {
   local self_test_dir failure_dir interrupted_dir success_dir preflight_missing_dir preflight_invalid_dir
-  local ready_path interrupted_pid receipt_count
+  local ready_path interrupted_pid receipt_count expected observed
   self_test_dir="$(mktemp -d)"
   trap 'rm -rf "$self_test_dir"' RETURN
 
@@ -153,6 +267,50 @@ self_test() {
   preflight_missing_dir="$self_test_dir/preflight-missing"
   preflight_invalid_dir="$self_test_dir/preflight-invalid"
   mkdir -p "$failure_dir" "$interrupted_dir" "$success_dir" "$preflight_missing_dir" "$preflight_invalid_dir"
+
+  BOUNDED_PROOF_DIR="$self_test_dir/proof-validation"
+  mkdir -p "$BOUNDED_PROOF_DIR"
+  expected="$BOUNDED_PROOF_DIR/expected-triples"
+  observed="$BOUNDED_PROOF_DIR/observed-triples"
+  bounded_expected_triples >"$expected"
+  validate_bounded_source_manifest
+  cp "$expected" "$observed"
+  validate_exact_lines "$expected" "$observed" self-test-exact
+
+  # Same IDs and count, but swapped test bindings must fail.
+  printf '%s\n' 'proof_a|Paddle.Test|first test' 'proof_b|Paddle.Test|second test' >"$expected"
+  printf '%s\n' 'proof_a|Paddle.Test|second test' 'proof_b|Paddle.Test|first test' >"$observed"
+  if validate_exact_lines "$expected" "$observed" self-test-swapped >/dev/null 2>&1; then
+    printf 'Self-test accepted swapped proof-to-test bindings\n' >&2
+    return 1
+  fi
+  printf '%s\n' 'proof_a|Paddle.Test|first test' >"$observed"
+  if validate_exact_lines "$expected" "$observed" self-test-missing >/dev/null 2>&1; then
+    printf 'Self-test accepted a missing proof identity\n' >&2
+    return 1
+  fi
+  printf '%s\n' 'proof_a|Paddle.Test|first test' 'proof_a|Paddle.Test|first test' >"$observed"
+  if validate_exact_lines "$expected" "$observed" self-test-duplicate >/dev/null 2>&1; then
+    printf 'Self-test accepted duplicate proof identities\n' >&2
+    return 1
+  fi
+  printf '%s\n' 'proof_a|Paddle.Test|first test' 'proof_c|Paddle.Test|third test' >"$observed"
+  if validate_exact_lines "$expected" "$observed" self-test-unexpected >/dev/null 2>&1; then
+    printf 'Self-test accepted an unexpected proof identity\n' >&2
+    return 1
+  fi
+
+  printf '%s\n' 'proof_a|Paddle.Test|first test' 'proof_b|Paddle.Test|second test' >"$expected"
+  BOUNDED_PROOF_LOG="$BOUNDED_PROOF_DIR/mix.log"
+  printf '2 tests, 0 failures\n' >"$BOUNDED_PROOF_LOG"
+  validate_exunit_summary
+  for summary in '1 test, 0 failures' '3 tests, 0 failures' '2 tests, 1 failure'; do
+    printf '%s\n' "$summary" >"$BOUNDED_PROOF_LOG"
+    if validate_exunit_summary >/dev/null 2>&1; then
+      printf 'Self-test accepted invalid ExUnit summary: %s\n' "$summary" >&2
+      return 1
+    fi
+  done
 
   for case_name in preflight-missing preflight-invalid; do
     local case_dir case_checkout
@@ -297,13 +455,15 @@ commit=$(git -C "$ROOT_DIR" rev-parse HEAD)
 completed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 tracked_diff_sha256=$after_diff
 checks=${#ROW_RESULTS[@]}
+proof_count=$(wc -l <"$BOUNDED_PROOF_DIR/expected-triples" | tr -d ' ')
+proof_manifest_sha256=$(shasum -a 256 "$BOUNDED_PROOF_DIR/expected-triples" | awk '{print $1}')
 $(printf '%s\n' "${ROW_RESULTS[@]}")
 SAFE-01=pass dependency resolution and online audit
 SAFE-02=pass allowlisted process-owned telemetry isolation
 SAFE-03=pass exhaustive Inspect inventory and recursive canaries
 SAFE-04=pass total errors bounded reads and one-attempt mutations
 SAFE-05=pass secret-safe client construction and request authority
-SAFE-06=pass resource docs specs seams and local no-drift contract"
+SAFE-06=pass bounded runtime selection, proof counts, and local no-drift evidence"
 
   publish_receipt "$VERIFY_RECEIPT_PATH" "$receipt_body"
   printf '\nPhase 32 bounded compatibility verifier passed\n'

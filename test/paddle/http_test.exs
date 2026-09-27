@@ -132,6 +132,7 @@ defmodule Paddle.HttpTest do
   end
 
   describe "validate_public_request_opts!/1" do
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_04_public_retry_options
     test "accepts only a unique boolean retry option" do
       assert Http.validate_public_request_opts!([]) == []
       assert Http.validate_public_request_opts!(retry: false) == [retry: false]
@@ -233,6 +234,7 @@ defmodule Paddle.HttpTest do
       end
     end
 
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_04_retry_decision
     test "retry decisions are deterministic, safe-read-only, and cap only 429 Retry-After" do
       parent = self()
 

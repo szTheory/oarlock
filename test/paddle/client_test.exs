@@ -151,6 +151,7 @@ defmodule Paddle.ClientTest do
       assert Agent.get(dispatches, & &1) == 0
     end
 
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_05_custom_base_url
     test "base-URL-only custom client performs one adapter-backed request" do
       {:ok, dispatches} = Agent.start_link(fn -> 0 end)
       client = Client.new!(api_key: "valid", base_url: "http://mock.example:4447")

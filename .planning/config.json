@@ -19,7 +19,8 @@
     "code_review_depth": "standard",
     "code_review_depth_overrides": [],
     "ui_review": true,
-    "skip_discuss": false
+    "skip_discuss": false,
+    "test_command": "node --test --test-concurrency=4 scripts/*.test.cjs scripts/prohibitions/*.test.cjs && node --test scripts/integration/*.test.cjs && mix test"
   },
   "features": {
     "thinking_partner": true
@@ -37,5 +38,12 @@
   },
   "hooks": {
     "context_warnings": true
+  },
+  "model_profile_overrides": {
+    "codex": {
+      "opus": "gpt-6-sol",
+      "sonnet": "gpt-6-luna",
+      "haiku": "gpt-6-luna"
+    }
   }
 }

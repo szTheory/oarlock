@@ -101,6 +101,7 @@ defmodule Paddle.ErrorTest do
   end
 
   describe "context-aware constructors" do
+    @tag phase32_bounded_proof: true, phase32_proof_id: :safe_04_ambiguous_mutation
     test "from_response/2 prefers body meta request_id and marks uncertain mutations" do
       response =
         Req.Response.new(

@@ -229,6 +229,17 @@ jobs:
           echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
           mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
 
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Fetch package proof dependencies
+        run: mix deps.get
+
+      - name: Verify release package identity
+        run: node --test scripts/integration/release_package.test.cjs
+
       - name: Build and compile fresh package consumer
         run: bin/package_smoke.sh
 
@@ -357,6 +368,9 @@ jobs:
 
       - name: Smoke live planning health JSON
         run: node scripts/planning_health.cjs --json
+
+      - name: Validate JTBD coverage
+        run: node scripts/jtbd_coverage.cjs --json
 
   quality:
     name: quality checks
