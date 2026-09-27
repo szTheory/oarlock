@@ -75,7 +75,9 @@ test("every CI-01 proof has an executable step in a required aggregate dependenc
     /Enforce Phase 31 prohibition descriptors/,
     /Guard base-to-head planning history/,
     /Smoke live planning health JSON/,
+    /Validate JTBD coverage/,
   ]) assert.match(planning, pattern);
+  hasStep(planning, "Validate JTBD coverage", /run:\s*node scripts\/jtbd_coverage\.cjs --json/);
 
   const quality = jobBlock("quality");
   assert.match(quality, /name:\s+quality checks/);
@@ -96,12 +98,17 @@ test("quality proof identity is required by workflow and proof writer", () => {
 test("proof toolchain extracts the Rebar version format emitted by rebar3", () => {
   const proof = jobBlock("ci-contract");
   const toolchain = hasStep(proof, "Install proof toolchain", /mix local\.rebar rebar3 .* --force/);
-  assert.match(toolchain, /HEX_VERSION=.*-type d -name 'hex-\*'.*-type f -name 'hex-\*\.ez'/);
+  assert.match(toolchain, /HEX_ENTRY=.*sort -V/);
+  assert.match(toolchain, /basename "\$HEX_ENTRY".*sed -E/);
+  assert.match(toolchain, /-type d -name 'hex-\*'.*-type f -name 'hex-\*\.ez'/);
   assert.match(toolchain, /mix local\.hex 2\.5\.1 --force/);
   assert.match(toolchain, /sha512sum --check/);
   assert.match(toolchain, /rebar3-3\.25\.1/);
   assert.match(toolchain, /REBAR_VERSION=.*version 2>&1 \| sed -nE/);
   assert.equal("rebar 3.25.1 on Erlang/OTP 28 Erts 16.1".match(/^rebar ([0-9.]+)/)?.[1], "3.25.1");
+  for (const archive of ["hex-2.5.1", "hex-2.5.1.ez"]) {
+    assert.equal(archive.replace(/^hex-([0-9.]+)(\.ez)?$/, "$1"), "2.5.1", `${archive} must resolve to its Hex version`);
+  }
 });
 
 test("CI runners, timeouts, and cache identities stay bounded and toolchain-aware", () => {
