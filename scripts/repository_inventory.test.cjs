@@ -358,10 +358,26 @@ test("all worktrees: collector preserves spaces, newlines, detached state, locks
   fs.writeFileSync(path.join(livePath, "dirty with space.txt"), "dirty\n");
 
   const before = manifest(root);
-  const snapshot = collectRepositorySnapshot({ cwd: root, now: () => new Date("2026-09-09T00:00:00.000Z") });
+  const processProbes = [];
+  const fixtureRunner = (command, args, options) => {
+    if (command !== "ps") return spawnSync(command, args, options);
+    const pid = args[1];
+    processProbes.push(pid);
+    // Process visibility is restricted in some local sandboxes. Inject the
+    // host-independent ps outcomes while keeping all Git/worktree operations real.
+    return pid === String(process.pid)
+      ? { status: 0, stdout: Buffer.from(`${pid}\n`), stderr: Buffer.alloc(0) }
+      : { status: 1, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+  };
+  const snapshot = collectRepositorySnapshot({
+    cwd: root,
+    now: () => new Date("2026-09-09T00:00:00.000Z"),
+    runner: fixtureRunner,
+  });
   const after = manifest(root);
 
   assert.deepEqual(after, before);
+  assert.deepEqual(processProbes.sort(), ["99999999", String(process.pid)].sort());
   assert.ok(Array.isArray(snapshot.repository.pruneDryRun));
   assert.equal(snapshot.worktrees.length, 4);
   assert.equal(new Set(snapshot.worktrees.map(({ path: worktreePath }) => worktreePath)).size, 4);

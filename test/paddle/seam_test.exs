@@ -648,6 +648,9 @@ defmodule Paddle.SeamTest do
     end
   end
 
+  @tag phase32_bounded_proof: true,
+       phase32_bounded_docs_spec: true,
+       phase32_proof_id: :safe_06_public_contract_docs
   test "public documentation pins the secure dependency and runtime migration contract" do
     readme = File.read!("README.md")
     getting_started = File.read!("guides/getting-started.md")
@@ -718,6 +721,9 @@ defmodule Paddle.SeamTest do
     assert migration =~ "constructor validation"
   end
 
+  @tag phase32_bounded_proof: true,
+       phase32_bounded_docs_spec: true,
+       phase32_proof_id: :safe_06_address_stream_docs
   test "address stream documentation matches direct elements and raised enumeration failures" do
     docs =
       Addresses
@@ -731,6 +737,9 @@ defmodule Paddle.SeamTest do
     refute docs =~ "`{:error, error}` elements"
   end
 
+  @tag phase32_bounded_proof: true,
+       phase32_bounded_docs_spec: true,
+       phase32_proof_id: :safe_06_compiled_docs_types_specs
   test "compiled docs types and specs agree with the Phase 32 decision tables" do
     documented_modules = [
       Paddle.Client,
@@ -1007,6 +1016,7 @@ defmodule Paddle.SeamTest do
     end
   end
 
+  @tag phase32_bounded_proof: true, phase32_proof_id: :safe_06_evidence_tier_separation
   test "Phase 32 proof runners separate bounded verification from full acceptance" do
     compatibility = File.read!("bin/phase32_compatibility.sh")
     contract = File.read!("bin/phase32_contract_proof.sh")
@@ -1014,6 +1024,28 @@ defmodule Paddle.SeamTest do
     for marker <- ["--verify", "--full", "phase32-verifier.receipt", "mix hex.audit"] do
       assert compatibility =~ marker
     end
+
+    [bounded_runner | _] = String.split(compatibility, "run_package_smoke() {")
+    bounded_runner = bounded_runner |> String.split("run_bounded_mix() {") |> List.last()
+
+    for marker <- [
+          "--only phase32_bounded_proof",
+          "bounded_proof_files",
+          "validate_bounded_source_manifest",
+          "runtime-proof-triples",
+          "validate_exunit_summary"
+        ] do
+      assert bounded_runner =~ marker
+    end
+
+    refute Regex.match?(~r/test\/[^\s\\]+\.exs:[0-9]+/, bounded_runner)
+    assert compatibility =~ "phase32_proof_id"
+    assert compatibility =~ "Paddle.SeamTest"
+    assert compatibility =~ "proof_manifest_sha256="
+    assert compatibility =~ "proof_count="
+    assert compatibility =~ "SAFE-06=pass bounded runtime selection"
+    assert compatibility =~ "PHASE32_PROOF_EVENTS_FILE"
+    assert File.read!("test/support/phase32_proof_formatter.ex") =~ "{:test_finished"
 
     for row <- [
           "root-suite",
@@ -1055,6 +1087,7 @@ defmodule Paddle.SeamTest do
     end
   end
 
+  @tag phase32_bounded_proof: true, phase32_proof_id: :safe_01_full_receipt_invalidation
   test "Phase 32 full receipt invalidation precedes every Accrue preflight" do
     compatibility = File.read!("bin/phase32_compatibility.sh")
 
@@ -1072,6 +1105,7 @@ defmodule Paddle.SeamTest do
     assert invalidate_at < preflight_at
   end
 
+  @tag phase32_bounded_proof: true, phase32_proof_id: :safe_06_contract_receipt_finalization
   test "Phase 32 bounded contract receipt finalizes only from successful exit" do
     contract = File.read!("bin/phase32_contract_proof.sh")
 
@@ -1081,6 +1115,8 @@ defmodule Paddle.SeamTest do
           "VERIFY_RECEIPT_CANDIDATE",
           "VERIFY_COMPLETE",
           "run_bounded_concurrent_readers",
+          "validate_docs_spec_summary",
+          "phase32_bounded_docs_spec",
           "PHASE32_MIX_BUILD_PATH"
         ] do
       assert contract =~ marker

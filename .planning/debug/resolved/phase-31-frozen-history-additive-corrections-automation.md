@@ -1,29 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: 'Phase 31 UAT gap G-31-5: Frozen archives are unchanged and corrections are additive. User requests recurring integration/e2e/smoke or CI automation where valuable so no human UAT is required.'
 created: 2026-09-10T01:17:00Z
-updated: 2026-09-10T01:21:36Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
+hypothesis: The diagnosed PROHIB-REPO-03-PRESERVATION proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-09-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-reasoning_checkpoint:
-  hypothesis: Human UAT remains required because the prohibition's authority metadata was never resolved, and it cannot safely be resolved from the present automation because the Phase 31 suite is absent from CI and its preservation oracle has no cross-revision baseline.
-  confirming_evidence:
-    - PROHIB-REPO-03-PRESERVATION is status unresolved, verification null, and flagged_unverified true while the verifier explicitly uses those fields as the reason for human review.
-    - CI runs ci_monitor.test.cjs and mix test but never planning_health.test.cjs or repository_inventory.test.cjs.
-    - In an isolated clone, committed frozen-archive and prior-EVIDENCE rewrites both left git diff clean and the current-repository preservation test green.
-  falsification_test: This diagnosis would be false if CI invoked a cross-revision preservation test that failed after either committed counterexample, or if the prohibition metadata already pointed to an authoritative automated verification tier.
-  fix_rationale: A recurring base-to-head immutability/additivity guard closes the missing proof class; wiring it into required CI gives it recurring authority; recording that automated tier on the prohibition removes the verifier's explicit human-only fallback.
-  blind_spots: Hosted branch-protection configuration is not available from repository files, so the diagnosis establishes missing workflow coverage but does not assert which hosted checks are currently required.
-  candidate_causes:
-    - 'config: PLAN prohibition remains unresolved with verification null, and CI omits the Phase 31 Node suites.'
-    - 'code: preservation tests compare before/after within one execution, and planned git diff compares only current HEAD to its clean worktree rather than base-to-head history.'
-    - 'environment: hosted CI cannot exercise proof that is not present in its checked-in workflow; no runtime-specific or flaky condition was observed.'
-    - 'data: current archive content and correction rows are healthy, so malformed current data is not the cause.'
-  and_gate: 'yes: the verifier requests human review because metadata is unresolved, while safe replacement by automation additionally requires both a cross-revision oracle and recurring CI wiring.'
-next_action: Return root-cause-only diagnosis to the orchestrator; do not implement changes.
 
 ## Symptoms
 
@@ -89,9 +77,14 @@ started: Discovered during Phase 31 UAT.
   found: No failing automated test exists; the focused suite is green and the gap concerns an absent/insufficient gate.
   implication: SBFL is not applicable because there is no failing-test spectrum to rank.
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-09-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/history_integrity.test.cjs, scripts/fixtures/prohibitions/history_rewrite.json, and .github/workflows/ci.yml
+  found: PROHIB-REPO-03-PRESERVATION is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: 'Three contributing gaps: (1) PROHIB-REPO-03-PRESERVATION remains explicitly unresolved with verification null, which mechanically forces human review; (2) Phase 31 planning-health/repository-inventory Node suites are not run by push/PR CI; and (3) the preservation checks lack a base-to-head/frozen-baseline oracle, so committed archive rewrites and non-additive EVIDENCE rewrites can pass. Consequently the verifier has local present-state/no-mutation evidence but no authoritative recurring regression gate capable of replacing human UAT.'
-fix: 'Not applied (diagnose-only). Suggested direction: add a base-to-head history-integrity test/script that forbids edits/deletions to archives already present at the base revision, permits newly created milestone snapshots, and rejects deletion/modification of prior correction-ledger entries while validating new dated correction rows; run the Phase 31 Node suites and live planning-health smoke in required push/PR CI; then set the prohibition verification metadata to that concrete automated tier.'
-verification: 'Root cause confirmed by static workflow/metadata trace, 4/4 focused tests passing, and two isolated committed-change counterexamples that both escaped the existing advertised checks.'
-files_changed: []
+fix: "Phase 31 Plan 03 resolved the preservation prohibition with a history-integrity test and rewrite/additive fixtures. Plan 09 adds the base-to-head history guard and required planning-truth CI lane."
+verification: "Validated by 31-09-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/history_integrity.test.cjs", "scripts/fixtures/prohibitions/history_rewrite.json", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-09-SUMMARY.md"]

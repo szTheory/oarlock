@@ -1,73 +1,160 @@
-# Manual recovery: publish an already-tagged (or pinned SHA) revision to Hex when
-# automation did not run or needs a one-off retry. Default path is **Release Please**
-# (`.github/workflows/release-please.yml`) on merge of the Release PR.
-#
-# Requires repository secret: HEX_API_KEY (Actions secrets).
-
 name: Hex publish (manual recovery)
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Git tag or commit SHA to publish from (e.g. v0.1.0).'
-        required: true
-        type: string
-      release_version:
-        description: 'Expected @version string in mix.exs at that ref (e.g. 0.1.0).'
+        description: Existing release tag to recover (for example v1.2.3)
         required: true
         type: string
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
 
 jobs:
-  publish:
-    name: Publish to Hex.pm
-    runs-on: ubuntu-latest
+  candidate:
+    name: Verify tagged candidate and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tag: ${{ steps.candidate.outputs.tag }}
+      sha: ${{ steps.candidate.outputs.sha }}
+      version: ${{ steps.candidate.outputs.version }}
+      checksum: ${{ steps.candidate.outputs.checksum }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Cache library deps
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-library-${{ hashFiles('mix.lock') }}
-
-      - name: Install Hex + Rebar
+      - name: Install pinned Mix tools and dependencies
         run: |
           mix local.hex --force
           mix local.rebar --force
+          mix deps.get
 
-      - name: Verify release version in mix.exs
-        run: grep -n "@version \"${{ inputs.release_version }}\"" mix.exs
-
-      - name: Fetch library deps
-        run: mix deps.get
-
-      - name: Compile (warnings as errors)
-        run: mix compile --warnings-as-errors
-
-      - name: Run library tests
+      - name: Resolve tag, check exact-SHA CI proof, build, and dry run
+        id: candidate
         env:
-          MIX_ENV: test
-        run: mix test
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release_integrity.cjs prepare
 
-      - name: Dry run Hex publish
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-candidate-${{ steps.candidate.outputs.sha }}
+          path: release-candidate.json
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish verified candidate to Hex
+    needs: candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: hex-production
+    concurrency:
+      group: hex-publish
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.candidate.outputs.sha }}
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate-${{ needs.candidate.outputs.sha }}
+
+      - name: Install pinned Mix tools and dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Revalidate locked candidate and current registry state
+        id: revalidate
         env:
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-        run: mix hex.publish --dry-run --yes
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.candidate.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release_integrity.cjs revalidate
 
-      - name: Publish to Hex
+      - name: Publish package
+        if: steps.revalidate.outputs.publish != 'false'
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: mix hex.publish --yes
+
+  verify-and-record:
+    name: Verify Hex bytes and attach release evidence
+    needs: [candidate, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.candidate.outputs.sha }}
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate-${{ needs.candidate.outputs.sha }}
+
+      - name: Verify registry metadata, served tarball, and clean consumer
+        env:
+          RELEASE_VERSION: ${{ needs.candidate.outputs.version }}
+          EXPECTED_CHECKSUM: ${{ needs.candidate.outputs.checksum }}
+        run: |
+          node scripts/release_integrity.cjs verify-hex
+          bash bin/package_smoke.sh --published "$RELEASE_VERSION"
+          node scripts/release_integrity.cjs record-consumer
+
+      - name: Build durable evidence packet
+        env:
+          RELEASE_WORKFLOW_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release_evidence.cjs release-candidate.json

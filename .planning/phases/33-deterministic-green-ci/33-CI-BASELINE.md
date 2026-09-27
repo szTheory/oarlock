@@ -1,14 +1,21 @@
 ---
 phase: 33-deterministic-green-ci
 status: provisional
-samples: 7
+samples: 9
 ---
 
 # Phase 33 Hosted CI Baseline
 
 ## Observation Status
 
-One successful hosted full-contract timing observation is available on draft PR #6. Remote `main` remains `fb3d9a185f104194e85987541519a6168e0b568c`; its June 2026 CI run failed without a proof artifact. The candidate PR branch spans roughly 400 commits beyond `origin/main`, so it still needs scope review before merge.
+Nine successful hosted full-contract timing observations are recorded: the
+initial warm sample, later candidate comparisons, the final PR #6 candidate,
+the first exact-main run, the PR #7 closeout candidate, and the post-closeout
+main run. PR #6 and its documentation closeout PR #7 were reviewed and merged
+through the normal path. The active main ruleset requires `CI contract`. The
+latest exact-main proof is run 36085849017 for SHA
+`1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`, with an accepted retained artifact.
+The provisional <120s critical-path / <6 runner-minute target remains unmet.
 
 ## Baseline and Target
 
@@ -50,6 +57,17 @@ the current main run as a steady-state cost measurement.
 Both final observations passed all eight required jobs and retained exact-SHA
 proof artifacts. Neither met the provisional <120s/<6-minute target. The main
 run's cache-save steps now provide the basis for a subsequent warm comparison.
+
+| Candidate SHA | Run | Critical path | Runner minutes | Notes |
+|---|---|---:|---:|---|
+| `a8ae282a8bc50c3b8125d83e2dba41d95a49e2dc` | [36085594315](https://github.com/szTheory/oarlock/actions/runs/36085594315), attempt 1 | 173s | 6.13 | Phase-closeout documentation PR; all eight jobs passed. |
+| `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5` | [36085849017](https://github.com/szTheory/oarlock/actions/runs/36085849017), attempt 1 | 188s | 6.42 | Exact-current-main proof after the closeout merge; all eight jobs passed. |
+
+The closeout candidate used 40 fewer seconds of critical path and 2.55 fewer
+runner minutes than the previous recorded candidate run (213s / 8.68 minutes),
+and post-closeout main measured 18s and 2.45 runner minutes below the preceding
+main run (206s / 8.87 minutes). These are observed comparisons, not a steady-state
+performance claim. Both final samples still exceed the provisional thresholds.
 
 Do not claim performance gains from this single sample. Re-measure every
 workflow change and add cold-cache evidence when practical. Resume measurement with:

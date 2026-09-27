@@ -2,47 +2,48 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: Trust, Coverage & Green Delivery
-current_phase: 34
-current_phase_name: Release Integrity
+current_phase: 37
+current_phase_name: Milestone Closeout Reconciliation
+current_plan: 3
 status: executing
-stopped_at: Phase 33 complete, ready to plan Phase 34
-last_updated: "2026-09-25T00:58:47.525Z"
-last_activity: 2026-09-24
-last_activity_desc: Phase 33 complete, transitioned to Phase 34
-state_head: 0db804c18eaea751d19e662d020f770d53cefc57
+stopped_at: Phase 37 planned and checked; run $gsd-execute-phase 37
+last_updated: "2026-09-27T17:39:48.699Z"
+last_activity: 2026-09-27
+last_activity_desc: Phase 37 execution started
+state_head: d9ffc1dff0ed0fa4d557aa3ae3234570a2c702af
 progress:
-  total_phases: 6
-  completed_phases: 3
-  total_plans: 28
-  completed_plans: 28
-  percent: 50
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 48
+  completed_plans: 46
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-09-10)
+See: .planning/PROJECT.md (updated 2026-09-26)
 
 **Core value:** A production-quality, idiomatic Elixir SDK for Paddle Billing serving as a pure, standalone foundation for Accrue's second-processor strategy.
-**Current focus:** Phase 34 — Release Integrity
+**Current focus:** Phase 37 — Milestone Closeout Reconciliation
 
 ## Current Position
 
-Phase: 34 — Release Integrity
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-24 — Phase 33 complete, transitioned to Phase 34
+Phase: 37 (Milestone Closeout Reconciliation) — EXECUTING
+Current Plan: 3
+Total Plans in Phase: 4
+Status: Ready to execute
+Last activity: 2026-09-27 — Phase 37 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [█████████░] 92% (44/48 plans complete)
 
 ## Performance Metrics
 
 **Milestone coverage:**
 
 - Committed requirements mapped: 29/29 (100%)
-- Planned phases: 6
-- Plans completed: 28
+- Planned phases: 7 (6 completed; Phase 37 ready)
+- Plans completed: 44/48
 
 **Prior milestone:** v2.1 shipped 10/10 plans across Phases 27-30.
 **Per-Plan Metrics:**
@@ -77,6 +78,16 @@ Progress: [█████░░░░░] 50%
 | Phase 33 P33-02 | 21min | 2 tasks | 8 files |
 | Phase 33 P33-03 | 42min | 2 tasks | 5 files |
 | Phase 33 P33-04 | 50min | 2 tasks | 65 files |
+| Phase 34 P01 | 13min | 2 tasks | 5 files |
+| Phase 34 P2 | 14min | 2 tasks | 3 files |
+| Phase 34 P3 | 19min | 2 tasks | 3 files |
+| Phase 34 P04 | 3h 29m | 2 tasks | 6 files |
+| Phase 35 P01 | 8min | 2 tasks | 3 files |
+| Phase 35 P02 | 8min | 2 tasks | 7 files |
+| Phase 35 P03 | 7min | 2 tasks | 3 files |
+| Phase 35 P04 | 6min | 2 tasks | 3 files |
+| Phase 35 P5 | 41min | 2 tasks | 2 files |
+| Phase 36 P01 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -145,19 +156,45 @@ Progress: [█████░░░░░] 50%
 - [Phase 32]: Full compatibility invalidates acceptance before preflight; bounded receipts promote only from EXIT-zero finalization.
 - [Phase 32]: Validate duplicate lifecycle retry keys before Keyword.pop/2 so contradictory caller authority cannot be order-collapsed or dispatched.
 - [Phase 32]: Use static retry-only ArgumentError text and a shared private guard across scheduled pause, immediate pause, and resume.
+- [Phase 34]: Phase 34 recovery accepts one protected existing vX.Y.Z tag and derives package identity from its peeled source.
+- [Phase 34]: Hex publication requires Phase 33 exact-SHA proof and checksum reconciliation, with the credential scoped to the final publish step.
+- [Phase 34]: Release Please outputs flow through the shared exact-SHA candidate gate; both publishers revalidate under the shared non-canceling queue.
+- [Phase 34]: Scope Hex credentials to the final publish step and GitHub write access to metadata/evidence jobs.
+- [Phase 34]: Match Mix outer checksum, independent tarball SHA-256, Hex API checksum, fetched bytes, and package metadata before release evidence.
+- [Phase 34]: Only confirmed absence plus complete locked identity revalidation can permit one retry after ambiguous Hex publication.
+- [Phase 34]: Schema-v1 release evidence is an allowlist that binds tag/SHA, exact CI artifact, workflow attempt, checksums, byte verification, consumer result, timestamps, and caveats.
+- [Phase 34]: Read GitHub ruleset and environment metadata without mutating policy or querying secret values; actual Hex publication remains pending until verified.
+- [Phase 34]: Accept the maintainer's v0.1.2 pre-control exception only as a historical disposition; candidate-to-served-byte identity remains unproven, the evidence asset is absent, and future release gates stay strict.
+- [Phase 35]: Phase 35 Plan 01 uses manifest-bound, read-only worktree receipts; proposed exit dispositions are never cleanup authorization.
+- [Phase 35]: Issue forms apply kind labels only; maintainers own authoritative workflow state and disposition.
+- [Phase 35]: Document GitHub private vulnerability reporting only after authorized write and fresh enabled:true readback.
+- [Phase 35]: Leave security ownership unknown until a maintainer records verified person or team ownership.
+- [Phase 35]: Use dated maintainer comments as triage authority; read-only GitHub inventory, comment pagination, and collaborator-permission evidence determine audit completeness.
+- [Phase 35]: Phase 35 Plan 04: separate root Mix, demo Mix, and GitHub Actions update streams; group only bounded minor/patch Mix updates and keep majors/security distinct.
+- [Phase 35]: Phase 35 Plan 04: enable vulnerability alerts and automated security fixes only after fresh repository identity, admin authorization, and enabled readbacks.
+- [Phase 35]: Phase 35 Plan 05: merge a real release PR only after exact-head required CI is green and the maintainer disposition is recorded.
+- [Phase 35]: Keep successful Hex publication separate from exact candidate-byte evidence; missing release evidence or checksum mismatch remains open.
+- [Phase 36]: One canonical file owns mutable JTBD facts; persona and lifecycle indexes only navigate.
+- [Phase 36]: Horizon and commitment status stay independent; future requirements stay outside committed phase mappings.
+
+### Roadmap Evolution
+
+- 2026-09-27: Added Phase 37, Milestone Closeout Reconciliation, from the audited ORIENT-06/FLOW-CLOSEOUT gap. Four checked plans preserve earlier completion and provide a direct execution route. ORIENT-06 operational acceptance moves from Phase 36 to Phase 37; the requirement meaning and 29-requirement total are unchanged.
 
 ### Pending Todos
 
 None.
 
-### Blockers/Concerns
+### Historical Delivery Notes
 
 - Local/remote divergence is tracked by exact-SHA hosted proof; local success is not hosted proof.
-- Req 0.7.4 passes the complete local compatibility matrix and online audit; package/downstream/live-provider evidence remains distinct.
+- Req 0.7.4 passes the complete local compatibility matrix and online audit; hosted exact-SHA proof remains separate.
 - Phase 33 Plan 04 completed after review of PR #6 against remote main. The PR was merged normally at `0db804c18eaea751d19e662d020f770d53cefc57`; active ruleset 23970515 requires `CI contract`.
 - Candidate run 36077014434 and exact-current-main run 36077488230 passed all eight required jobs with matching retained proof artifacts. Current-main timing was 206s critical path and 8.87 runner minutes; the provisional <120s/<6-minute targets remain unmet.
-- The CI workflow uses ubuntu-24.04, per-job timeouts, digest-pinned PostgreSQL, project-pinned Node, pinned Hex 2.5.1, SHA-512-verified Rebar 3.25.1, runtime/architecture/environment/lock-aware cache keys, and main-push-only cache writes.
-- Release environment behavior and automation credentials remain for Phase 34 to verify.
+- The candidate workflow uses ubuntu-24.04, per-job timeouts, digest-pinned PostgreSQL, project-pinned Node, pinned Hex 2.5.1, SHA-512-verified Rebar 3.25.1, runtime/architecture/environment/lock-aware cache keys, and main-push-only cache writes.
+- One local full Node suite run had a sandbox-only process-inspection failure (`ps` unreadable); hosted planning truth passed. A 500ms timeout fixture also proved flaky on the hosted runner and was widened to 2s; the subsequent full hosted suite passed.
+- 2026-09-26: Release `v0.1.2` was published from merge SHA `9eb5c14aa5cc362ac9262fea1044975a9505cebf`; release job and exact-merge-SHA CI run 36246581860 passed. Hex API checksum matched served tarball and a fresh consumer compiled, but a rebuilt tag candidate checksum differed and the historical workflow attached no `release-evidence.json`. The maintainer accepted this as a documented pre-control exception; the evidence limitations remain explicit and all future release gates remain strict. See `.planning/EVIDENCE.md` and Phase 34 verification.
+
 ## Deferred Items
 
 | Horizon | Status | Direction | Promotion condition |
@@ -167,12 +204,24 @@ None.
 
 Canonical future IDs and source anchors remain in `.planning/REQUIREMENTS.md`; this digest does not promote them.
 
+## Blockers
+
+- ORIENT-06 operational acceptance remains open and now has executable Phase 37 plans. This does not block preservation, investigation, fixture work or candidate preparation.
+- The last pre-planning observation counted 116 root status entries and one dirty locked linked tree. Phase 37 planning adds further owned changes. Refresh all counts, owners and bytes in Plan 37-01; denied process inspection proves neither liveness nor abandonment.
+- Existing hosted proof applies to candidate c5bcc7b, not current shared-checkout edits. Plan 37-03 obtains proof for the actual reconciled candidate; Plan 37-04 requires live clean-workspace evidence.
+- Only a still-unresolved concrete ownership/disposition decision may need human input after safe preparation. There is no human UAT task.
+
 ## Session Continuity
 
-Last session: 2026-09-24T19:49:47Z
-Stopped at: Phase 33 complete, ready to plan Phase 34
-Resume file: .planning/phases/33-deterministic-green-ci/.continue-here.md
+Last session: 2026-09-27T17:02:38Z
+Stopped at: Phase 37 ready to execute — four plans, four serial waves, no completed work to repeat.
+Resume file: .planning/phases/37-milestone-closeout-reconciliation/37-CONTEXT.md
+Planning commit: 575519e9155cc5f85fbe887870c41ad1d9afe666 (new Phase 37 artifacts only). Shared routing/provenance corrections are saved in this checkout and deliberately remain outside that commit to preserve inherited staged work; include them in Phase 37 reviewed reconciliation.
 
 ## Operator Next Steps
 
-- Publish only the explicit reviewable candidate files prepared for PR #6; keep the PR draft. Confirm the exact-SHA run passes planning truth and CI contract, then record timing from that successful full-contract run before workflow performance edits. Reconcile Phase 32 stale verification and Phase 31 UAT debt without converting unsupported human claims into passes. Do not push local `main` directly.
+1. Clear context if desired, then run **`$gsd-execute-phase 37`**. Read Phase 37 CONTEXT, RESEARCH, VALIDATION and PLAN files plus `.planning/GSD-PREFERENCES.md`; all decisions and proof boundaries are saved locally.
+2. Execute preservation → finite handoff regression → reviewed candidate/exact-SHA CI → authorized disposition/final evidence. Resume from successful SUMMARY/receipt boundaries; do not rerun completed plans automatically.
+3. After Phase 37 actual acceptance passes, run **`$gsd-audit-milestone v2.2`**. If that passes, run **`$gsd-complete-milestone v2.2`**. Do not audit while the same operational facts remain unresolved.
+4. Phase 36 finished: 3/3 plans and 8/8 automated UAT. New ORIENT-06 phase mapping is a scope-accounting correction; completed implementation and historical evidence are retained. Revalidate only changed covered implementation/evidence, with no repeated UAT for routing changes.
+5. SEED-001 remains dormant next-milestone scope. Accepted v0.1.2 limitations stay historical; no release/merge/archive is authorized by this planning step.

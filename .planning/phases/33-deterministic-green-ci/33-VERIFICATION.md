@@ -1,14 +1,10 @@
 ---
 phase: 33-deterministic-green-ci
-verified: 2026-09-25T02:11:22Z
+verified: 2026-09-27T13:03:57Z
 status: passed
 score: 11/11 must-haves verified
 covered_files:
   - .github/workflows/ci.yml
-  - .planning/REQUIREMENTS.md
-  - .planning/ROADMAP.md
-  - .planning/STATE.md
-  - .planning/phases/34-release-integrity/34-NEXT.md
   - .planning/phases/33-deterministic-green-ci/33-01-PLAN.md
   - .planning/phases/33-deterministic-green-ci/33-01-SUMMARY.md
   - .planning/phases/33-deterministic-green-ci/33-02-PLAN.md
@@ -19,6 +15,9 @@ covered_files:
   - .planning/phases/33-deterministic-green-ci/33-04-SUMMARY.md
   - .planning/phases/33-deterministic-green-ci/33-CI-BASELINE.md
   - .planning/phases/33-deterministic-green-ci/33-CI-HOSTED.md
+  - .planning/phases/33-deterministic-green-ci/33-RESEARCH.md
+  - .planning/phases/33-deterministic-green-ci/33-SECURITY.md
+  - .planning/phases/33-deterministic-green-ci/33-UAT.md
   - .planning/phases/33-deterministic-green-ci/33-VALIDATION.md
   - lib/paddle/error.ex
   - mix.exs
@@ -34,135 +33,131 @@ covered_files:
   - scripts/ci_workflow_contract.test.cjs
   - test/paddle/error_test.exs
   - test/paddle/inspection_safety_test.exs
-covered_digest: "v1:sha256:5f5fe3c7fa921b87825b326882b38284de8ebc1aaaaccfdcbdb837eb99420586"
+covered_digest: "v1:sha256:b886e895c16240699993329386379884d68e9cf953754ab45fb6c4767212dd41"
 behavior_unverified: 0
 overrides_applied: 0
-decision_coverage: { honored: 0, total: 0, not_honored: [] }
 ---
 
-# Phase 33: Deterministic Green CI Verification Report
+# Phase 33: Deterministic Green CI — Verification Report
 
 **Phase Goal:** Contributors and maintainers can rely on a complete, fast, reproducible CI contract that proves one exact commit and keeps remote main green.
-**Verified:** 2026-09-25T02:11:22Z
+**Verified:** 2026-09-27T13:03:57Z
 **Status:** passed
-**Re-verification:** No. The prior report had no `gaps:` section, so this was an initial-mode verification. All truths were re-established against the finalized closeout branch and live GitHub.
+**Re-verification:** No; the previous report had no `gaps:` section, so all truths were re-established against the current code and hosted state.
 
 ## Goal Achievement
 
-| # | Observable truth | Status | Evidence |
+### Observable Truths
+
+| # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | Every proposed change runs the complete named proof matrix under one required aggregate. | ✓ VERIFIED | `.github/workflows/ci.yml` wires the seven lanes into `ci-contract`; the targeted workflow-contract test passed and the hosted candidate and main runs each report all eight jobs successful, including the aggregate. |
-| 2 | Maintainers can inspect immutable inputs, controlled runners/toolchains, runtime-aware caches, timeouts, and least-privilege permissions. | ✓ VERIFIED | The workflow uses full-SHA action pins, versioned runner and service image, scoped permissions, explicit job timeouts, and toolchain/lock-aware cache keys. The targeted CI policy test and `actionlint .github/workflows/ci.yml` passed. |
-| 3 | Exact-run timing and a baseline-derived target remain visible without dropping proof lanes. | ✓ VERIFIED | `33-CI-BASELINE.md` records sample count, cache context, per-run timing, and the provisional <120s/<6-runner-minute target. The final candidate and main observations remain complete eight-job proofs; neither target is claimed met. |
-| 4 | The stable aggregate is required by remote `main`. | ✓ VERIFIED | Live effective-rule API read: active ruleset 23970515 targets `refs/heads/main` and requires `CI contract` from integration 15368; no bypass actors and strict freshness disabled. The remote gate also returned `required: true`. |
-| 5 | Authoritative proof binds exact tested/event SHAs, run and attempt, toolchains, lockfiles, and every required lane. | ✓ VERIFIED | `scripts/ci_proof.cjs` constructs and validates an allowlisted proof schema; the named proof-binding test passed. Live run artifacts validate against their hosted run identities. |
-| 6 | A failed or incomplete required lane leaves an unverified proof and fails the aggregate. | ✓ VERIFIED | Workflow proof/upload runs with `always()`; proof validity requires every lane. `scripts/ci_proof.test.cjs` covers missing/failed/skipped/cancelled lanes and writes proof before failure; workflow contract test ties proof to the aggregate. |
-| 7 | Hosted acceptance rejects mismatched workflow, SHA, run/attempt, artifact, duplicate/missing lane, or unsuccessful job; transport failures remain unobserved. | ✓ VERIFIED | `ci_remote_gate.cjs` composes hosted monitor, timing, artifact and rules checks. Targeted identity/drift and monitor tests passed; live outputs matched all requested identities. |
-| 8 | Phase 31 planning-truth checks remain a required lane. | ✓ VERIFIED | The workflow contract test confirms all six planning-truth diagnostics are executable steps in the required aggregate dependency. The planning-truth job passed on both live eight-job runs. |
-| 9 | A candidate has exact-SHA hosted success, matching retained proof, and measured timing. | ✓ VERIFIED | Live candidate gate: head `580c1c836232e712b31e49913c694af9e1ca123e`; tested merge SHA `74ca59097ae258329e06a2481b2e359cf952b24e`; run [36077014434, attempt 1](https://github.com/szTheory/oarlock/actions/runs/36077014434); artifact 10839959367, digest `sha256:1e9bfde9f0062dd9753b22d16982cb51d6f660301f03bf9985106547ecf84561`; all eight jobs successful; critical path 213s / 8.68 runner minutes. |
-| 10 | The exact current remote-main SHA has successful hosted proof and durable artifact. | ✓ VERIFIED | Live main gate independently re-read main head before acceptance: `0db804c18eaea751d19e662d020f770d53cefc57`; run [36077488230, attempt 1](https://github.com/szTheory/oarlock/actions/runs/36077488230); artifact 10841045079, digest `sha256:8ad67fd8a3669401ea2a32552aecc23ea37b5c5ecaa03f85abe574107c81b752`; all eight jobs successful; gate returned `observed: true`, `verified: true`. |
-| 11 | Post-change timing is compared honestly with baseline/target while preserving every lane. | ✓ VERIFIED | Candidate measured 213s / 8.68 runner minutes and main 206s / 8.87; both complete proof artifacts are retained. The baseline explicitly keeps the provisional target unmet and makes no speed-improvement claim. |
+| 1 | Every proposed change reports one required aggregate covering formatting, dependency/warning/test/spec checks, Dialyzer, quality/audit, demo/PostgreSQL, package and optional-dependency smoke, and planning guards. | ✓ VERIFIED | `.github/workflows/ci.yml` wires the named lanes into `CI contract`; all eight jobs succeeded on the exact current-main hosted run. The 41-case contract suite passed, including named-check and aggregate dependency assertions. |
+| 2 | Failed or missing required lanes remain visible in a durable unverified proof and fail the aggregate. | ✓ VERIFIED | `scripts/ci_proof.cjs` writes proof before aggregate failure; fixture tests cover failed, skipped, cancelled, absent, malformed, and mismatched inputs. The current 41-test suite passed. |
+| 3 | Each authoritative proof binds exact tested/event SHA, run and attempt, toolchains, lockfiles, and every required job result; hosted monitoring rejects identity or artifact mismatches. | ✓ VERIFIED | `ci_proof.cjs` and `ci_monitor.cjs` implement the allowlisted proof/validation contract, invoked by the workflow and remote gate. The 41 fixture tests passed. The live current-main artifact matched run 36085849017 attempt 1, SHA `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`, and its digest. |
+| 4 | Inputs, runners, service/toolchain versions, timeouts, cache trust boundaries, and token permissions are controlled and inspectable. | ✓ VERIFIED | Workflow policy contract assertions passed; `actionlint .github/workflows/ci.yml` exited 0. Workflow pins actions and PostgreSQL, uses `ubuntu-24.04`, explicit timeouts and runtime/lock-aware cache keys, with cache writes restricted to successful pushes to `main`. |
+| 5 | Maintainers can inspect exact-run queue/job/aggregate/critical-path timings and an honestly derived feedback target without losing required proof. | ✓ VERIFIED | `scripts/ci_timing.cjs` and fixtures validate exact-run timing and missing-data handling. `33-CI-BASELINE.md` records samples and the provisional `<120s` / `<6 runner minutes` target. Current main measured 188s critical path / 6.42 runner minutes, so the provisional target remains unmet; the criterion requires visibility and honest comparison, not a false claim that the target was reached. |
+| 6 | A proposed candidate is accepted only when the exact tested SHA, all required jobs, and retained proof artifact agree. | ✓ VERIFIED | `node scripts/ci_remote_gate.cjs candidate --sha a8ae282a8bc50c3b8125d83e2dba41d95a49e2dc --repo szTheory/oarlock --json` returned `observed: true`, `verified: true`; run 36085594315 attempt 1 tested merge SHA `3411bf625b3ce026c535d347a1d211415ef03c98`, all eight jobs passed, artifact 10843468882 digest `sha256:ee718e458081a525061b625d79d7a61ab24056be9f780d293f64aa20ec99f1a5`. |
+| 7 | The effective remote `main` rule requires the stable `CI contract` check and current main has exact-SHA hosted-green proof. | ✓ VERIFIED | `node scripts/ci_remote_gate.cjs main --repo szTheory/oarlock --json` returned `observed: true`, `verified: true`; active required rule observed. Main SHA and tested/event SHA `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`, run 36085849017 attempt 1, all eight jobs successful, retained artifact 10843607663 digest `sha256:8b29ee8031b401d9da35eb5b99e370d1bf8ac47637415208ea818aa30dfbebc4`. |
+| 8 | The Phase 31 planning-truth diagnostics remain in the required aggregate. | ✓ VERIFIED | Workflow contract checks assert the planning-truth lane and aggregate dependency; the lane passed on both the candidate and current-main hosted runs. |
+| 9 | The required CI quality lane is executable and included in the proof contract. | ✓ VERIFIED | Workflow, proof writer, hosted monitor, and contract fixtures include the quality job. The 41-case suite passed; the current-main hosted `quality checks` job succeeded. |
+| 10 | Baseline and post-change comparisons preserve the full proof matrix and disclose actual performance honestly. | ✓ VERIFIED | Baseline and hosted evidence record candidate/current-main timings with all eight jobs successful. The target remains reported as unmet; no speed improvement is inferred from insufficient warm-cache evidence. |
+| 11 | The phase requirements CI-01 through CI-05 are fulfilled by wired local and hosted evidence. | ✓ VERIFIED | Requirement-by-requirement coverage below maps all five requirements to the verified workflow, fixture suite, exact-SHA candidate/current-main runs, retained artifacts, effective rule, and timing records. |
 
 **Score:** 11/11 truths verified (0 present, behavior-unverified)
 
-## Required Artifacts
+### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |---|---|---|---|
-| `.github/workflows/ci.yml` | Complete required contract, pinned inputs and aggregate proof upload | ✓ VERIFIED | Substantive workflow; each lane is an aggregate dependency; targeted policy test, actionlint, and hosted execution agree. |
-| `scripts/ci_proof.cjs` / `scripts/ci_monitor.cjs` | Fail-closed proof creation and exact hosted-run validation | ✓ VERIFIED | Source implements identity/lane/artifact validation; targeted tests passed; live gates matched the remote evidence. |
-| `scripts/ci_timing.cjs` | Exact-run durations and incomplete-data handling | ✓ VERIFIED | Timing calculation and missing-data behavior are exercised by tests; live exact-run timings were measured. |
-| `scripts/ci_remote_gate.cjs` | Candidate/main exact-SHA acceptance and rules validation | ✓ VERIFIED | Candidate and main commands both returned `observed: true`, `verified: true` on this pass. |
-| `33-CI-HOSTED.md` / `33-CI-BASELINE.md` | Hosted evidence, ruleset, baseline and target comparison | ✓ VERIFIED | Recorded identities and timings matched live re-queries; target is disclosed as unmet. |
-| `lib/paddle/error.ex` and its regression tests | Redact provider-controlled Inspect fields while retaining stored values | ✓ VERIFIED | `mix test test/paddle/error_test.exs:158` passed the named regression test. This is a documented plan deviation, not needed to establish the CI goal. |
+| `.github/workflows/ci.yml` | Complete required lanes, controlled inputs, aggregate and durable proof upload | ✓ VERIFIED | Substantive workflow, checked by static contract tests and actionlint; all eight jobs ran successfully on hosted main. |
+| `scripts/ci_proof.cjs` | Fail-closed proof creation and validation | ✓ VERIFIED | Invoked by aggregate; fixture tests exercise success and failure paths. |
+| `scripts/ci_monitor.cjs` | Exact hosted run/artifact validator | ✓ VERIFIED | Used by remote gate; fixtures reject wrong/incomplete identities and artifacts. |
+| `scripts/ci_timing.cjs` | Exact-run timing calculation | ✓ VERIFIED | Fixture tests verify durations and incomplete-timestamp behavior; live main observation supplied real timing data. |
+| `scripts/ci_remote_gate.cjs` | Candidate, main, and effective-rule acceptance | ✓ VERIFIED | Independent candidate and current-main invocations returned verified results with retained proof identities. |
+| `scripts/ci_workflow_contract.test.cjs` | Executable static CI policy contract | ✓ VERIFIED | Included in the 41-test run; checks required lanes, quality, runner/timeouts/cache identities. |
+| `33-CI-BASELINE.md`, `33-CI-HOSTED.md` | Dated baseline, target, candidate, main, and rule evidence | ✓ VERIFIED | Recorded evidence agrees with fresh live gate results; target is explicitly unmet. |
 
-## Key Link Verification
+### Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| `.github/workflows/ci.yml` | `scripts/ci_proof.cjs` | Aggregate writes attempt proof | ✓ WIRED | Workflow invokes the proof CLI before aggregate verdict and uploads its file on `always()`. |
-| `scripts/ci_monitor.cjs` | `scripts/ci_proof.cjs` | Downloaded artifact schema/identity validation | ✓ WIRED | Monitor imports the proof validator and compares hosted run, attempt, SHA, and required job outcomes. |
-| `.github/workflows/ci.yml` | `CI contract` | Required `needs` and stable display name | ✓ WIRED | Seven lanes feed the always-run aggregate; all eight job conclusions were successful on both hosted runs. |
-| `scripts/ci_remote_gate.cjs` | `scripts/ci_monitor.cjs` and `scripts/ci_timing.cjs` | Exact run acceptance and timing | ✓ WIRED | Direct imports compose hosted identity/proof and timing validation; targeted drift test and live calls passed. |
-| `scripts/ci_remote_gate.cjs` | effective `main` rule | GitHub rules API read | ✓ WIRED | Main command queries `rules/branches/main`; direct ruleset read confirmed ID 23970515 and exact required context/app. |
-| `scripts/ci_timing.cjs` | `33-CI-BASELINE.md` | Observed run timestamps and durations | ✓ WIRED | Baseline rows carry exact run IDs/SHA and measured values; re-query produced matching candidate/main timings. |
+| Workflow aggregate | `scripts/ci_proof.cjs` | Proof writer receives run/event/job identity | ✓ WIRED | Direct workflow invocation; aggregate creates proof before evaluating dependency failure and uploads on `always()`. |
+| `scripts/ci_monitor.cjs` | `scripts/ci_proof.cjs` | Downloaded proof schema and identity validation | ✓ WIRED | Dynamic require and validator call at `ci_monitor.cjs`; covered by the 41 tests. |
+| Required jobs | `CI contract` | Aggregate dependencies and stable display name | ✓ WIRED | Workflow contract assertions plus eight successful hosted job records. |
+| `scripts/ci_remote_gate.cjs` | Monitor and timing scripts | Candidate/main run, artifact, rule, and duration checks | ✓ WIRED | Direct imports/calls; both live invocations returned verified results. |
+| Timing script / hosted observations | Baseline and hosted evidence | Recorded observed run/SHA timings and identities | ✓ EVIDENCE LINK | These are documentation/provenance links, not runtime imports. Exact live results agree with the recorded reports. |
 
-The generic `verify.key-links` query returned false negatives for relative JavaScript imports and documentation/provenance links. Those links were manually traced in source and verified above; this is a literal-path heuristic limitation, not missing wiring.
+The generic `verify.key-links` heuristic reports false negatives for dynamic JavaScript `require` and documentation/provenance links. Each was traced directly as shown above; all execution links are independently covered by passing contract tests and live hosted observations.
 
-## Data-Flow Trace (Level 4)
+### Data-Flow Trace
 
-No rendered/database-backed data applies. Proof inputs flow from GitHub event/run metadata, setup toolchain output, lockfile bytes and `needs` job results into the allowlisted JSON. The monitor fetches run/job/artifact data, validates it against the requested identity, and the timing tool derives durations from hosted timestamps. The live artifact and timing observations provide non-static end-to-end evidence.
+Not applicable to rendered/database-backed data. CI proof data originates in workflow event/run/job metadata and lockfiles; hosted acceptance reads GitHub run, job, artifact, branch-rule, and timestamp data. The proof and monitor code validate and retain those observed identities rather than substituting static success values.
 
-## Behavioral Spot-Checks
+### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Main-head drift triggers a fresh exact-SHA observation | `node --test --test-name-pattern='repeats exact-SHA observation when main advances' scripts/ci_remote_gate.test.cjs` | 1 test passed | ✓ PASS |
-| CI-01 checks are executable required workflow steps | `node --test --test-name-pattern='every CI-01 proof has an executable step' scripts/ci_workflow_contract.test.cjs` | 1 test passed | ✓ PASS |
-| Proof binds event/run/toolchain/lock/lane identities | `node --test --test-name-pattern='proof binds exact event, run, toolchain, lockfiles, and all required job results' scripts/ci_proof.test.cjs` | 1 test passed | ✓ PASS |
-| Hosted monitor accepts exact SHA and successful required jobs | `node --test --test-name-pattern='assert-ci exits 0 with exact SHA and all required jobs successful' scripts/ci_monitor.test.cjs` | 1 test passed | ✓ PASS |
-| Timing summarizes exact expected durations | `node --test --test-name-pattern='fixed job timestamps produce queue, per-job, aggregate, critical path, and runner-minute totals' scripts/ci_timing.test.cjs` | 1 test passed | ✓ PASS |
-| Provider fields are redacted in Inspect without mutating stored values | `mix test test/paddle/error_test.exs:158` | 1 test passed | ✓ PASS |
-| GitHub candidate acceptance | `node scripts/ci_remote_gate.cjs candidate --sha 580c1c836232e712b31e49913c694af9e1ca123e --repo szTheory/oarlock --json` | `observed: true`, `verified: true`; exact artifact and all eight jobs matched | ✓ PASS |
-| GitHub current-main acceptance | `node scripts/ci_remote_gate.cjs main --repo szTheory/oarlock --json` | `observed: true`, `verified: true`; main SHA remained `0db804c18eaea751d19e662d020f770d53cefc57`; required rule and exact proof matched | ✓ PASS |
+| CI proof/monitor/timing/workflow/remote-gate contracts and negative paths | `node --test scripts/ci_proof.test.cjs scripts/ci_monitor.test.cjs scripts/ci_timing.test.cjs scripts/ci_workflow_contract.test.cjs scripts/ci_remote_gate.test.cjs` | 42 tests, 0 failures | ✓ PASS |
+| Provider error inspection-safety regression cases | `mix test test/paddle/error_test.exs test/paddle/inspection_safety_test.exs` | 18 tests, 0 failures | ✓ PASS |
 | Workflow syntax | `actionlint .github/workflows/ci.yml` | exit 0 | ✓ PASS |
+| Candidate exact-SHA hosted proof | `node scripts/ci_remote_gate.cjs candidate --sha a8ae282a8bc50c3b8125d83e2dba41d95a49e2dc --repo szTheory/oarlock --json` | verified; run 36085594315 attempt 1; 8/8 jobs; artifact 10843468882/digest matched | ✓ PASS |
+| Current-main exact-SHA hosted proof and required rule | `node scripts/ci_remote_gate.cjs main --repo szTheory/oarlock --json` | verified; SHA `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`; run 36085849017 attempt 1; 8/8 jobs; artifact 10843607663/digest matched; required rule active | ✓ PASS |
 
-The six named local checks in the Validation Strategy were re-run at closeout and passed: proof binding, monitor identity, required workflow contract, timing, hosted candidate acceptance, and hosted main acceptance. The provider-inspection regression also passed.
+### Probe Execution
 
-## Probe Execution
+No phase-declared probe script or conventional `scripts/*/tests/probe-*.sh` probe was found. The phase's verification relies on named test commands and hosted acceptance commands instead; all were run above.
 
-No phase-declared or conventional `scripts/*/tests/probe-*.sh` probe was found. Probe execution is not applicable.
+### Requirements Coverage
 
-## Requirements Coverage
+| Requirement | Description | Status | Evidence |
+|---|---|---|---|
+| CI-01 | Complete required proof contract, including planning guards | ✓ SATISFIED | Workflow/static contract plus successful candidate and current-main runs with all eight required jobs. |
+| CI-02 | Controlled immutable inputs, runners/toolchains, caches, timeouts, least privilege | ✓ SATISFIED | Workflow inspection, 41-case policy suite, actionlint, and successful hosted execution. |
+| CI-03 | Measured critical-path evidence and baseline-derived target without dropping proof | ✓ SATISFIED | Baseline and exact-run timing records include all lanes; current target is honestly marked unmet. |
+| CI-04 | Required stable main check and current-main exact-SHA hosted proof | ✓ SATISFIED | Live effective-rule read and current-main gate verified required check, SHA, run, all jobs, and artifact. |
+| CI-05 | Durable exact-run proof with SHA, identity, toolchains, locks, and lane outcomes | ✓ SATISFIED | Proof writer/monitor tests and live retained candidate/current-main artifacts. |
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|---|---|---|---|---|
-| CI-01 | 33-02 | Complete required proof contract | ✓ SATISFIED | Workflow contract test and live all-lane candidate/main runs. |
-| CI-02 | 33-03 | Controlled immutable inputs, runners/toolchains, caches, timeouts, least privilege | ✓ SATISFIED | Workflow inspection, targeted policy test, actionlint, and hosted execution. |
-| CI-03 | 33-03, 33-04 | Measured timing and baseline-derived target without dropping proof | ✓ SATISFIED | Baseline and two final exact-run observations; target truthfully marked unmet. |
-| CI-04 | 33-01, 33-04 | Stable required main check and exact-current-main proof | ✓ SATISFIED | Active ruleset 23970515 plus live current-main gate and retained artifact. |
-| CI-05 | 33-01, 33-02, 33-04 | Durable exact-run proof summary | ✓ SATISFIED | Proof writer, monitor, passing identity test, and downloaded live artifact validation. |
+No additional requirement mapped to Phase 33 is orphaned. Phase 33 roadmap lists four executed plans, and `33-VALIDATION.md` records validation complete.
 
-No orphaned Phase 33 requirements were found. ROADMAP reports 4/4 plans complete, REQUIREMENTS marks CI-01 through CI-05 complete, and STATE points to Phase 34 with 28/28 plans complete. The phase validation contract now has all eight task rows marked pass, all six sign-off checks complete, `nyquist_compliant: true`, and approved sign-off.
+### UAT, Nyquist, and Security Audit
 
-### Decision Coverage
-
-Skipped: Phase 33 has no `*-CONTEXT.md` file with a `<decisions>` block to audit.
-
-### Planning Ledger Consistency
-
-`node scripts/planning_health.cjs --json` exited 0 with `status: healthy` and zero errors. The active phase is 34, its `34-NEXT.md` anchor is present without a declared plan, and STATE uses `status: executing` consistently with the active incomplete phase. Existing health warnings concern historical archive/publication records and the unused `.planning/state.json` mirror; none indicate a Phase 33 completion mismatch.
-
-## Anti-Patterns Found
-
-| File | Line | Pattern | Severity | Impact |
-|---|---:|---|---|---|
-| `scripts/ci_timing.cjs` | 67 | `return null` for unavailable timing values | ℹ️ Info | Intentional unmeasured-data representation; callers reject missing timing instead of treating it as zero. Not a stub. |
-
-No unresolved `TBD`, `FIXME`, or `XXX` markers, disabled requirement-linked tests, or empty implementations were found in the inspected implementation/test files. The only `return null` match is the intentional unavailable-timing representation described above.
+`33-UAT.md` records 8/8 automated criteria passed, with no pending, skipped, or issue items. `33-VALIDATION.md` records the Nyquist audit as compliant and validated, with zero gaps or escalations; this refresh independently reran the 41 Node tests, 18 focused ExUnit tests, actionlint, and current-main gate. `33-SECURITY.md` records all high-severity threats closed and no accepted risks. T-33-07 remains one documented medium-severity, non-blocking audit-provenance limitation; it does not require human UAT or block the phase.
 
 ### Test Quality Audit
 
-| Test File | Linked Req | Active | Skipped | Circular | Assertion Level | Verdict |
-|---|---|---:|---:|---:|---|---|
-| `scripts/ci_proof.test.cjs` | CI-05 | Yes | 0 | 0 | Behavioral/value | PASS |
-| `scripts/ci_monitor.test.cjs` | CI-04, CI-05 | Yes | 0 | 0 | Behavioral/value | PASS |
-| `scripts/ci_workflow_contract.test.cjs` | CI-01, CI-02 | Yes | 0 | 0 | Contract/value | PASS |
-| `scripts/ci_timing.test.cjs` | CI-03 | Yes | 0 | 0 | Value | PASS |
-| `scripts/ci_remote_gate.test.cjs` | CI-03, CI-04, CI-05 | Yes | 0 | 0 | Behavioral/value | PASS |
-| `test/paddle/error_test.exs`, `test/paddle/inspection_safety_test.exs` | Deviation regression | Yes | 0 | 0 | Behavioral/value | PASS |
+| Test File | Linked Requirement | Active | Skipped | Circular | Assertion | Verdict |
+|---|---|---:|---:|---|---|---|
+| `scripts/ci_proof.test.cjs` | CI-05 | Yes | 0 | No | Behavioral/value | PASS |
+| `scripts/ci_monitor.test.cjs` | CI-04, CI-05 | Yes | 0 | No | Behavioral/value | PASS |
+| `scripts/ci_timing.test.cjs` | CI-03 | Yes | 0 | No | Value | PASS |
+| `scripts/ci_workflow_contract.test.cjs` | CI-01, CI-02 | Yes | 0 | No | Structural/behavioral | PASS |
+| `scripts/ci_remote_gate.test.cjs` | CI-03, CI-04, CI-05 | Yes | 0 | No | Behavioral/value | PASS |
 
-**Disabled tests on requirements:** 0. **Circular patterns detected:** 0. **Insufficient assertions:** 0. Fixture-writing matches create isolated test inputs or fake command responses; they do not generate expected outputs from the system under test.
+Disabled tests linked to requirements: 0. Circular expected-value generation: 0. Insufficient assertions: 0.
 
-## Human Verification Required
+### Anti-Patterns Found
 
-N/A — infrastructure/foundation phase with no user-facing elements. Hosted integration was directly re-observed through authenticated read-only GitHub queries; no phase plan contains deferred `<human-check>` items and no truth remains behavior-unverified.
+| File | Line | Pattern | Severity | Impact |
+|---|---:|---|---|---|
+| None | — | No unresolved `TBD`, `FIXME`, or `XXX` markers or stub/disconnected CI artifacts found | — | No blocker. |
 
-## Gaps Summary
+### Decision Coverage
 
-No code, wiring, hosted-evidence, or Phase 33 ledger gap blocks the phase goal. Exact candidate and current-main proof artifacts were revalidated, all required lanes passed, the active main ruleset requires `CI contract`, the phase validation contract is signed off, and measured timing remains honestly reported against the unmet provisional target.
+No `33-CONTEXT.md` decision block exists, so the optional decision-coverage gate has no decisions to evaluate.
+
+### Human Verification Required
+
+None — this is a CI/infrastructure phase with no user-facing flow. Exact candidate/current-main acceptance, artifact identity, required rule, timing, workflow syntax, and local contracts were verified programmatically. No irreducible human/UAT item remains.
+
+### Covered-File Refresh
+
+The covered-file digest changed after the prior verification. Review of the changed covered files found additional workflow assertions for the integration seam, demo E2E, package smoke, pinned toolchains, cache identities, timeouts, and runner policy. The current workflow contract suite passes 42/42, `actionlint` passes, and the focused error inspection regression tests pass 18/18. These local checks refresh evidence for the changed checkout contents. The completed 8/8 UAT remains valid, and the durable hosted-main evidence remains explicitly bound to SHA `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`, run 36085849017 attempt 1; no new hosted run or human UAT was performed.
+
+### Gaps Summary
+
+**No gaps found.** The phase goal and CI-01 through CI-05 are verified. The provisional `<120s` / `<6 runner minutes` target remains unmet (current main: 188s / 6.42 runner minutes), and is transparently recorded as a performance target rather than concealed or represented as achieved. It does not invalidate the stated success criterion, which requires inspectable timing and target evidence while preserving the full proof contract.
 
 ---
 
-_Verified: 2026-09-25T02:11:22Z_
+_Verified: 2026-09-27T13:03:57Z_  
 _Verifier: the agent (gsd-verifier)_

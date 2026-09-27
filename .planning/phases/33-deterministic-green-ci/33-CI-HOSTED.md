@@ -99,3 +99,25 @@ part of the approved review fix.
 The evidence above is the final main observation before phase-closeout documentation.
 Any later commit to main requires another exact-SHA observation; the local Phase 33
 summary is retained as the handoff record so it does not advance the verified head.
+
+## Post-Closeout Main Re-observation (Local Handoff, 2026-09-25)
+
+The Phase 33 closeout was merged in PR #7 after its candidate proof passed:
+
+- Closeout candidate head: `a8ae282a8bc50c3b8125d83e2dba41d95a49e2dc`
+- Tested PR merge SHA: `3411bf625b3ce026c535d347a1d211415ef03c98`
+- Candidate run: [36085594315, attempt 1](https://github.com/szTheory/oarlock/actions/runs/36085594315); all eight required jobs passed.
+- Candidate artifact: `ci-proof-36085594315-1`, ID `10843468882`, digest `sha256:ee718e458081a525061b625d79d7a61ab24056be9f780d293f64aa20ec99f1a5`.
+- PR #7 merge commit: `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`.
+
+After that merge, remote main was re-read and verified:
+
+- Current main SHA: `1f2b3aa19ddfe7d8f6aaa0683df73af76abb06c5`.
+- Push run: [36085849017, attempt 1](https://github.com/szTheory/oarlock/actions/runs/36085849017), created `2026-09-25T02:20:24Z`, completed `2026-09-25T02:23:35Z`.
+- All eight required jobs passed; run head, event head, and tested SHA all match current main.
+- Artifact: `ci-proof-36085849017-1`, ID `10843607663`, digest `sha256:8b29ee8031b401d9da35eb5b99e370d1bf8ac47637415208ea818aa30dfbebc4`.
+- Effective ruleset 23970515 still requires `CI contract`; final remote gate returned `observed: true`, `verified: true`.
+- Timing: 188s critical path, 6.42 summed runner minutes, 2s queue, 190s aggregate elapsed. The provisional target remains unmet.
+
+This post-closeout record stays in the local handoff so recording it does not
+advance the exact main SHA whose proof it documents.

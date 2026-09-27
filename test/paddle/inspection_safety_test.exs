@@ -114,6 +114,7 @@ defmodule Paddle.InspectionSafetyTest do
              ])
   end
 
+  @tag phase32_bounded_proof: true, phase32_proof_id: :safe_03_recursive_inspect_redaction
   test "all six capability-bearing values redact promoted, nested, and transport canaries" do
     for {value, canaries, redacted_fields, visible_fragment} <- inspection_cases() do
       original = value

@@ -1,31 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 31 UAT gap G-31-1: All actions remain report-only proposals; determine why this truth still requires human UAT and what automated coverage/CI wiring is missing."
 created: 2026-09-10T00:55:03Z
-updated: 2026-09-10T00:57:50Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
+hypothesis: The diagnosed PROHIB-REPO-01-SAFETY proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-06-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-hypothesis: Confirmed — the plan's unresolved/null prohibition metadata gives the verifier no authoritative automated disposition, and the repository supplies neither a fail-first wired prohibition check nor recurring CI execution of the inventory suite.
-test: Completed by running the local suite, exercising dispositionForProhibition and runProhibitionEnforcement, and inspecting all GitHub Actions node-test commands.
-expecting: Confirmed — local behavior passes, absent enforcement remains flagged unverified, and hosted CI omits the suite.
-next_action: Return diagnose-only root cause and suggest wiring a resolved test-tier negative check plus CI gate.
-reasoning_checkpoint:
-  hypothesis: "PROHIB-REPO-01-SAFETY routes to human UAT because its plan item is unresolved with verification null; no machine-proven fail-first check can green it, and CI does not execute its behavioral suite."
-  confirming_evidence:
-    - "Current plan lines 57-64 contain unresolved/null metadata and no check descriptor."
-    - "The enforcement producer returned located false and flagged unverified for a hypothetical resolved/test item with no descriptor."
-    - "CI runs only ci_monitor.test.cjs while the inventory suite passes 17/17 locally."
-  falsification_test: "A resolved/test prohibition with a valid check descriptor, known-bad fixture that goes red, clean run that goes green, and a CI invocation of that gate would falsify this diagnosis. None exists."
-  fix_rationale: "A subject-injectable negative test supplies authoritative fail-first evidence; CI execution makes that evidence recurring rather than a one-time local verification."
-  blind_spots: "Hosted branch-protection/ruleset configuration is external and was not inspected; repository CI nevertheless lacks the required command."
-  candidate_causes:
-    - "config: 31-01-PLAN.md leaves the safety prohibition unresolved/null and omits its flat wired-check descriptor."
-    - "code/test: repository_inventory.test.cjs has ordinary no-mutation coverage but no GSD_PROHIB_SUBJECT-compatible known-bad/clean prohibition harness."
-    - "environment/CI: .github/workflows/ci.yml never invokes the Phase 31 inventory tests or prohibition-enforcement gate."
-  and_gate: "No for the immediate human_needed status: unresolved/null metadata alone is sufficient. Yes for the requested zero-human recurring guarantee: authoritative fail-first enforcement and CI execution are both required."
 
 ## Symptoms
 
@@ -91,9 +77,14 @@ started: Discovered during Phase 31 UAT on 2026-09-09.
   found: The relevant local suite has no failing test; the symptom is a deterministic metadata/enforcement disposition rather than a failing implementation test.
   implication: SBFL is not applicable; working backward from the human_needed disposition directly localized the fault to contract and CI wiring.
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-06-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/prohibitions/repository_inventory_report_only.test.cjs, scripts/fixtures/prohibitions/repository_inventory_mutating.cjs, and .github/workflows/ci.yml
+  found: PROHIB-REPO-01-SAFETY is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: "The immediate human-UAT routing is caused by PROHIB-REPO-01-SAFETY remaining status unresolved with verification null in 31-01-PLAN.md. Its existing no-mutation tests are ordinary local evidence, not a resolved test-tier prohibition with a locatable check descriptor and machine-proven fail-first violation fixture, so GSD correctly fails closed as unverified. Independently, .github/workflows/ci.yml runs only ci_monitor.test.cjs and never runs repository_inventory.test.cjs or the prohibition-enforcement gate, so the invariant has no recurring hosted regression gate."
-fix: "Not applied (diagnose-only). Suggested direction: author a dedicated subject-injectable negative test with known-bad and preferably clean fixtures; resolve the prohibition as test-tier with check_kind/check_target/check_violation_fixture/check_clean_fixture; invoke the enforcement check and Phase 31 Node suite in required CI."
-verification: "Diagnosis reproduced: inventory suite 17/17 passes locally; disposition helper flags current unresolved item; enforcement producer flags even resolved/test when descriptor is absent; workflow search finds no Phase 31 test command."
-files_changed: []
+fix: "Phase 31 Plan 06 resolved the report-only prohibition with a mutating bad subject and repository-inventory clean control. Plan 09 wires it into the six-check enforcement lane and required planning-truth CI contract."
+verification: "Validated by 31-06-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/prohibitions/repository_inventory_report_only.test.cjs", "scripts/fixtures/prohibitions/repository_inventory_mutating.cjs", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-06-SUMMARY.md"]

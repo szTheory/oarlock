@@ -44,7 +44,7 @@ coverage:
       - kind: unit
         ref: "node --test scripts/ci_remote_gate.test.cjs (161 tests passed)"
         status: pass
-      - kind: hosted
+      - kind: e2e
         ref: "run 36077014434; candidate 580c1c836232e712b31e49913c694af9e1ca123e; artifact 10839959367"
         status: pass
     human_judgment: false
@@ -52,7 +52,7 @@ coverage:
     description: Remote main requires CI contract and has exact-current-SHA hosted proof with measured timing.
     requirement: CI-04
     verification:
-      - kind: hosted
+      - kind: e2e
         ref: "node scripts/ci_remote_gate.cjs main --repo szTheory/oarlock --json; run 36077488230; ruleset 23970515"
         status: pass
       - kind: other
