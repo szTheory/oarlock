@@ -2,7 +2,7 @@
 phase: "32"
 slug: "dependency-sdk-trust-boundary"
 status: validated
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: true
 created: "2026-09-10"
 validated: "2026-09-10"
@@ -40,12 +40,12 @@ validated: "2026-09-10"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 32-W0-01 | 32-11 | 3 | SAFE-01 | T-32-01, T-32-05 | Req compatibility and advisory closure | integration | `ACCRUE_CHECKOUT=../accrue bin/phase32_compatibility.sh --verify` | ✅ | ✅ green |
+| 32-W0-01 | 32-11 | 3 | SAFE-01 | T-32-01, T-32-05 | Req compatibility and advisory closure | integration | `ACCRUE_CHECKOUT=../accrue bin/phase32_compatibility.sh --verify` | ✅ | ⚠ historical full 13-row matrix recorded in Plan 32-10; not rerun in closure |
 | 32-W0-02 | 32-08 | 8 | SAFE-02 | T-32-20, T-32-21 | Telemetry allowlist and canary absence | unit | `mix test test/paddle/http/telemetry_test.exs` | ✅ | ✅ green |
 | 32-W0-03 | 32-09 | 6 | SAFE-03 | T-32-23, T-32-24 | Promoted and nested secret redaction | unit | `mix test test/paddle/inspection_safety_test.exs` | ✅ | ✅ green |
 | 32-W0-04 | 32-04, 32-15 | 5, 12 | SAFE-04 | T-32-10, T-32-11, T-32-29 | Safe-read attempt matrix, no mutation replay, and duplicate lifecycle retry rejection | unit/integration | `mix test test/paddle/http_test.exs test/paddle/subscriptions_test.exs` | ✅ | ✅ green |
 | 32-W0-05 | 32-03 | 4 | SAFE-05 | T-32-07, T-32-08 | Constructor decision table and redacted failures | unit | `mix test test/paddle/client_test.exs` | ✅ | ✅ green |
-| 32-W0-06 | 32-10, 32-13, 32-14 | 9, 12 | SAFE-06 | T-32-25, T-32-26, T-32-34, T-32-35 | Docs/types/runtime agreement plus fail-closed concurrent, interrupted, and bounded/full receipt acceptance | contract | `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_contract_proof.sh --verify` | ✅ | ✅ green |
+| 32-W0-06 | 32-10, 32-13, 32-14, 32-16 | 9, 12 | SAFE-06 | T-32-25, T-32-26, T-32-34, T-32-35 | Docs/types/runtime agreement plus fail-closed concurrent, interrupted, and bounded receipt acceptance | contract | `node $HOME/.codex/gsd-core/bin/gsd-tools.cjs run-with-timeout 30 -- env ACCRUE_CHECKOUT=../accrue bin/phase32_contract_proof.sh --verify` (twice) | ✅ | ✅ green — two fresh exit-0 bounded proofs; 14 tagged tests each; full matrix remains separate historical evidence |
 
 ---
 
@@ -85,14 +85,20 @@ validated: "2026-09-10"
 
 ## Validation Sign-Off
 
-- [ ] All tasks have stable, identity-checked automated verification; the bounded docs/spec proof and line-based selector gaps remain open.
+- [x] All tasks have stable, identity-checked automated verification; Plan 32-16 closes bounded docs/spec execution and semantic selector gaps.
 - [x] Sampling continuity: no 3 consecutive tasks without automated verification.
 - [x] Wave 0 covers all MISSING references.
 - [x] No watch-mode flags.
 - [x] Feedback latency baseline is measured and recorded.
-- [ ] `nyquist_compliant: true` set in frontmatter.
+- [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** partial — gap closure required
+**Approval:** validated — bounded contract proof current; full 13-row compatibility evidence remains dated Plan 32-10 evidence.
+
+## Validation Audit 2026-09-27 (Plan 32-16 Closure)
+
+- Ran the bounded contract command twice: both exited 0, executed 14 `:phase32_bounded_proof` tests with 0 failures, ran exactly three docs/spec proofs, compatibility receipt self-tests, no-drift checks, and online Hex audit; both reported SAFE-01 through SAFE-06 passed.
+- These runs satisfy the two Plan 32-16 bounded proof checks. They explicitly do not replace the full 13-row D-03 compatibility matrix. The last full-matrix result remains the dated Plan 32-10 evidence and is not represented as rerun here.
+- Both runs printed tar warnings for absent `.planning/HANDOFF.json` and `.planning/phases/34-release-integrity/VERIFICATION.md` paths retained in Git's path index. The proof gates completed and emitted passing receipts despite those warnings.
 
 ## Validation Audit 2026-09-10
 

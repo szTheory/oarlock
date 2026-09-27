@@ -1,29 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 31 UAT gap G-31-6: integration/e2e/smoke automate the world devops mindset shift left even onto CI iff and only iff recurring value there... 0 human verification/uat required"
 created: 2026-09-10T01:25:11Z
-updated: 2026-09-10T01:34:00Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
+hypothesis: The diagnosed PROHIB-REPO-03-IDENTITY proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-08-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-reasoning_checkpoint:
-  hypothesis: "G-31-6 requires human UAT because PROHIB-REPO-03-IDENTITY is unresolved/null and therefore cannot green under GSD's fail-closed prohibition policy; replacing that review with recurring automation also requires a wired fail-first identity check and a required CI job, neither of which exists."
-  confirming_evidence:
-    - "31-03-PLAN leaves PROHIB-REPO-03-IDENTITY status unresolved, verification null, flagged_unverified true, and supplies no check descriptor; 31-VERIFICATION cites that exact state as why_human."
-    - "The focused local identity suite passes 7/7 and live planning health exits 0 with only explicit-unknown publication info, proving the current implementation is healthy rather than reproducing an identity conflation."
-    - "All repository workflows omit planning_health.test.cjs and planning_health.cjs, and the aggregate ci-contract has no planning-truth dependency."
-  falsification_test: "The diagnosis would be false if the prohibition were already resolved/test with passing wired fail-first enforcement evidence, or if required push/PR CI invoked the identity suite/live smoke and the verifier still required human review for another stated reason."
-  fix_rationale: "A subject-driven identity prohibition check with known-bad and clean fixtures provides authoritative machine evidence; required CI execution makes it recurring; resolving the PLAN item to the test tier removes the explicit human fallback."
-  blind_spots: "Hosted branch-protection/ruleset state was not available, so this establishes repository-workflow omission but does not claim which hosted checks are mandatory. A live CI smoke would also need an explicitly complete local-tag input; the present workflow does not declare one."
-  candidate_causes:
-    - "data/config: unresolved/null prohibition lifecycle and absent check descriptor mechanically force human_needed"
-    - "automation/config: push/PR/release workflows never run planning-health identity tests or live smoke, and ci-contract does not require such a job"
-    - "code/test: existing green tests are ordinary direct assertions, not a GSD_PROHIB_SUBJECT fail-first check with known-bad and clean fixtures"
-    - "environment: a future CI live smoke must explicitly make the historical local tags used as authorities available"
-  and_gate: "Immediate human_needed needs only the unresolved/null item. The requested zero-human recurring guarantee is an AND: resolved/test metadata + machine-proven fail-first descriptor + recurring required CI execution (with tag inputs for live smoke)."
-next_action: Return root-cause-only diagnosis to the orchestrator; do not implement changes.
 
 ## Symptoms
 
@@ -103,9 +91,14 @@ started: Discovered during Phase 31 UAT.
   found: There is no failing automated test; the focused suite and live command are green. The matching common pattern is environment/config omission rather than runtime logic, and the failure is deterministic.
   implication: SBFL is inapplicable; static policy/workflow tracing and differential comparison of local verification versus recurring CI localize the gap.
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-08-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/prohibitions/planning_identity.test.cjs, scripts/fixtures/prohibitions/planning_identity_inference.cjs, and .github/workflows/ci.yml
+  found: PROHIB-REPO-03-IDENTITY is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: "Two contributing layers explain G-31-6. First, PROHIB-REPO-03-IDENTITY remains status unresolved with verification null and no wired descriptor, so GSD's fail-closed policy cannot promote ordinary green tests and 31-VERIFICATION must request human review. Second, the repository has no recurring enforcement path: push/PR/release workflows do not run scripts/planning_health.test.cjs or the live planning_health.cjs smoke, ci-contract does not require a planning-truth job, and the existing tests are not a subject-driven fail-first prohibition check with known-bad and clean fixtures. Thus the identity behavior is locally implemented and green, but no authoritative recurring gate can replace UAT."
-fix: "Not applied (diagnose-only). Suggested direction: classify PROHIB-REPO-03-IDENTITY as resolved/test and wire a node-test descriptor to a clean milestone-identity subject plus known-bad fixtures that independently mutate planning milestone, tag/SHA, package version, and publication claim; make the check prove red on inference/overclaim and green on independently sourced/explicit-unknown rows. Run it, the planning-health suite, and a live planning-health JSON smoke in a required push/PR CI job, explicitly provision the local tag refs needed by the smoke, and add that job to ci-contract."
-verification: "Diagnosis confirmed by metadata/policy trace, repository-wide descriptor/workflow searches, 7/7 focused identity tests passing, and live planning-health exit 0 with only explicit-unknown PIDENT publication information."
-files_changed: []
+fix: "Phase 31 Plan 08 resolved the identity prohibition with independent bad/clean source checks. Plan 09 includes the descriptor in the six-check enforcement lane and required planning-truth CI contract."
+verification: "Validated by 31-08-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/prohibitions/planning_identity.test.cjs", "scripts/fixtures/prohibitions/planning_identity_inference.cjs", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-08-SUMMARY.md"]

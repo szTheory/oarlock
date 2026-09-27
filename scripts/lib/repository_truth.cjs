@@ -998,7 +998,14 @@ function resolveActiveScope(snapshot) {
   const stateStatuses = frontmatterFieldValues(stateContent, "status");
   const stateMilestones = frontmatterFieldValues(stateContent, "milestone").filter((value) => value.trim() !== "");
   const statePhases = frontmatterFieldValues(stateContent, "current_phase").filter((value) => value.trim() !== "");
-  const stateStatusValid = stateStatuses.length === 1 && ["executing", "complete"].includes(stateStatuses[0]);
+  // GSD uses lifecycle statuses while a phase is in progress. Keep these
+  // distinct from terminal statuses so an active phase can route through
+  // planning/discussion/verification without weakening completion checks.
+  const activeStateStatuses = ["unknown", "paused", "executing", "planning", "discussing", "verifying"];
+  const terminalStateStatuses = ["complete", "completed"];
+  const stateStatusValid = stateStatuses.length === 1
+    && [...activeStateStatuses, ...terminalStateStatuses].includes(stateStatuses[0]);
+  const stateIsTerminal = terminalStateStatuses.includes(state.status);
   const roadmapMilestone = roadmap.activeMilestones.length === 1 ? roadmap.activeMilestones[0] : null;
   const committed = parseCommittedRequirements(planningDocument(snapshot, ".planning/REQUIREMENTS.md"), roadmapMilestone);
   const stateMilestone = stateMilestones.length === 1 ? stateMilestones[0] : null;
@@ -1040,7 +1047,7 @@ function resolveActiveScope(snapshot) {
   if (!stateStatusValid) {
     diagnostics.push(diagnostic({
       code: "PAUTH_STATE_STATUS_INVALID", severity: "error", artifact: ".planning/STATE.md", field: "status",
-      expected: "exactly one of: executing, complete", actual: stateStatuses,
+      expected: `exactly one of: ${[...activeStateStatuses, ...terminalStateStatuses].join(", ")}`, actual: stateStatuses,
       authority: ".planning/STATE.md", evidence: "STATE frontmatter status is missing, duplicated, or unsupported",
       repair: "Propose one supported STATE status consistent with the canonical ROADMAP phase checklist.",
     }));
@@ -1054,10 +1061,10 @@ function resolveActiveScope(snapshot) {
       authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `STATE pointer ${state.current_phase || "missing"} is not a member of the ROADMAP graph`,
       repair: "Propose a supported state pointer or ROADMAP graph patch after maintainer review; do not infer from directories.",
     }));
-  } else if (stateStatusValid && phase.complete !== (state.status === "complete")) {
+  } else if (stateStatusValid && phase.complete !== stateIsTerminal) {
     diagnostics.push(diagnostic({
       code: "PSCOPE_PHASE_STATUS_CONFLICT", severity: "error", artifact: ".planning/ROADMAP.md + .planning/STATE.md", field: "phase status",
-      expected: phase.complete ? "complete" : "executing", actual: { roadmap: phase.complete ? "complete" : "incomplete", state: state.status },
+      expected: phase.complete ? "complete or completed" : "an active lifecycle status", actual: { roadmap: phase.complete ? "complete" : "incomplete", state: state.status },
       authority: ".planning/ROADMAP.md + .planning/STATE.md", evidence: `Phase ${phase.number} status disagrees across canonical documents`,
       repair: "Propose a supported state/roadmap status patch after reviewing completion proof.",
     }));
@@ -1462,7 +1469,12 @@ function acceptedProofRow(markdown, id, verificationArtifact) {
   if (rows.length !== 1) return false;
   const cells = rows[0].slice(1);
   const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
-  const accepted = /^(?:pass(?:ed)?|complete(?:d)?|accepted|verified)$/i;
+  // Phase verifiers use both boolean-style labels (PASSED/VERIFIED) and the
+  // requirement-table vocabulary SATISFIED, sometimes prefixed with a check.
+  // Accept the canonical labels while keeping the cell exact so narrative
+  // caveats cannot turn into completion proof. Scoped historical overrides
+  // remain explicit and narrow.
+  const accepted = /^(?:✓\s*)?(?:pass(?:ed)?|complete(?:d)?|accepted|verified|satisfied)(?:\s+\(scoped historical override\))?$/i;
   if (cells.some((cell) => negative.test(cell)) || !cells.some((cell) => accepted.test(cell))) return false;
   return cells.some((cell) => {
     const candidates = [...cell.matchAll(/`([^`]+)`|\[[^\]]+\]\(([^)]+)\)|((?:\.?\.?\/)?[^\s;,|]+\.md)\b/g)]
@@ -1480,7 +1492,7 @@ function requirementPassedByVerification(markdown, id) {
   if (rows.length !== 1) return false;
   const cells = rows[0].slice(1);
   const negative = /\b(?:fail(?:ed|ure)?|pending|missing|unproven|blocked|rejected|unknown)\b/i;
-  const accepted = /^(?:pass(?:ed)?|complete(?:d)?|accepted|verified)$/i;
+  const accepted = /^(?:✓\s*)?(?:pass(?:ed)?|complete(?:d)?|accepted|verified|satisfied)(?:\s+\(scoped historical override\))?$/i;
   return !cells.some((cell) => negative.test(cell))
     && cells.filter((cell) => accepted.test(cell)).length === 1;
 }
@@ -1642,7 +1654,15 @@ function validateCompletionProof(snapshot, phaseNumber) {
 function activeArtifactDiagnostics(snapshot, activeScope) {
   if (!activeScope.active || !activeScope.phase) return [];
   const resolution = resolveCanonicalPhaseDirectory(snapshot, activeScope.phase.number);
-  if (resolution.status !== "resolved") return [canonicalPhaseDirectoryDiagnostic(resolution, activeScope.phase.number)];
+  if (resolution.status !== "resolved") {
+    // A newly activated phase may be intentionally awaiting planning. No
+    // phase directory exists until its first planning artifact is written.
+    // Keep later/malformed phases fail-closed once plans are declared or the
+    // lifecycle has moved beyond the planning entry state.
+    if (resolution.status === "missing" && activeScope.state.status === "planning"
+      && activeScope.phase.plans.length === 0 && !activeScope.phase.complete) return [];
+    return [canonicalPhaseDirectoryDiagnostic(resolution, activeScope.phase.number)];
+  }
   const phaseDirectory = resolution.directory;
   const diagnostics = [];
   for (const plan of activeScope.phase.plans) {

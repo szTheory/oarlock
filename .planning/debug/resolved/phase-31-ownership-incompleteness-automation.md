@@ -1,30 +1,17 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 31 UAT gap G-31-2: integration/e2e/smoke automate the world devops mindset goal 0 human verification/uat required"
 created: 2026-09-10T01:00:38Z
-updated: 2026-09-10T01:09:00Z
+updated: 2026-09-27T14:21:39Z
 ---
 
 ## Current Focus
 
+hypothesis: The diagnosed PROHIB-REPO-01-TRANSPARENCY proof-plumbing gap has been closed by later Phase 31 plans.
+test: Compare the original diagnosis with 31-06-SUMMARY.md, the canonical Phase 31 verification, and the current required planning-truth workflow.
+expecting: The prohibition is resolved at the test tier; its bad/clean proof and recurring CI wiring are present.
+next_action: None — closure recorded; do not repeat the original Phase 31 investigation or UAT.
 bug_class: bohrbug
-hypothesis: "The human-UAT disposition is deterministic proof-plumbing failure: PROHIB-REPO-01-TRANSPARENCY remains unresolved with verification null, while the relevant Node integration suite is execution-only evidence and is omitted from required CI."
-test: "Work backward from 31-VERIFICATION human_needed, inspect the prohibition metadata, run the inventory suite and direct stale-claim probe, then search required CI commands for the suite."
-expecting: "The implementation behavior will pass locally, but the prohibition will have no authoritative executable reference and CI will never invoke repository_inventory.test.cjs."
-next_action: "Return the evidence-backed diagnosis to the orchestrator; do not implement fixes."
-reasoning_checkpoint:
-  hypothesis: "Missing prohibition-to-test traceability causes Test 2 to be human-routed, and missing CI invocation means its existing executable evidence is not recurring."
-  confirming_evidence:
-    - "31-VERIFICATION.md explicitly says PROHIB-REPO-01-TRANSPARENCY remains unresolved with verification null and states this alone keeps status human_needed."
-    - "The 17-test repository inventory suite passes locally, but .github/workflows/ci.yml invokes only scripts/ci_monitor.test.cjs among Node suites and never invokes repository_inventory.test.cjs."
-  falsification_test: "A resolved prohibition with a concrete passing verification reference, or a required CI command invoking repository_inventory.test.cjs, would disprove the corresponding cause. Neither exists."
-  fix_rationale: "Future work must attach exact automated evidence to the prohibition and execute that evidence in required CI; implementation-only tests cannot eliminate either proof gap."
-  blind_spots: "Hosted branch-protection/ruleset configuration is not available locally; however, no workflow job produces this test signal for a ruleset to require."
-  candidate_causes:
-    - "data/metadata: plan prohibition record is unresolved and verification is null"
-    - "config: required GitHub Actions workflow omits the Phase 31 Node integration suites"
-    - "code/test: the stale-claim branch has no explicit regression assertion despite being named in the transparency prohibition"
-  and_gate: "No for the immediate human_needed status: unresolved/null prohibition metadata alone is sufficient. Yes for a zero-human recurring guarantee: authoritative prohibition traceability and recurring CI execution are both required; explicit stale-branch assertions are additionally needed for the whole stated matrix."
 
 ## Symptoms
 
@@ -81,9 +68,14 @@ started: Discovered during Phase 31 UAT.
   evidence: "The dedicated integration suite and Phase 31 validation map exercise those behaviors; the defect is that CI and prohibition metadata do not consume that evidence, plus stale claims lack a direct regression assertion."
   timestamp: 2026-09-10T01:07:00Z
 
-## Resolution
+- timestamp: 2026-09-27T14:21:39Z
+  checked: 31-06-SUMMARY.md, .planning/phases/31-repository-planning-truth/31-VERIFICATION.md, scripts/prohibitions/repository_inventory_transparency.test.cjs, scripts/fixtures/prohibitions/repository_inventory_inference.cjs, and .github/workflows/ci.yml
+  found: PROHIB-REPO-01-TRANSPARENCY is resolved with a named test target and bad subject; Phase 31 Plan 09 records 98 passing tests, 6/6 bad/clean prohibition proofs, live planning-health success, and required CI wiring for the suite and smoke.
+  implication: This diagnosis describes the earlier missing proof; subsequent implementation resolved it and it can be closed without rerunning its historical UAT.
 
+## Resolution
 root_cause: "PROHIB-REPO-01-TRANSPARENCY remains explicitly unresolved with verification null, so the verifier must route it to human UAT despite adjacent automated evidence; additionally, required CI never invokes the repository inventory integration suite, and that suite lacks a direct stale-claim regression assertion, so the full inferred/stale/unsupported/partial matrix has no recurring authoritative gate."
-fix: "Not applied (diagnose-only). Suggested direction: add explicit CLI-level regression cases for stale and incomplete/unknown visibility across human and JSON output, run the Phase 31 Node suites (or scripts/*.test.cjs) in the required CI test job/contract, and resolve the prohibition with exact test/CI proof references."
-verification: "Diagnosis confirmed by plan/verifier metadata trace, workflow command search, 17/17 passing inventory tests, and a direct stale-claim render probe."
-files_changed: []
+fix: "Phase 31 Plan 06 resolved the ownership/transparency prohibition with bad inference and clean-control subjects plus human/JSON CLI coverage. Plan 09 wires it into the six-check enforcement lane and required planning-truth CI contract."
+verification: "Validated by 31-06-SUMMARY.md and 31-VERIFICATION.md: the full Phase 31 Node/prohibition suite passed 98/98, the enforcer passed all 6/6 non-vacuous bad/clean checks, live planning health exited healthy, and ci.yml wires the planning-truth lane. Fresh planning health on 2026-09-27 also reports healthy with 0 errors."
+oracle_type: specified
+files_changed: ["scripts/prohibitions/repository_inventory_transparency.test.cjs", "scripts/fixtures/prohibitions/repository_inventory_inference.cjs", ".github/workflows/ci.yml", ".planning/phases/31-repository-planning-truth/31-06-SUMMARY.md"]

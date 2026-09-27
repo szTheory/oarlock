@@ -55,6 +55,9 @@ snapshot_contract() {
   if ! git -C "$ROOT_DIR" ls-files --error-unmatch bin/phase32_contract_proof.sh >/dev/null 2>&1; then
     printf '%s\0' bin/phase32_contract_proof.sh >>"$paths"
   fi
+  if ! git -C "$ROOT_DIR" ls-files --error-unmatch test/support/phase32_proof_formatter.ex >/dev/null 2>&1; then
+    printf '%s\0' test/support/phase32_proof_formatter.ex >>"$paths"
+  fi
 
   tar -C "$ROOT_DIR" --null -T "$paths" -cf "$archive"
   printf '%s\n' "$archive"
@@ -77,6 +80,65 @@ run_isolated_seam_reader() {
     MIX_DEPS_PATH="$ROOT_DIR/deps" MIX_BUILD_PATH="$workspace/_build_contract" \
       MIX_ENV=test mix do compile --warnings-as-errors + \
       test --warnings-as-errors test/paddle/seam_test.exs
+  )
+}
+
+expected_docs_proof_triples() {
+  cat <<'EOF'
+safe_06_public_contract_docs|Paddle.SeamTest|test public documentation pins the secure dependency and runtime migration contract
+safe_06_address_stream_docs|Paddle.SeamTest|test address stream documentation matches direct elements and raised enumeration failures
+safe_06_compiled_docs_types_specs|Paddle.SeamTest|test compiled docs types and specs agree with the Phase 32 decision tables
+EOF
+}
+
+validate_proof_triples() {
+  local expected="$1" observed="$2" expected_sorted observed_sorted
+  expected_sorted="$PROOF_DIR/expected-proof-triples.$RANDOM"
+  observed_sorted="$PROOF_DIR/observed-proof-triples.$RANDOM"
+  LC_ALL=C sort "$expected" >"$expected_sorted"
+  LC_ALL=C sort "$observed" >"$observed_sorted"
+  local expected_count observed_count
+  expected_count="$(wc -l <"$expected_sorted" | tr -d ' ')"
+  observed_count="$(wc -l <"$observed_sorted" | tr -d ' ')"
+  [[ "$expected_count" == "$observed_count" ]] || {
+    printf 'Proof event count differs from expected manifest: expected=%s observed=%s\n' \
+      "$expected_count" "$observed_count" >&2
+    cat "$observed_sorted" >&2 || true
+    return 1
+  }
+  [[ "$(uniq -d "$observed_sorted" | wc -l | tr -d ' ')" == "0" ]] || {
+    printf 'Duplicate runtime proof event identity\n' >&2
+    return 1
+  }
+  cmp -s "$expected_sorted" "$observed_sorted" || {
+    printf 'Runtime proof identities differ from canonical manifest\n' >&2
+    diff -u "$expected_sorted" "$observed_sorted" >&2 || true
+    return 1
+  }
+}
+
+validate_docs_spec_summary() {
+  local log="$1" summary tests failures
+  summary="$(grep -E '[0-9]+ tests?, [0-9]+ failures?' "$log" | tail -n 1 || true)"
+  [[ -n "$summary" ]] || { printf 'Docs/spec ExUnit completion summary missing\n' >&2; return 1; }
+  tests="$(printf '%s\n' "$summary" | sed -E 's/^([0-9]+) tests?, ([0-9]+) failures?.*/\1/')"
+  failures="$(printf '%s\n' "$summary" | sed -E 's/^[0-9]+ tests?, ([0-9]+) failures?.*/\1/')"
+  [[ "$tests" == "3" && "$failures" == "0" ]] || {
+    printf 'Docs/spec ExUnit summary mismatch: tests=%s failures=%s expected=3\n' \
+      "$tests" "$failures" >&2
+    return 1
+  }
+}
+
+run_isolated_bounded_seam_reader() {
+  local workspace="$1" events="$PROOF_DIR/docs-proof-events"
+  rm -f "$events"
+  (
+    cd "$workspace"
+    PHASE32_PROOF_EVENTS_FILE="$events" MIX_DEPS_PATH="$ROOT_DIR/deps" \
+      MIX_BUILD_PATH="$workspace/_build_contract" MIX_ENV=test \
+      mix do compile --warnings-as-errors + test --warnings-as-errors \
+      --only phase32_bounded_docs_spec test/paddle/seam_test.exs
   )
 }
 
@@ -130,9 +192,17 @@ run_bounded_concurrent_readers() {
   tar -C "$reader_one" -xf "$archive"
   tar -C "$reader_two" -xf "$archive"
 
-  input_manifest "$reader_one" >"$PROOF_DIR/bounded-reader-one.inputs" &
+  input_manifest "$reader_one" >"$PROOF_DIR/bounded-reader-one.inputs"
+  input_manifest "$reader_two" >"$PROOF_DIR/bounded-reader-two.inputs"
+  cmp -s "$PROOF_DIR/bounded-reader-one.inputs" "$PROOF_DIR/bounded-reader-two.inputs" || {
+    printf 'Bounded isolated reader inputs are not byte-identical\n' >&2
+    return 1
+  }
+
+  expected_docs_proof_triples >"$PROOF_DIR/docs-proof-expected"
+  run_isolated_docs_builder "$reader_one" >"$PROOF_DIR/bounded-docs.log" 2>&1 &
   reader_one_pid=$!
-  input_manifest "$reader_two" >"$PROOF_DIR/bounded-reader-two.inputs" &
+  run_isolated_bounded_seam_reader "$reader_two" >"$PROOF_DIR/bounded-seam.log" 2>&1 &
   reader_two_pid=$!
 
   reader_one_status=0
@@ -140,17 +210,26 @@ run_bounded_concurrent_readers() {
   wait "$reader_one_pid" || reader_one_status=$?
   wait "$reader_two_pid" || reader_two_status=$?
 
-  [[ "$reader_one_status" == "0" && "$reader_two_status" == "0" ]] || {
-    printf 'Bounded concurrent readers failed: reader-one=%s reader-two=%s\n' \
+  if [[ "$reader_one_status" != "0" || "$reader_two_status" != "0" ]]; then
+    printf 'Bounded docs/spec readers failed: docs=%s specs=%s\n' \
       "$reader_one_status" "$reader_two_status" >&2
+    printf '%s\n' '--- isolated docs build ---' >&2
+    tail -n 80 "$PROOF_DIR/bounded-docs.log" >&2
+    printf '%s\n' '--- isolated docs/spec tests ---' >&2
+    tail -n 80 "$PROOF_DIR/bounded-seam.log" >&2
     return 1
-  }
-  cmp -s "$PROOF_DIR/bounded-reader-one.inputs" "$PROOF_DIR/bounded-reader-two.inputs" || {
-    printf 'Bounded isolated reader inputs are not byte-identical\n' >&2
-    return 1
-  }
+  fi
 
-  printf 'Bounded concurrent isolated readers passed\n'
+  if ! validate_docs_spec_summary "$PROOF_DIR/bounded-seam.log"; then
+    tail -n 80 "$PROOF_DIR/bounded-seam.log" >&2
+    return 1
+  fi
+  if ! validate_proof_triples "$PROOF_DIR/docs-proof-expected" "$PROOF_DIR/docs-proof-events"; then
+    printf '%s\n' '--- isolated docs/spec test output ---' >&2
+    tail -n 80 "$PROOF_DIR/bounded-seam.log" >&2
+    return 1
+  fi
+  printf 'Bounded isolated docs build and exact docs/spec proof triples passed\n'
 }
 
 run_concurrent_readers() {
@@ -211,6 +290,14 @@ require_verifier_receipt() {
       return 1
     }
   done
+  grep -qx 'proof_count=14' "$receipt" || {
+    printf 'Verifier receipt is missing the exact bounded proof count\n' >&2
+    return 1
+  }
+  grep -Eq '^proof_manifest_sha256=[a-f0-9]{64}$' "$receipt" || {
+    printf 'Verifier receipt is missing the bounded proof manifest digest\n' >&2
+    return 1
+  }
 }
 
 safe_verdicts() {
@@ -224,7 +311,7 @@ safe_verdicts() {
 }
 
 run_verify() {
-  local before_diff after_diff compatibility_dir receipt_body
+  local before_diff after_diff compatibility_dir receipt_body proof_count proof_manifest_sha256
   stage_verifier_receipt
   before_diff="$(tracked_diff_fingerprint)"
 
@@ -239,6 +326,8 @@ run_verify() {
     PHASE32_EVIDENCE_DIR="$compatibility_dir" ACCRUE_CHECKOUT="$ACCRUE_CHECKOUT" \
     "$ROOT_DIR/bin/phase32_compatibility.sh" --verify
   require_verifier_receipt "$compatibility_dir"
+  proof_count="$(sed -n 's/^proof_count=//p' "$compatibility_dir/phase32-verifier.receipt")"
+  proof_manifest_sha256="$(sed -n 's/^proof_manifest_sha256=//p' "$compatibility_dir/phase32-verifier.receipt")"
 
   after_diff="$(tracked_diff_fingerprint)"
   [[ "$before_diff" == "$after_diff" ]] || {
@@ -250,6 +339,8 @@ run_verify() {
 commit=$(git -C "$ROOT_DIR" rev-parse HEAD)
 completed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 tracked_diff_sha256=$after_diff
+proof_count=$proof_count
+proof_manifest_sha256=$proof_manifest_sha256
 compatibility_receipt_sha256=$(shasum -a 256 "$compatibility_dir/phase32-verifier.receipt" | awk '{print $1}')
 $(safe_verdicts)"
   write_verifier_receipt "$receipt_body"
