@@ -38,17 +38,28 @@ function write(root, relative, content) {
   fs.writeFileSync(target, content);
 }
 
-function repository(t, { evidence = true } = {}) {
+function repository(t, { evidence = true, jtbd = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "oarlock-history-integrity-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   run("git", ["init", "-b", "main", root]);
   write(root, ".planning/milestones/v1.2-ROADMAP.md", "# Milestone v1.2\n\nFrozen roadmap.\n");
   write(root, ".planning/milestones/v1.2-REQUIREMENTS.md", "# Requirements v1.2\n\nFrozen requirements.\n");
   if (evidence) write(root, ".planning/EVIDENCE.md", "# Evidence\n\n| Date | Milestone | Corrected current record | Preserved source artifact | Evidence Class | Evidence | Caveat |\n|------|-----------|--------------------------|---------------------------|----------------|----------|--------|\n| 2026-09-09 | v1.2 | Added navigation | `.planning/milestones/v1.2-ROADMAP.md` | Additive navigation correction | Frozen roadmap records the shipped range | Historical wording remains unchanged |\n");
+  if (jtbd) write(root, ".planning/JTBD-COVERAGE.md", jtbdContent());
   run("git", ["add", ".planning"], { cwd: root });
   run("git", ["commit", "-m", "base history"], { cwd: root });
   return { root, base: run("git", ["rev-parse", "HEAD"], { cwd: root }).stdout.trim() };
 }
+
+function jtbdContent() {
+  return `# JTBD\n\n## JTBD-TEST-01\n\n| Field | Value |\n|-------|-------|\n| horizon | short |\n| commitment_status | shipped |\n\n### Status history\n\n| Date | Prior horizon | New horizon | Prior status | New status | Source | Owner | Rationale | Evidence | Evidence class | Caveat |\n|------|---------------|-------------|--------------|------------|--------|-------|-----------|----------|---------------|--------|\n| 2026-09-26 | unknown | short | unknown | shipped | source.md | maintainer | Preserve initial shipped rationale. | proof.md | Phase verification | No live provider claim. |\n`;
+}
+
+function appendJtbdTransition(content, line) {
+  const marker = "| 2026-09-26 | unknown | short | unknown | shipped | source.md | maintainer | Preserve initial shipped rationale. | proof.md | Phase verification | No live provider claim. |";
+  return content.replace(marker, `${marker}\n${line}`);
+}
+
 
 function commit(root, message = "candidate history") {
   run("git", ["add", "-A"], { cwd: root });
@@ -178,6 +189,60 @@ if (MUTATION_SUBJECT) {
     const result = guard(root, base, head, ["--json"]);
     assert.equal(result.status, 1);
     assert.match(result.stdout, /HIST_EVIDENCE_NOT_APPEND_ONLY/);
+  });
+
+  test("JTBD history: dated transitions append while preserving earlier rows", (t) => {
+    const { root, base } = repository(t, { jtbd: true });
+    const canonical = path.join(root, ".planning/JTBD-COVERAGE.md");
+    fs.writeFileSync(canonical, appendJtbdTransition(fs.readFileSync(canonical, "utf8"), "| 2026-09-27 | short | mid | shipped | candidate | source.md | maintainer | Keep discovery evidence bounded. | proof.md | Candidate research | Needs adopter evidence. |"));
+    const head = commit(root, "append JTBD decision");
+    const result = JSON.parse(guard(root, base, head, ["--json"]).stdout);
+    assert.equal(result.status, "healthy");
+  });
+
+  test("JTBD history: rewriting or removing an earlier transition fails", async (t) => {
+    for (const [name, mutate] of [
+      ["rewrite", (content) => content.replace("Preserve initial shipped rationale.", "Changed old rationale.")],
+      ["remove", (content) => content.replace(/\| 2026-09-26 \| unknown \| short[^\n]*\n/, "")],
+    ]) {
+      await t.test(name, (subtest) => {
+        const { root, base } = repository(subtest, { jtbd: true });
+        const canonical = path.join(root, ".planning/JTBD-COVERAGE.md");
+        fs.writeFileSync(canonical, mutate(fs.readFileSync(canonical, "utf8")));
+        const head = commit(root, `rewrite JTBD history ${name}`);
+        const result = JSON.parse(guard(root, base, head, ["--json"]).stdout);
+        assert.equal(result.status, "violated");
+        assert.ok(result.violations.some((item) => item.code === "HIST_JTBD_HISTORY_NOT_APPEND_ONLY"));
+      });
+    }
+  });
+
+  test("JTBD history: invalid dates and discontinuous prior state fail", async (t) => {
+    for (const [name, row] of [
+      ["invalid date", "| 2026-02-31 | short | mid | shipped | candidate | source.md | maintainer | Keep discovery evidence bounded. | proof.md | Candidate research | Needs adopter evidence. |"],
+      ["discontinuous", "| 2026-09-27 | long | mid | conditional | candidate | source.md | maintainer | Keep discovery evidence bounded. | proof.md | Candidate research | Needs adopter evidence. |"],
+    ]) {
+      await t.test(name, (subtest) => {
+        const { root, base } = repository(subtest, { jtbd: true });
+        const canonical = path.join(root, ".planning/JTBD-COVERAGE.md");
+        fs.writeFileSync(canonical, appendJtbdTransition(fs.readFileSync(canonical, "utf8"), row));
+        const head = commit(root, `append invalid JTBD transition ${name}`);
+        const result = JSON.parse(guard(root, base, head, ["--json"]).stdout);
+        assert.equal(result.status, "violated");
+        assert.ok(result.violations.some((item) => item.code === "HIST_JTBD_TRANSITION_INVALID"));
+      });
+    }
+  });
+
+  test("JTBD history: rows without an evidence class fail", (t) => {
+    const { root, base } = repository(t, { jtbd: true });
+    const canonical = path.join(root, ".planning/JTBD-COVERAGE.md");
+    const tenCellRow = "| 2026-09-27 | short | mid | shipped | candidate | source.md | maintainer | Keep discovery evidence bounded. | proof.md | No live provider claim. |";
+    fs.writeFileSync(canonical, appendJtbdTransition(fs.readFileSync(canonical, "utf8"), tenCellRow));
+    const head = commit(root, "append JTBD history without evidence class");
+    const result = JSON.parse(guard(root, base, head, ["--json"]).stdout);
+    assert.equal(result.status, "violated");
+    assert.ok(result.violations.some((item) => item.code === "HIST_JTBD_TRANSITION_INVALID"));
   });
 
   test("revision evidence: missing base, missing head, and shallow repositories fail closed", async (t) => {

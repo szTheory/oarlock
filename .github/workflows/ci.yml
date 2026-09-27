@@ -358,6 +358,9 @@ jobs:
       - name: Smoke live planning health JSON
         run: node scripts/planning_health.cjs --json
 
+      - name: Validate JTBD coverage
+        run: node scripts/jtbd_coverage.cjs --json
+
   quality:
     name: quality checks
     runs-on: ubuntu-24.04
@@ -429,7 +432,8 @@ jobs:
           curl -fsSLo "$RUNNER_TEMP/rebar3-3.25.1" https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
           echo '69073f6ad163f74971545015238614c327893960c1b3f26df5377df135c773a0716b48b65c2a48cef878f185dd92805abc69894adfa3fd27a90c62a64ba371e2  rebar3-3.25.1' | (cd "$RUNNER_TEMP" && sha512sum --check)
           mix local.rebar rebar3 "$RUNNER_TEMP/rebar3-3.25.1" --force
-          HEX_VERSION="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort | tail -1 | sed -E 's|.*/hex-([0-9.]+)(\.ez)?$|\1|')"
+          HEX_ENTRY="$(find "$HOME/.mix/archives" -mindepth 1 -maxdepth 1 \( -type d -name 'hex-*' -o -type f -name 'hex-*.ez' \) -print | sort -V | tail -1)"
+          HEX_VERSION="$(basename "$HEX_ENTRY" | sed -E 's/^hex-([0-9.]+)(\.ez)?$/\1/')"
           REBAR_BIN="$(find "$HOME/.mix" -type f -name rebar3 -perm -u+x -print | head -1)"
           test -n "$HEX_VERSION"
           test -n "$REBAR_BIN"
